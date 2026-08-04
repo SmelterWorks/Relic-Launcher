@@ -5,7 +5,7 @@
 | Interface | Purpose | Default implementation |
 |-----------|---------|------------------------|
 | `IRuntimePlatform` | OS/arch, default paths, package key | `RuntimePlatform` |
-| `IAccountAuthService` | Game account login/session | `AccountAuthService` |
+| `IAccountAuthService` | Game account login/session (`auth3` gamelogin) | `AccountAuthService` |
 | `ISecretStore` | Encrypted secret persistence | `FileSecretStore` |
 | `IGameVersionCatalog` | Remote version list | `VintageStoryVersionCatalog` |
 | `IInstalledVersionStore` | Local versions inventory | `JsonInstalledVersionStore` |
@@ -41,10 +41,11 @@ Layout: `{InstallsRoot}/versions/{version}/`, mods in `{DataPath}/Mods/`.
 | `SettingsViewModel` | Account sign-in, paths, theme |
 | `AboutViewModel` | Build metadata |
 
-## Infrastructure notes
+## Architecture notes
 
-- Account login POSTs to `attemptlogin` with email/password
+- Account login POSTs to `auth3.vintagestory.at/v2/gamelogin` (email/password + optional TOTP). Session fields are written into `clientsettings.json` on Play.
 - Version JSON from `api.vintagestory.at/stable-unstable.json`
+- Client packages download from public CDN URLs without portal cookies
 - Windows client packages are Inno installers (`/VERYSILENT /DIR=...`)
 - Linux/macOS prefer `.tar.gz` client archives
 - Launch args include `--dataPath`

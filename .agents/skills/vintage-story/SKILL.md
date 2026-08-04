@@ -21,7 +21,7 @@ Vintage Story is a survival voxel sandbox by **Anego Studios SIA** ([vintagestor
 
 Full list and notes: [references/official-urls.md](references/official-urls.md)
 
-There is a **public version catalog** at `api.vintagestory.at` and a **public ModDB API** at `mods.vintagestory.at/api`. Account Manager login for client downloads uses form POST to `attemptlogin` (see [references/account-and-downloads.md](references/account-and-downloads.md)). Do not invent undocumented endpoints.
+There is a **public version catalog** at `api.vintagestory.at` and a **public ModDB API** at `mods.vintagestory.at/api`. Game client login uses `auth3.vintagestory.at/v2/gamelogin` (see [references/account-and-downloads.md](references/account-and-downloads.md)). Do not invent undocumented endpoints.
 
 ## Game client (what Relic Launcher launches)
 

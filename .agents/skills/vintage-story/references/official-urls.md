@@ -10,9 +10,12 @@ Use these exact URLs in code, tests, and docs unless the user provides a newer c
 | Blog index | https://www.vintagestory.at/blog.html/ |
 | Press kit | https://www.vintagestory.at/presskit.html/ |
 | Account manager | https://account.vintagestory.at/ |
-| Account login POST | https://account.vintagestory.at/attemptlogin |
+| Account portal login POST | https://account.vintagestory.at/attemptlogin |
+| Game client login POST | https://auth3.vintagestory.at/v2/gamelogin |
+| Game client session validate | https://auth3.vintagestory.at/clientvalidate |
 | Version catalog | https://api.vintagestory.at/stable-unstable.json |
 | Latest stable | https://api.vintagestory.at/lateststable.txt |
+| Latest unstable | https://api.vintagestory.at/latestunstable.txt |
 | CDN game files | https://cdn.vintagestory.at/gamefiles/ |
 | Wiki | https://wiki.vintagestory.at/ |
 | Mod DB | https://mods.vintagestory.at/ |

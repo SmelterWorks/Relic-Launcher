@@ -60,9 +60,9 @@ Implemented:
 - Home: play (active managed version), Vintage Story blog news, optional background logo
 - Versions: catalog from api.vintagestory.at, install/uninstall/set active under InstallsRoot
 - Mods: ModDB browse/install plus local enable/disable/uninstall
-- Settings: account sign-in, installs root, data path, theme, logo, confirm-before-exit
+- Settings: account sign-in (auth3 email/password + TOTP), installs root, data path, theme, logo, confirm-before-exit
 - About: version, commit, build time, logs folder open, 0BSD
-- Built-in themes: `relic-default`, `high-contrast`
+- Built-in themes: `relic-default`, `temporal-rift`, `moss-hearth`, `copper-dungeon`, `high-contrast`
 
 Still stubbed / out of scope:
 
