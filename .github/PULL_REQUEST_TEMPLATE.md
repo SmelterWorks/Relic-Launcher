@@ -10,4 +10,5 @@
 
 ## Notes
 
--
+- AI tools used (or none):
+- I reviewed the full diff and can explain the change.
