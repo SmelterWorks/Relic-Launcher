@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using RelicLauncher.Core.Abstractions;
 using RelicLauncher.Core.Models;
 using RelicLauncher.Core.Results;
+using RelicLauncher.Infrastructure.Endpoints;
 
 namespace RelicLauncher.Infrastructure.News;
 
@@ -18,21 +19,28 @@ public sealed partial class VintageStoryNewsService : IVintageStoryNewsService
 
     private readonly ILogger<VintageStoryNewsService> _logger;
     private readonly HttpClient _httpClient;
+    private readonly IEndpointProvider _endpoints;
     private readonly NewsCacheStore _cacheStore;
     private readonly SemaphoreSlim _listRefreshLock = new(1, 1);
     private IReadOnlyList<NewsArticle>? _memoryListCache;
     private DateTimeOffset _memoryListExpiresAt;
     private readonly ConcurrentDictionary<string, CachedArticleEntry> _memoryArticleCache = new(StringComparer.OrdinalIgnoreCase);
 
-    public VintageStoryNewsService(ILogger<VintageStoryNewsService> logger, IAppPathProvider pathProvider)
-        : this(logger, CreateDefaultHttpClient(), new NewsCacheStore(pathProvider))
+    public VintageStoryNewsService(ILogger<VintageStoryNewsService> logger, IAppPathProvider pathProvider, IEndpointProvider endpoints)
+        : this(logger, CreateDefaultHttpClient(), new NewsCacheStore(pathProvider), endpoints)
     {
     }
 
     internal VintageStoryNewsService(ILogger<VintageStoryNewsService> logger, HttpClient httpClient, NewsCacheStore cacheStore)
+        : this(logger, httpClient, cacheStore, new EndpointProvider())
+    {
+    }
+
+    internal VintageStoryNewsService(ILogger<VintageStoryNewsService> logger, HttpClient httpClient, NewsCacheStore cacheStore, IEndpointProvider endpoints)
     {
         _logger = logger;
         _httpClient = httpClient;
+        _endpoints = endpoints;
         _cacheStore = cacheStore;
         if (!_httpClient.DefaultRequestHeaders.UserAgent.Any())
         {
@@ -125,7 +133,7 @@ public sealed partial class VintageStoryNewsService : IVintageStoryNewsService
 
     private async Task<Result<IReadOnlyList<NewsArticle>>> FetchListFromNetworkAsync(int maxItems, CancellationToken cancellationToken)
     {
-        const string blogUrl = "https://www.vintagestory.at/blog.html/";
+        var blogUrl = _endpoints.NewsBlogUrl;
 
         try
         {

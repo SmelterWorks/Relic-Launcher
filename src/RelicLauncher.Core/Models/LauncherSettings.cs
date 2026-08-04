@@ -1,8 +1,10 @@
+using RelicLauncher.Core.Constants;
+
 namespace RelicLauncher.Core.Models;
 
 public sealed class LauncherSettings
 {
-    public const string DefaultThemeId = "relic-default";
+    public const string DefaultThemeId = RelicDefaults.ThemeId;
 
     public string SelectedThemeId { get; set; } = DefaultThemeId;
     public string? GameInstallPath { get; set; }
@@ -12,5 +14,6 @@ public sealed class LauncherSettings
     public bool ConfirmBeforeExit { get; set; }
     public HomeBackgroundLogoMode HomeBackgroundLogoMode { get; set; } = HomeBackgroundLogoMode.Square;
     public string? HomeBackgroundCustomLogoPath { get; set; }
-    public double HomeBackgroundLogoOpacity { get; set; } = 0.2;
+    public double HomeBackgroundLogoOpacity { get; set; } = RelicDefaults.HomeBackgroundLogoOpacity;
+    public EndpointSettings Endpoints { get; set; } = EndpointSettings.CreateDefaults();
 }

@@ -6,13 +6,14 @@ using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
 using RelicLauncher.App.Services;
 using RelicLauncher.Core.Abstractions;
+using RelicLauncher.Core.Constants;
 using RelicLauncher.Core.Models;
 
 namespace RelicLauncher.App.ViewModels;
 
 public partial class ModsViewModel : PageViewModelBase
 {
-    private const int DefaultPageSize = 24;
+    private const int DefaultPageSize = RelicDefaults.ModBrowsePageSize;
     private readonly IModDbClient _modDb;
     private readonly IModLibraryService _modLibrary;
     private readonly IRuntimePlatform _platform;
@@ -87,9 +88,18 @@ public partial class ModsViewModel : PageViewModelBase
     [ObservableProperty]
     private string _installProgressLabel = string.Empty;
 
+    [ObservableProperty]
+    private bool _isImageViewerOpen;
+
+    [ObservableProperty]
+    private Bitmap? _viewerImage;
+
+    [ObservableProperty]
+    private bool _isViewerLoading;
+
     public ObservableCollection<ModRowViewModel> BrowseResults { get; } = [];
     public ObservableCollection<LocalModInfo> InstalledMods { get; } = [];
-    public ObservableCollection<Bitmap?> ScreenshotBitmaps { get; } = [];
+    public ObservableCollection<ModImageItemViewModel> ScreenshotItems { get; } = [];
     public ObservableCollection<TransferJobRowViewModel> ActiveTransfers { get; } = [];
 
     public ModsViewModel(
@@ -282,7 +292,8 @@ public partial class ModsViewModel : PageViewModelBase
         SelectedDetails = null;
         SelectedRelease = null;
         DetailLogo = null;
-        ScreenshotBitmaps.Clear();
+        ScreenshotItems.Clear();
+        CloseImageViewer();
 
         var id = !string.IsNullOrWhiteSpace(summary.UrlAlias)
             ? summary.UrlAlias
@@ -314,24 +325,82 @@ public partial class ModsViewModel : PageViewModelBase
             }
         }
 
-        ScreenshotBitmaps.Clear();
+        ScreenshotItems.Clear();
         foreach (var shot in details.Screenshots.Take(8))
         {
-            var url = shot.ThumbnailUrl ?? shot.MainUrl;
-            if (string.IsNullOrWhiteSpace(url))
+            var thumbUrl = shot.ThumbnailUrl ?? shot.MainUrl;
+            if (string.IsNullOrWhiteSpace(thumbUrl))
             {
                 continue;
             }
 
-            var bytes = await _images.GetImageBytesAsync(url).ConfigureAwait(true);
+            var bytes = await _images.GetImageBytesAsync(thumbUrl).ConfigureAwait(true);
             if (bytes is null)
             {
                 continue;
             }
 
             using var stream = new MemoryStream(bytes);
-            ScreenshotBitmaps.Add(new Bitmap(stream));
+            var bitmap = new Bitmap(stream);
+            ScreenshotItems.Add(new ModImageItemViewModel(bitmap, shot.MainUrl ?? thumbUrl, OpenScreenshotAsync));
         }
+    }
+
+    [RelayCommand]
+    private async Task OpenDetailLogoAsync()
+    {
+        if (DetailLogo is null)
+        {
+            return;
+        }
+
+        var url = SelectedDetails?.LogoUrl;
+        if (!string.IsNullOrWhiteSpace(url))
+        {
+            await OpenImageUrlAsync(url).ConfigureAwait(true);
+            return;
+        }
+
+        ViewerImage = DetailLogo;
+        IsImageViewerOpen = true;
+    }
+
+    private Task OpenScreenshotAsync(ModImageItemViewModel item)
+        => OpenImageUrlAsync(item.FullUrl, item.Thumbnail);
+
+    private async Task OpenImageUrlAsync(string? url, Bitmap? fallback = null)
+    {
+        IsImageViewerOpen = true;
+        IsViewerLoading = true;
+        ViewerImage = fallback;
+        try
+        {
+            if (string.IsNullOrWhiteSpace(url))
+            {
+                return;
+            }
+
+            var bytes = await _images.GetImageBytesAsync(url).ConfigureAwait(true);
+            if (bytes is null)
+            {
+                return;
+            }
+
+            using var stream = new MemoryStream(bytes);
+            ViewerImage = new Bitmap(stream);
+        }
+        finally
+        {
+            IsViewerLoading = false;
+        }
+    }
+
+    [RelayCommand]
+    private void CloseImageViewer()
+    {
+        IsImageViewerOpen = false;
+        IsViewerLoading = false;
+        ViewerImage = null;
     }
 
     [RelayCommand]

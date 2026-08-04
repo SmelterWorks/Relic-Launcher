@@ -7,4 +7,5 @@ public sealed class ModSearchResult
     public int Page { get; init; }
     public int PageSize { get; init; }
     public bool FromCache { get; init; }
+    public bool IsStale { get; init; }
 }

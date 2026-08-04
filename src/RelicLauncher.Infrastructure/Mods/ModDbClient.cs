@@ -5,31 +5,39 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using RelicLauncher.Core.Abstractions;
+using RelicLauncher.Core.Constants;
 using RelicLauncher.Core.Models;
 using RelicLauncher.Core.Results;
+using RelicLauncher.Infrastructure.Endpoints;
 
 namespace RelicLauncher.Infrastructure.Mods;
 
 public sealed class ModDbClient : IModDbClient
 {
-    private const string ApiBase = "https://mods.vintagestory.at/api/";
     private static readonly TimeSpan CatalogTtl = TimeSpan.FromHours(6);
     private static readonly TimeSpan DetailsTtl = TimeSpan.FromHours(12);
     private readonly HttpClient _httpClient;
     private readonly IAppPathProvider _pathProvider;
+    private readonly IEndpointProvider _endpoints;
     private readonly ILogger<ModDbClient> _logger;
     private readonly SemaphoreSlim _catalogGate = new(1, 1);
     private IReadOnlyList<ModSummary>? _memoryCatalog;
     private DateTimeOffset _memoryCatalogAt;
 
-    public ModDbClient(IAppPathProvider pathProvider, ILogger<ModDbClient> logger)
-        : this(pathProvider, logger, CreateDefaultClient())
+    public ModDbClient(IAppPathProvider pathProvider, IEndpointProvider endpoints, ILogger<ModDbClient> logger)
+        : this(pathProvider, endpoints, logger, CreateDefaultClient())
     {
     }
 
     internal ModDbClient(IAppPathProvider pathProvider, ILogger<ModDbClient> logger, HttpClient httpClient)
+        : this(pathProvider, new EndpointProvider(), logger, httpClient)
+    {
+    }
+
+    internal ModDbClient(IAppPathProvider pathProvider, IEndpointProvider endpoints, ILogger<ModDbClient> logger, HttpClient httpClient)
     {
         _pathProvider = pathProvider;
+        _endpoints = endpoints;
         _logger = logger;
         _httpClient = httpClient;
         if (!_httpClient.DefaultRequestHeaders.UserAgent.Any())
@@ -48,7 +56,7 @@ public sealed class ModDbClient : IModDbClient
         try
         {
             var page = Math.Max(1, query.Page);
-            var pageSize = Math.Clamp(query.PageSize <= 0 ? 24 : query.PageSize, 1, 100);
+            var pageSize = Math.Clamp(query.PageSize <= 0 ? RelicDefaults.ModBrowsePageSize : query.PageSize, 1, 100);
             var resolved = await ResolveSearchSourceAsync(query, cancellationToken).ConfigureAwait(false);
             if (!resolved.IsSuccess)
             {
@@ -113,9 +121,9 @@ public sealed class ModDbClient : IModDbClient
 
         try
         {
-            var json = await _httpClient.GetStringAsync($"mod/{Uri.EscapeDataString(key)}", cancellationToken)
+            var json = await _httpClient.GetStringAsync(ApiUrl($"mod/{Uri.EscapeDataString(key)}"), cancellationToken)
                 .ConfigureAwait(false);
-            var details = ParseDetails(json);
+            var details = ParseDetails(json, _endpoints.BuildModDownloadUrl);
             if (details is null)
             {
                 return Result<ModDetails>.Failure("Mod not found.");
@@ -141,7 +149,7 @@ public sealed class ModDbClient : IModDbClient
     {
         try
         {
-            var url = BuildSearchUrl(query);
+            var url = ApiUrl(BuildSearchUrl(query));
             var json = await _httpClient.GetStringAsync(url, cancellationToken).ConfigureAwait(false);
             return Result<IReadOnlyList<ModSummary>>.Success(ParseSearch(json));
         }
@@ -213,7 +221,7 @@ public sealed class ModDbClient : IModDbClient
     {
         try
         {
-            var json = await _httpClient.GetStringAsync("mods?orderby=downloads", cancellationToken).ConfigureAwait(false);
+            var json = await _httpClient.GetStringAsync(ApiUrl("mods?orderby=downloads"), cancellationToken).ConfigureAwait(false);
             var mods = ParseSearch(json);
             _memoryCatalog = mods;
             _memoryCatalogAt = DateTimeOffset.UtcNow;
@@ -273,8 +281,9 @@ public sealed class ModDbClient : IModDbClient
         return list;
     }
 
-    public static ModDetails? ParseDetails(string json)
+    public static ModDetails? ParseDetails(string json, Func<int, string>? buildDownloadUrl = null)
     {
+        buildDownloadUrl ??= VintageStoryEndpoints.BuildModDownloadUrl;
         using var doc = JsonDocument.Parse(json);
         if (!doc.RootElement.TryGetProperty("mod", out var mod))
         {
@@ -305,11 +314,11 @@ public sealed class ModDbClient : IModDbClient
             TrailerVideoUrl = mod.TryGetProperty("trailervideourl", out var trailer) ? trailer.GetString() : null,
             Tags = ReadStringArray(mod, "tags"),
             Screenshots = ParseScreenshots(mod),
-            Releases = ParseReleases(mod),
+            Releases = ParseReleases(mod, buildDownloadUrl),
         };
     }
 
-    private static IReadOnlyList<ModReleaseInfo> ParseReleases(JsonElement mod)
+    private static IReadOnlyList<ModReleaseInfo> ParseReleases(JsonElement mod, Func<int, string> buildDownloadUrl)
     {
         var releases = new List<ModReleaseInfo>();
         if (!mod.TryGetProperty("releases", out var releasesEl) || releasesEl.ValueKind != JsonValueKind.Array)
@@ -333,7 +342,7 @@ public sealed class ModDbClient : IModDbClient
                 CompatibleGameVersions = ReadStringArray(release, "tags"),
                 DownloadUrl = release.TryGetProperty("mainfile", out var main) && !string.IsNullOrWhiteSpace(main.GetString())
                     ? main.GetString()!
-                    : $"https://mods.vintagestory.at/download?fileid={fileId}",
+                    : buildDownloadUrl(fileId),
             });
         }
 
@@ -408,9 +417,22 @@ public sealed class ModDbClient : IModDbClient
             return null;
         }
 
-        var sb = new StringBuilder(html.Length);
+        var normalized = html
+            .Replace("\r\n", "\n", StringComparison.Ordinal)
+            .Replace("<br>", "\n", StringComparison.OrdinalIgnoreCase)
+            .Replace("<br/>", "\n", StringComparison.OrdinalIgnoreCase)
+            .Replace("<br />", "\n", StringComparison.OrdinalIgnoreCase)
+            .Replace("</p>", "\n\n", StringComparison.OrdinalIgnoreCase)
+            .Replace("</div>", "\n", StringComparison.OrdinalIgnoreCase)
+            .Replace("</li>", "\n", StringComparison.OrdinalIgnoreCase)
+            .Replace("</h1>", "\n\n", StringComparison.OrdinalIgnoreCase)
+            .Replace("</h2>", "\n\n", StringComparison.OrdinalIgnoreCase)
+            .Replace("</h3>", "\n\n", StringComparison.OrdinalIgnoreCase)
+            .Replace("</tr>", "\n", StringComparison.OrdinalIgnoreCase);
+
+        var sb = new StringBuilder(normalized.Length);
         var inTag = false;
-        foreach (var ch in html)
+        foreach (var ch in normalized)
         {
             if (ch == '<')
             {
@@ -421,7 +443,6 @@ public sealed class ModDbClient : IModDbClient
             if (ch == '>')
             {
                 inTag = false;
-                sb.Append(' ');
                 continue;
             }
 
@@ -432,16 +453,53 @@ public sealed class ModDbClient : IModDbClient
         }
 
         var text = WebUtility.HtmlDecode(sb.ToString());
-        return CollapseWhitespace(text);
+        return NormalizeDescriptionWhitespace(text);
     }
 
-    private static string CollapseWhitespace(string text)
+    private static string NormalizeDescriptionWhitespace(string text)
+    {
+        var lines = text.Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n');
+        var cleaned = new List<string>(lines.Length);
+        foreach (var line in lines)
+        {
+            cleaned.Add(CollapseHorizontalWhitespace(line).TrimEnd());
+        }
+
+        var sb = new StringBuilder(text.Length);
+        var blankRun = 0;
+        foreach (var line in cleaned)
+        {
+            if (string.IsNullOrWhiteSpace(line))
+            {
+                blankRun++;
+                if (blankRun <= 2)
+                {
+                    sb.Append('\n');
+                }
+
+                continue;
+            }
+
+            blankRun = 0;
+            if (sb.Length > 0 && sb[^1] != '\n')
+            {
+                sb.Append('\n');
+            }
+
+            sb.Append(line);
+            sb.Append('\n');
+        }
+
+        return sb.ToString().Trim();
+    }
+
+    private static string CollapseHorizontalWhitespace(string text)
     {
         var sb = new StringBuilder(text.Length);
         var previousWasSpace = false;
         foreach (var ch in text)
         {
-            if (char.IsWhiteSpace(ch))
+            if (ch is ' ' or '\t')
             {
                 if (!previousWasSpace)
                 {
@@ -456,7 +514,7 @@ public sealed class ModDbClient : IModDbClient
             sb.Append(ch);
         }
 
-        return sb.ToString().Trim();
+        return sb.ToString();
     }
 
     private static string? FirstNonEmpty(params string?[] values)
@@ -603,10 +661,12 @@ public sealed class ModDbClient : IModDbClient
         public ModDetails? Mod { get; init; }
     }
 
+    private string ApiUrl(string relative)
+        => new Uri(new Uri(_endpoints.ModDbApiBaseUrl), relative).ToString();
+
     private static HttpClient CreateDefaultClient()
         => new(new HttpClientHandler { AutomaticDecompression = DecompressionMethods.All })
         {
-            BaseAddress = new Uri(ApiBase),
             Timeout = TimeSpan.FromSeconds(90),
         };
 }

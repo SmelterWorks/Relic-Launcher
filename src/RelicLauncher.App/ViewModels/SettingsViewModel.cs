@@ -6,6 +6,7 @@ using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
 using RelicLauncher.App.Services;
 using RelicLauncher.Core.Abstractions;
+using RelicLauncher.Core.Constants;
 using RelicLauncher.Core.Models;
 
 namespace RelicLauncher.App.ViewModels;
@@ -18,6 +19,7 @@ public partial class SettingsViewModel : PageViewModelBase
     private readonly IStoragePickerService _storagePicker;
     private readonly IRuntimePlatform _platform;
     private readonly IAccountAuthService _accountAuth;
+    private readonly IAccountBrowserLoginService _browserLogin;
     private readonly IDebugLogBuffer _debugLogBuffer;
     private readonly ILogger<SettingsViewModel> _logger;
     private Action<LauncherSettings>? _onChanged;
@@ -65,7 +67,28 @@ public partial class SettingsViewModel : PageViewModelBase
     private string _homeBackgroundCustomLogoPath = string.Empty;
 
     [ObservableProperty]
-    private double _homeBackgroundLogoOpacity = 0.2;
+    private double _homeBackgroundLogoOpacity = RelicDefaults.HomeBackgroundLogoOpacity;
+
+    [ObservableProperty]
+    private string _accountBaseUrl = VintageStoryEndpoints.AccountBaseUrl;
+
+    [ObservableProperty]
+    private string _cdnBaseUrl = VintageStoryEndpoints.CdnBaseUrl;
+
+    [ObservableProperty]
+    private string _modDbApiBaseUrl = VintageStoryEndpoints.ModDbApiBaseUrl;
+
+    [ObservableProperty]
+    private string _modDbDownloadBaseUrl = VintageStoryEndpoints.ModDbDownloadBaseUrl;
+
+    [ObservableProperty]
+    private string _versionCatalogUrl = VintageStoryEndpoints.VersionCatalogUrl;
+
+    [ObservableProperty]
+    private string _latestStableUrl = VintageStoryEndpoints.LatestStableUrl;
+
+    [ObservableProperty]
+    private string _newsBlogUrl = VintageStoryEndpoints.NewsBlogUrl;
 
     [ObservableProperty]
     private string _saveStatusMessage = string.Empty;
@@ -86,6 +109,7 @@ public partial class SettingsViewModel : PageViewModelBase
         IStoragePickerService storagePicker,
         IRuntimePlatform platform,
         IAccountAuthService accountAuth,
+        IAccountBrowserLoginService browserLogin,
         IFileExplorerService fileExplorer,
         IDebugLogBuffer debugLogBuffer,
         ILogger<SettingsViewModel> logger)
@@ -96,6 +120,7 @@ public partial class SettingsViewModel : PageViewModelBase
         _storagePicker = storagePicker;
         _platform = platform;
         _accountAuth = accountAuth;
+        _browserLogin = browserLogin;
         _debugLogBuffer = debugLogBuffer;
         _logger = logger;
         Themes = _themeService.AvailableThemes;
@@ -152,6 +177,20 @@ public partial class SettingsViewModel : PageViewModelBase
 
     partial void OnHomeBackgroundLogoOpacityChanged(double value) => ScheduleAutoSave();
 
+    partial void OnAccountBaseUrlChanged(string value) => ScheduleAutoSave();
+
+    partial void OnCdnBaseUrlChanged(string value) => ScheduleAutoSave();
+
+    partial void OnModDbApiBaseUrlChanged(string value) => ScheduleAutoSave();
+
+    partial void OnModDbDownloadBaseUrlChanged(string value) => ScheduleAutoSave();
+
+    partial void OnVersionCatalogUrlChanged(string value) => ScheduleAutoSave();
+
+    partial void OnLatestStableUrlChanged(string value) => ScheduleAutoSave();
+
+    partial void OnNewsBlogUrlChanged(string value) => ScheduleAutoSave();
+
     partial void OnSaveStatusMessageChanged(string value) => OnPropertyChanged(nameof(IsSaveStatusVisible));
 
     partial void OnAccountErrorChanged(string value) => OnPropertyChanged(nameof(HasAccountError));
@@ -170,6 +209,7 @@ public partial class SettingsViewModel : PageViewModelBase
             ?? LogoModeOptions.FirstOrDefault(o => o.Mode == HomeBackgroundLogoMode.Square);
         HomeBackgroundCustomLogoPath = settings.HomeBackgroundCustomLogoPath ?? string.Empty;
         HomeBackgroundLogoOpacity = settings.HomeBackgroundLogoOpacity;
+        BindEndpoints(settings.Endpoints ?? EndpointSettings.CreateDefaults());
         SelectedTheme = Themes.FirstOrDefault(t => string.Equals(t.Id, settings.SelectedThemeId, StringComparison.OrdinalIgnoreCase))
             ?? Themes.FirstOrDefault();
         var paths = _pathProvider.GetPaths();
@@ -180,6 +220,17 @@ public partial class SettingsViewModel : PageViewModelBase
         _isBinding = false;
         _ = RefreshAccountStatusAsync();
         RefreshDebugLog();
+    }
+
+    private void BindEndpoints(EndpointSettings endpoints)
+    {
+        AccountBaseUrl = endpoints.AccountBaseUrl;
+        CdnBaseUrl = endpoints.CdnBaseUrl;
+        ModDbApiBaseUrl = endpoints.ModDbApiBaseUrl;
+        ModDbDownloadBaseUrl = endpoints.ModDbDownloadBaseUrl;
+        VersionCatalogUrl = endpoints.VersionCatalogUrl;
+        LatestStableUrl = endpoints.LatestStableUrl;
+        NewsBlogUrl = endpoints.NewsBlogUrl;
     }
 
     [RelayCommand]
@@ -218,15 +269,10 @@ public partial class SettingsViewModel : PageViewModelBase
         IsSigningIn = true;
         StatusMessage = string.Empty;
         AccountError = string.Empty;
-        AccountStatus = "Signing in...";
+        AccountStatus = "Opening account browser...";
         try
         {
-            var result = await _accountAuth.LoginAsync(new AccountCredentials
-            {
-                Email = AccountEmail,
-                Password = AccountPassword,
-            }).ConfigureAwait(true);
-            AccountPassword = string.Empty;
+            var result = await _browserLogin.SignInAsync(AccountEmail).ConfigureAwait(true);
             if (!result.IsSuccess)
             {
                 var error = result.Error ?? "Sign-in failed.";
@@ -234,21 +280,60 @@ public partial class SettingsViewModel : PageViewModelBase
                 StatusMessage = error;
                 IsSignedIn = false;
                 AccountStatus = "Not signed in";
-                _logger.LogWarning("Settings sign-in failed: {Error}", error);
+                _logger.LogWarning("Settings browser sign-in failed: {Error}", error);
                 return;
             }
 
             IsSignedIn = true;
             AccountStatus = $"Signed in as {result.Value!.Email}";
             AccountEmail = result.Value.Email ?? AccountEmail;
+            AccountPassword = string.Empty;
             AccountError = string.Empty;
             StatusMessage = "Signed in successfully.";
-            _logger.LogInformation("Settings sign-in succeeded for {Email}", AccountEmail);
+            _logger.LogInformation("Settings browser sign-in succeeded for {Email}", AccountEmail);
         }
         finally
         {
             IsSigningIn = false;
         }
+    }
+
+    [RelayCommand]
+    private async Task ResetSettingsAsync()
+    {
+        _isBinding = true;
+        var platform = _platform.GetPlatformInfo();
+        InstallsRoot = platform.DefaultInstallsRoot;
+        DataPath = platform.DefaultDataPath;
+        SelectedVersion = string.Empty;
+        ConfirmBeforeExit = false;
+        HomeBackgroundLogoMode = HomeBackgroundLogoMode.Square;
+        SelectedLogoModeOption = LogoModeOptions.FirstOrDefault(o => o.Mode == HomeBackgroundLogoMode.Square);
+        HomeBackgroundCustomLogoPath = string.Empty;
+        HomeBackgroundLogoOpacity = RelicDefaults.HomeBackgroundLogoOpacity;
+        BindEndpoints(EndpointSettings.CreateDefaults());
+        SelectedTheme = Themes.FirstOrDefault(t => string.Equals(t.Id, LauncherSettings.DefaultThemeId, StringComparison.OrdinalIgnoreCase))
+            ?? Themes.FirstOrDefault();
+        AccountError = string.Empty;
+        StatusMessage = "Settings restored to defaults.";
+        _isBinding = false;
+        await PersistSettingsAsync().ConfigureAwait(true);
+        SaveStatusMessage = "Saved defaults";
+    }
+
+    [RelayCommand]
+    private void ResetEndpointUrls()
+    {
+        if (_isBinding)
+        {
+            return;
+        }
+
+        _isBinding = true;
+        BindEndpoints(EndpointSettings.CreateDefaults());
+        _isBinding = false;
+        ScheduleAutoSave();
+        StatusMessage = "Endpoint URLs restored to defaults.";
     }
 
     [RelayCommand]
@@ -412,6 +497,16 @@ public partial class SettingsViewModel : PageViewModelBase
                 ? null
                 : HomeBackgroundCustomLogoPath.Trim(),
             HomeBackgroundLogoOpacity = Math.Clamp(HomeBackgroundLogoOpacity, 0.02, 1.0),
+            Endpoints = new EndpointSettings
+            {
+                AccountBaseUrl = TrimOrDefault(AccountBaseUrl, VintageStoryEndpoints.AccountBaseUrl),
+                CdnBaseUrl = TrimOrDefault(CdnBaseUrl, VintageStoryEndpoints.CdnBaseUrl),
+                ModDbApiBaseUrl = TrimOrDefault(ModDbApiBaseUrl, VintageStoryEndpoints.ModDbApiBaseUrl),
+                ModDbDownloadBaseUrl = TrimOrDefault(ModDbDownloadBaseUrl, VintageStoryEndpoints.ModDbDownloadBaseUrl),
+                VersionCatalogUrl = TrimOrDefault(VersionCatalogUrl, VintageStoryEndpoints.VersionCatalogUrl),
+                LatestStableUrl = TrimOrDefault(LatestStableUrl, VintageStoryEndpoints.LatestStableUrl),
+                NewsBlogUrl = TrimOrDefault(NewsBlogUrl, VintageStoryEndpoints.NewsBlogUrl),
+            },
         };
 
         var themeResult = _themeService.ApplyTheme(settings.SelectedThemeId);
@@ -431,4 +526,7 @@ public partial class SettingsViewModel : PageViewModelBase
 
         _onChanged?.Invoke(settings);
     }
+
+    private static string TrimOrDefault(string? value, string fallback)
+        => string.IsNullOrWhiteSpace(value) ? fallback : value.Trim();
 }

@@ -4,6 +4,7 @@ using System.Net.Http.Headers;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using RelicLauncher.Core.Abstractions;
+using RelicLauncher.Core.Constants;
 using RelicLauncher.Core.Models;
 using RelicLauncher.Core.Paths;
 using RelicLauncher.Core.Results;
@@ -12,7 +13,7 @@ namespace RelicLauncher.Infrastructure.Mods;
 
 public sealed class ModLibraryService : IModLibraryService
 {
-    private const string DisabledSuffix = ".disabled";
+    private const string DisabledSuffix = RelicDefaults.DisabledModSuffix;
     private readonly HttpClient _httpClient;
     private readonly ILogger<ModLibraryService> _logger;
 

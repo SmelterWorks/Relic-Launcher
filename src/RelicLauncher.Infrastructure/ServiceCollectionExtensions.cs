@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using RelicLauncher.Core.Abstractions;
 using RelicLauncher.Infrastructure.Auth;
 using RelicLauncher.Infrastructure.Caching;
+using RelicLauncher.Infrastructure.Endpoints;
 using RelicLauncher.Infrastructure.Hosting;
 using RelicLauncher.Infrastructure.Launch;
 using RelicLauncher.Infrastructure.Logging;
@@ -27,6 +28,7 @@ public static class ServiceCollectionExtensions
     {
         services.TryAddSingleton<IAppPathProvider, AppPathProvider>();
         services.AddSingleton<IRuntimePlatform, RuntimePlatform>();
+        services.AddSingleton<IEndpointProvider, EndpointProvider>();
         services.AddSingleton<ILauncherSettingsStore, JsonLauncherSettingsStore>();
         services.AddSingleton<ISecretStore, FileSecretStore>();
         services.AddSingleton<AccountAuthService>();

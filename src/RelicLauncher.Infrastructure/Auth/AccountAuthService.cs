@@ -3,25 +3,27 @@ using System.Net.Http.Headers;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using RelicLauncher.Core.Abstractions;
+using RelicLauncher.Core.Constants;
 using RelicLauncher.Core.Models;
 using RelicLauncher.Core.Results;
+using RelicLauncher.Infrastructure.Endpoints;
 
 namespace RelicLauncher.Infrastructure.Auth;
 
 public sealed class AccountAuthService : IAccountAuthService
 {
-    public const string CookieSecretKey = "vs.account.cookies";
-    public const string EmailSecretKey = "vs.account.email";
-    private const string AccountBase = "https://account.vintagestory.at/";
+    public const string CookieSecretKey = RelicSecretKeys.AccountCookies;
+    public const string EmailSecretKey = RelicSecretKeys.AccountEmail;
 
     private readonly ISecretStore _secretStore;
+    private readonly IEndpointProvider _endpoints;
     private readonly ILogger<AccountAuthService> _logger;
     private readonly CookieContainer _cookies;
     private readonly HttpClient _httpClient;
     private string? _email;
 
-    public AccountAuthService(ISecretStore secretStore, ILogger<AccountAuthService> logger)
-        : this(secretStore, logger, CreateHandler(out var cookies), cookies)
+    public AccountAuthService(ISecretStore secretStore, IEndpointProvider endpoints, ILogger<AccountAuthService> logger)
+        : this(secretStore, endpoints, logger, CreateHandler(out var cookies), cookies)
     {
     }
 
@@ -30,13 +32,23 @@ public sealed class AccountAuthService : IAccountAuthService
         ILogger<AccountAuthService> logger,
         HttpMessageHandler handler,
         CookieContainer cookies)
+        : this(secretStore, new EndpointProvider(), logger, handler, cookies)
+    {
+    }
+
+    internal AccountAuthService(
+        ISecretStore secretStore,
+        IEndpointProvider endpoints,
+        ILogger<AccountAuthService> logger,
+        HttpMessageHandler handler,
+        CookieContainer cookies)
     {
         _secretStore = secretStore;
+        _endpoints = endpoints;
         _logger = logger;
         _cookies = cookies;
         _httpClient = new HttpClient(handler)
         {
-            BaseAddress = new Uri(AccountBase),
             Timeout = TimeSpan.FromSeconds(45),
         };
         if (!_httpClient.DefaultRequestHeaders.UserAgent.Any())
@@ -44,6 +56,8 @@ public sealed class AccountAuthService : IAccountAuthService
             _httpClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("RelicLauncher", "0.1.0"));
         }
     }
+
+    private Uri AccountBaseUri => new(_endpoints.AccountBaseUrl);
 
     public HttpClient HttpClient => _httpClient;
 
@@ -74,7 +88,7 @@ public sealed class AccountAuthService : IAccountAuthService
 
         try
         {
-            foreach (Cookie cookie in _cookies.GetCookies(new Uri(AccountBase)).Cast<Cookie>().ToList())
+            foreach (Cookie cookie in _cookies.GetCookies(AccountBaseUri).Cast<Cookie>().ToList())
             {
                 cookie.Expired = true;
             }
@@ -86,11 +100,18 @@ public sealed class AccountAuthService : IAccountAuthService
                 ["loginredir"] = string.Empty,
             });
 
-            using var response = await _httpClient.PostAsync("attemptlogin", content, cancellationToken).ConfigureAwait(false);
+            using var response = await _httpClient.PostAsync(new Uri(AccountBaseUri, "attemptlogin"), content, cancellationToken).ConfigureAwait(false);
             var body = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
             var location = response.Headers.Location?.ToString();
             var cookieNames = string.Join(", ",
-                _cookies.GetCookies(new Uri(AccountBase)).Cast<Cookie>().Select(c => c.Name).Distinct(StringComparer.Ordinal));
+                _cookies.GetCookies(AccountBaseUri).Cast<Cookie>().Select(c => c.Name).Distinct(StringComparer.Ordinal));
+
+            if (body.Contains("Captcha verification failed", StringComparison.OrdinalIgnoreCase))
+            {
+                _logger.LogWarning("Account login blocked by captcha. Status={Status}", (int)response.StatusCode);
+                return Result<AccountSessionStatus>.Failure(
+                    "The account portal requires a captcha. Use Sign in with browser in Settings (in-app account page), then click Use this session.");
+            }
 
             if (!LooksSignedIn(response, body, location))
             {
@@ -140,10 +161,53 @@ public sealed class AccountAuthService : IAccountAuthService
         });
     }
 
+    public async Task<Result<AccountSessionStatus>> ImportBrowserSessionAsync(
+        string email,
+        IReadOnlyList<Cookie> cookies,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            return Result<AccountSessionStatus>.Failure("Email is required to label the saved session.");
+        }
+
+        if (cookies.Count == 0)
+        {
+            return Result<AccountSessionStatus>.Failure("No cookies were provided from the browser session.");
+        }
+
+        foreach (Cookie cookie in _cookies.GetCookies(AccountBaseUri).Cast<Cookie>().ToList())
+        {
+            cookie.Expired = true;
+        }
+
+        foreach (var cookie in cookies)
+        {
+            try
+            {
+                var domain = string.IsNullOrWhiteSpace(cookie.Domain) ? ".vintagestory.at" : cookie.Domain;
+                var host = domain.StartsWith(".", StringComparison.Ordinal) ? domain.TrimStart('.') : domain;
+                _cookies.Add(new Uri("https://" + host + "/"), new Cookie(cookie.Name, cookie.Value)
+                {
+                    Domain = domain,
+                    Path = string.IsNullOrWhiteSpace(cookie.Path) ? "/" : cookie.Path,
+                    HttpOnly = cookie.HttpOnly,
+                    Secure = cookie.Secure,
+                });
+            }
+            catch (CookieException ex)
+            {
+                _logger.LogDebug(ex, "Skipped invalid browser cookie {Name}", cookie.Name);
+            }
+        }
+
+        return await CompleteLoginAsync(email.Trim(), cancellationToken).ConfigureAwait(false);
+    }
+
     public async Task<Result> LogoutAsync(CancellationToken cancellationToken = default)
     {
         _email = null;
-        foreach (Cookie cookie in _cookies.GetCookies(new Uri(AccountBase)))
+        foreach (Cookie cookie in _cookies.GetCookies(AccountBaseUri))
         {
             cookie.Expired = true;
         }
@@ -240,8 +304,8 @@ public sealed class AccountAuthService : IAccountAuthService
         }
 
         var cookies = new List<CookieDto>();
-        CollectCookies(new Uri(AccountBase), cookies);
-        CollectCookies(new Uri("https://cdn.vintagestory.at/"), cookies);
+        CollectCookies(AccountBaseUri, cookies);
+        CollectCookies(new Uri(_endpoints.CdnBaseUrl), cookies);
 
         var json = JsonSerializer.Serialize(cookies);
         return await _secretStore.SetAsync(CookieSecretKey, json, cancellationToken).ConfigureAwait(false);
@@ -297,6 +361,11 @@ public sealed class AccountAuthService : IAccountAuthService
 
     private static string ExplainLoginFailure(HttpResponseMessage response, string body, string? location)
     {
+        if (body.Contains("Captcha verification failed", StringComparison.OrdinalIgnoreCase))
+        {
+            return "The account portal requires a captcha. Use Sign in with browser in Settings.";
+        }
+
         if (ContainsAuthFailurePhrase(body))
         {
             return "Sign-in failed. Check email and password (game account, not forum).";

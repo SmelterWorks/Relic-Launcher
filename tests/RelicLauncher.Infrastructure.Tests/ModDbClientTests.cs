@@ -71,7 +71,7 @@ public class ModDbClientTests
                 "modid": 6,
                 "name": "Carry Capacity",
                 "logofile": "https://cdn.example/logo.png",
-                "text": "<p>Hello <b>world</b></p>",
+                "text": "<p>Hello</p><p>world</p>",
                 "homepageurl": "https://example.com",
                 "screenshots": [
                   {
@@ -97,7 +97,9 @@ public class ModDbClientTests
         details.Should().NotBeNull();
         details!.LogoUrl.Should().Be("https://cdn.example/logo.png");
         details.DescriptionText.Should().Contain("Hello");
+        details.DescriptionText.Should().Contain("world");
         details.DescriptionText.Should().NotContain("<");
+        details.DescriptionText.Should().Contain("\n");
         details.HomepageUrl.Should().Be("https://example.com");
         details.Screenshots.Should().ContainSingle();
         details.Releases.Should().ContainSingle();

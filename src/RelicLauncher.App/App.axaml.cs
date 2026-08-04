@@ -52,10 +52,14 @@ public partial class App : Application
         if (!settingsResult.IsSuccess)
         {
             logger.LogWarning("Settings load failed: {Error}. Using defaults.", settingsResult.Error);
-            return new LauncherSettings();
+            var defaults = new LauncherSettings();
+            services.GetRequiredService<IEndpointProvider>().Apply(defaults);
+            return defaults;
         }
 
-        return settingsResult.Value!;
+        var settings = settingsResult.Value!;
+        services.GetRequiredService<IEndpointProvider>().Apply(settings);
+        return settings;
     }
 
     private static void ApplyStartupTheme(ServiceProvider services, LauncherSettings settings, ILogger<App> logger)

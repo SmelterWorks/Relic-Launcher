@@ -1,0 +1,55 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:i="https://github.com/projektanker/icons.avalonia"
+        x:Class="RelicLauncher.App.Views.AccountLoginWindow"
+        Title="Sign in to Vintage Story"
+        Width="920"
+        Height="700"
+        MinWidth="720"
+        MinHeight="520"
+        WindowStartupLocation="CenterOwner"
+        CanResize="True">
+  <Grid RowDefinitions="Auto,*,Auto">
+    <Border Grid.Row="0" Padding="14,10" Background="{DynamicResource Theme.Bg1}" BorderBrush="{DynamicResource Theme.Border}" BorderThickness="0,0,0,1">
+      <Grid ColumnDefinitions="*,Auto">
+        <StackPanel Spacing="2">
+          <TextBlock Text="Vintage Story account" Classes="brand" FontSize="20" />
+          <TextBlock Text="Complete sign-in in this window (captcha required by the account portal)."
+                     Classes="muted"
+                     TextWrapping="Wrap" />
+        </StackPanel>
+        <Button Grid.Column="1"
+                Classes="ghost"
+                Width="40"
+                Height="40"
+                Padding="0"
+                ToolTip.Tip="Close"
+                Click="OnCancelClick">
+          <i:Icon Value="mdi-close" Width="18" Height="18" />
+        </Button>
+      </Grid>
+    </Border>
+
+    <NativeWebView x:Name="WebView"
+                   Grid.Row="1"
+                   NavigationCompleted="OnNavigationCompleted" />
+
+    <Border Grid.Row="2" Padding="14,10" Background="{DynamicResource Theme.Bg1}" BorderBrush="{DynamicResource Theme.Border}" BorderThickness="0,1,0,0">
+      <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+        <TextBlock x:Name="StatusText"
+                   Text="Waiting for sign-in..."
+                   Classes="muted"
+                   VerticalAlignment="Center"
+                   TextWrapping="Wrap" />
+        <Button Grid.Column="1"
+                Classes="ghost"
+                Content="Cancel"
+                Click="OnCancelClick" />
+        <Button Grid.Column="2"
+                Classes="primary"
+                Content="Use this session"
+                Click="OnConfirmClick" />
+      </Grid>
+    </Border>
+  </Grid>
+</Window>

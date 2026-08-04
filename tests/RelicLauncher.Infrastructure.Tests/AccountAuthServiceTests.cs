@@ -60,4 +60,25 @@ public class AccountAuthServiceTests
 
         result.IsSuccess.Should().BeFalse();
     }
+
+    [Fact]
+    public async Task ImportBrowserSessionAsync_PersistsCookiesAndEmail()
+    {
+        using var temp = new TempAppPaths();
+        var secrets = new FileSecretStore(new FixedPathProvider(temp.Paths));
+        var cookies = new CookieContainer();
+        var handler = new StubHandler(_ => new HttpResponseMessage(HttpStatusCode.OK));
+        var auth = new AccountAuthService(secrets, NullLogger<AccountAuthService>.Instance, handler, cookies);
+
+        var result = await auth.ImportBrowserSessionAsync(
+            "player@example.com",
+            [
+                new Cookie("PHPSESSID", "abc", "/", ".vintagestory.at") { Secure = true, HttpOnly = true },
+                new Cookie("vsid", "session", "/", ".vintagestory.at") { Secure = true, HttpOnly = true },
+            ]);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Value!.IsSignedIn.Should().BeTrue();
+        (await auth.GetStatusAsync()).Value!.Email.Should().Be("player@example.com");
+    }
 }

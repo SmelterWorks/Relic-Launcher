@@ -82,6 +82,7 @@
     <Setter Property="Foreground" Value="{DynamicResource Theme.Text}" />
     <Setter Property="BorderBrush" Value="{DynamicResource Theme.Border}" />
     <Setter Property="CaretBrush" Value="{DynamicResource Theme.Accent}" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
   </Style>
 
   <Style Selector="ComboBox">

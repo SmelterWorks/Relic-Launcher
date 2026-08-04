@@ -70,6 +70,7 @@ internal static class Program
         services.AddSingleton<IThemeService, AvaloniaThemeService>();
         services.AddSingleton<MainWindowHolder>();
         services.AddSingleton<IStoragePickerService, AvaloniaStoragePickerService>();
+        services.AddSingleton<IAccountBrowserLoginService, AccountBrowserLoginService>();
         services.AddSingleton<IRemoteNewsImageLoader, RemoteNewsImageLoader>();
         services.AddSingleton<MainWindowViewModel>();
         services.AddTransient<HomeViewModel>();

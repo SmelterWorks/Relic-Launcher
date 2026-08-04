@@ -61,6 +61,8 @@ public sealed class JsonLauncherSettingsStore : ILauncherSettingsStore
                     settings.SelectedThemeId = LauncherSettings.DefaultThemeId;
                 }
 
+                settings.Endpoints ??= EndpointSettings.CreateDefaults();
+
                 return Result<LauncherSettings>.Success(settings);
             }
             finally

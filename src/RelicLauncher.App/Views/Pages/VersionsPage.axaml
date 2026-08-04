@@ -13,7 +13,10 @@
         <TextBox Text="{Binding SearchText}"
                  PlaceholderText="Search versions"
                  Width="200"
-                 MinWidth="140" />
+                 MinWidth="140"
+                 Height="40"
+                 VerticalContentAlignment="Center"
+                 VerticalAlignment="Center" />
         <Button Classes="ghost" Content="Refresh" Command="{Binding RefreshCommand}" IsEnabled="{Binding !IsLoading}" />
         <CheckBox Content="Stable" IsChecked="{Binding ShowStable}" />
         <CheckBox Content="Unstable" IsChecked="{Binding ShowUnstable}" />

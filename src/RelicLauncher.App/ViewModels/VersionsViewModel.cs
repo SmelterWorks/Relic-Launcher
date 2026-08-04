@@ -4,13 +4,14 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
 using RelicLauncher.Core.Abstractions;
+using RelicLauncher.Core.Constants;
 using RelicLauncher.Core.Models;
 
 namespace RelicLauncher.App.ViewModels;
 
 public partial class VersionsViewModel : PageViewModelBase
 {
-    private const int PageSize = 30;
+    private const int PageSize = RelicDefaults.VersionBrowsePageSize;
     private readonly IGameVersionCatalog _catalog;
     private readonly IInstalledVersionStore _installedStore;
     private readonly IGameVersionInstaller _installer;

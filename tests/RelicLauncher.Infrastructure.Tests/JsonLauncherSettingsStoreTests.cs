@@ -36,6 +36,35 @@ public class JsonLauncherSettingsStoreTests
         load.Value.HomeBackgroundLogoMode.Should().Be(HomeBackgroundLogoMode.Banner);
         load.Value.HomeBackgroundCustomLogoPath.Should().Be("/tmp/logo.png");
         load.Value.HomeBackgroundLogoOpacity.Should().Be(0.2);
+        load.Value.Endpoints.AccountBaseUrl.Should().Be("https://account.vintagestory.at/");
+    }
+
+    [Fact]
+    public async Task SaveAndLoad_RoundTripsEndpointOverrides()
+    {
+        using var temp = new TempAppPaths();
+        var store = CreateStore(temp);
+
+        var settings = new LauncherSettings
+        {
+            Endpoints = new EndpointSettings
+            {
+                AccountBaseUrl = "https://account.example/",
+                ModDbApiBaseUrl = "https://mods.example/api/",
+                VersionCatalogUrl = "https://api.example/versions.json",
+                NewsBlogUrl = "https://news.example/blog/",
+            },
+        };
+
+        var save = await store.SaveAsync(settings);
+        save.IsSuccess.Should().BeTrue(save.Error);
+
+        var load = await store.LoadAsync();
+        load.IsSuccess.Should().BeTrue(load.Error);
+        load.Value!.Endpoints.AccountBaseUrl.Should().Be("https://account.example/");
+        load.Value.Endpoints.ModDbApiBaseUrl.Should().Be("https://mods.example/api/");
+        load.Value.Endpoints.VersionCatalogUrl.Should().Be("https://api.example/versions.json");
+        load.Value.Endpoints.NewsBlogUrl.Should().Be("https://news.example/blog/");
     }
 
     [Fact]
@@ -63,6 +92,21 @@ public class JsonLauncherSettingsStoreTests
 
         load.IsSuccess.Should().BeTrue();
         load.Value!.SelectedThemeId.Should().Be(LauncherSettings.DefaultThemeId);
+    }
+
+    [Fact]
+    public async Task LoadAsync_HydratesNullEndpoints()
+    {
+        using var temp = new TempAppPaths();
+        Directory.CreateDirectory(temp.Paths.RootDirectory);
+        await File.WriteAllTextAsync(temp.Paths.SettingsFile, """{"selectedThemeId":"relic-default"}""");
+        var store = CreateStore(temp);
+
+        var load = await store.LoadAsync();
+
+        load.IsSuccess.Should().BeTrue();
+        load.Value!.Endpoints.Should().NotBeNull();
+        load.Value.Endpoints.AccountBaseUrl.Should().NotBeNullOrWhiteSpace();
     }
 
     [Fact]

@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.DependencyInjection;
 using RelicLauncher.Core;
+using RelicLauncher.Core.Abstractions;
 using RelicLauncher.Core.Models;
 
 namespace RelicLauncher.App.ViewModels;
@@ -10,6 +11,7 @@ namespace RelicLauncher.App.ViewModels;
 public partial class MainWindowViewModel : ViewModelBase
 {
     private readonly IServiceProvider _services;
+    private readonly IEndpointProvider _endpoints;
 
     [ObservableProperty]
     private ViewModelBase? _currentPage;
@@ -24,9 +26,10 @@ public partial class MainWindowViewModel : ViewModelBase
 
     public Thickness ContentPadding => IsHomeActive ? new Thickness(0) : new Thickness(32, 28, 32, 28);
 
-    public MainWindowViewModel(IServiceProvider services)
+    public MainWindowViewModel(IServiceProvider services, IEndpointProvider endpoints)
     {
         _services = services;
+        _endpoints = endpoints;
     }
 
     public LauncherSettings Settings { get; private set; } = new();
@@ -40,6 +43,7 @@ public partial class MainWindowViewModel : ViewModelBase
     public void Initialize(LauncherSettings settings)
     {
         Settings = settings;
+        _endpoints.Apply(settings);
         NavigateHome();
         ShellOpacity = 1;
     }
@@ -89,6 +93,7 @@ public partial class MainWindowViewModel : ViewModelBase
     private void OnSettingsChanged(LauncherSettings settings)
     {
         Settings = settings;
+        _endpoints.Apply(settings);
         if (CurrentPage is HomeViewModel home)
         {
             home.Bind(settings, OnSettingsChanged);

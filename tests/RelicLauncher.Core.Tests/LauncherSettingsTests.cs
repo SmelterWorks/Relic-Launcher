@@ -1,6 +1,6 @@
 using FluentAssertions;
+using RelicLauncher.Core.Constants;
 using RelicLauncher.Core.Models;
-using RelicLauncher.Core.Paths;
 using Xunit;
 
 namespace RelicLauncher.Core.Tests;
@@ -14,11 +14,15 @@ public class LauncherSettingsTests
 
         settings.SelectedThemeId.Should().Be(LauncherSettings.DefaultThemeId);
         settings.HomeBackgroundLogoMode.Should().Be(HomeBackgroundLogoMode.Square);
-        settings.HomeBackgroundLogoOpacity.Should().Be(0.2);
+        settings.HomeBackgroundLogoOpacity.Should().Be(RelicDefaults.HomeBackgroundLogoOpacity);
         settings.ConfirmBeforeExit.Should().BeFalse();
         settings.GameInstallPath.Should().BeNull();
         settings.InstallsRoot.Should().BeNull();
         settings.SelectedVersion.Should().BeNull();
         settings.DataPath.Should().BeNull();
+        settings.Endpoints.AccountBaseUrl.Should().Be(VintageStoryEndpoints.AccountBaseUrl);
+        settings.Endpoints.ModDbApiBaseUrl.Should().Be(VintageStoryEndpoints.ModDbApiBaseUrl);
+        settings.Endpoints.VersionCatalogUrl.Should().Be(VintageStoryEndpoints.VersionCatalogUrl);
+        settings.Endpoints.NewsBlogUrl.Should().Be(VintageStoryEndpoints.NewsBlogUrl);
     }
 }

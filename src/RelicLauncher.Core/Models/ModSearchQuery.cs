@@ -1,3 +1,5 @@
+using RelicLauncher.Core.Constants;
+
 namespace RelicLauncher.Core.Models;
 
 public sealed class ModSearchQuery
@@ -7,6 +9,6 @@ public sealed class ModSearchQuery
     public string? OrderDirection { get; init; } = "desc";
     public string? GameVersion { get; init; }
     public int Page { get; init; } = 1;
-    public int PageSize { get; init; } = 24;
+    public int PageSize { get; init; } = RelicDefaults.ModBrowsePageSize;
     public bool PreferCache { get; init; } = true;
 }

@@ -7,13 +7,12 @@ using RelicLauncher.Core.Abstractions;
 using RelicLauncher.Core.Models;
 using RelicLauncher.Core.Results;
 using RelicLauncher.Core.Versions;
+using RelicLauncher.Infrastructure.Endpoints;
 
 namespace RelicLauncher.Infrastructure.Versions;
 
 public sealed class VintageStoryVersionCatalog : IGameVersionCatalog
 {
-    private const string StableUnstableUrl = "https://api.vintagestory.at/stable-unstable.json";
-    private const string LatestStableUrl = "https://api.vintagestory.at/lateststable.txt";
     private static readonly TimeSpan CatalogTtl = TimeSpan.FromHours(6);
     private static readonly JsonSerializerOptions CacheJsonOptions = new()
     {
@@ -23,6 +22,7 @@ public sealed class VintageStoryVersionCatalog : IGameVersionCatalog
 
     private readonly HttpClient _httpClient;
     private readonly IAppPathProvider _pathProvider;
+    private readonly IEndpointProvider _endpoints;
     private readonly ILogger<VintageStoryVersionCatalog> _logger;
     private readonly SemaphoreSlim _gate = new(1, 1);
     private IReadOnlyList<GameVersionInfo>? _memory;
@@ -30,14 +30,22 @@ public sealed class VintageStoryVersionCatalog : IGameVersionCatalog
     private string? _latestStableMemory;
     private DateTimeOffset _latestStableAt;
 
-    public VintageStoryVersionCatalog(IAppPathProvider pathProvider, ILogger<VintageStoryVersionCatalog> logger)
-        : this(pathProvider, logger, CreateDefaultClient())
+    public bool LastCatalogWasStale { get; private set; }
+
+    public VintageStoryVersionCatalog(IAppPathProvider pathProvider, IEndpointProvider endpoints, ILogger<VintageStoryVersionCatalog> logger)
+        : this(pathProvider, endpoints, logger, CreateDefaultClient())
     {
     }
 
     internal VintageStoryVersionCatalog(IAppPathProvider pathProvider, ILogger<VintageStoryVersionCatalog> logger, HttpClient httpClient)
+        : this(pathProvider, new EndpointProvider(), logger, httpClient)
+    {
+    }
+
+    internal VintageStoryVersionCatalog(IAppPathProvider pathProvider, IEndpointProvider endpoints, ILogger<VintageStoryVersionCatalog> logger, HttpClient httpClient)
     {
         _pathProvider = pathProvider;
+        _endpoints = endpoints;
         _logger = logger;
         _httpClient = httpClient;
         if (!_httpClient.DefaultRequestHeaders.UserAgent.Any())
@@ -90,7 +98,7 @@ public sealed class VintageStoryVersionCatalog : IGameVersionCatalog
                 return Result<string?>.Success(cached);
             }
 
-            var text = await _httpClient.GetStringAsync(LatestStableUrl, cancellationToken).ConfigureAwait(false);
+            var text = await _httpClient.GetStringAsync(_endpoints.LatestStableUrl, cancellationToken).ConfigureAwait(false);
             var version = text.Trim();
             _latestStableMemory = string.IsNullOrWhiteSpace(version) ? null : version;
             _latestStableAt = DateTimeOffset.UtcNow;
@@ -158,7 +166,7 @@ public sealed class VintageStoryVersionCatalog : IGameVersionCatalog
     {
         try
         {
-            var text = await _httpClient.GetStringAsync(LatestStableUrl).ConfigureAwait(false);
+            var text = await _httpClient.GetStringAsync(_endpoints.LatestStableUrl).ConfigureAwait(false);
             var version = text.Trim();
             if (string.IsNullOrWhiteSpace(version))
             {
@@ -177,7 +185,7 @@ public sealed class VintageStoryVersionCatalog : IGameVersionCatalog
 
     private async Task<IReadOnlyList<GameVersionInfo>?> RefreshCatalogCoreAsync(CancellationToken cancellationToken)
     {
-        var json = await _httpClient.GetStringAsync(StableUnstableUrl, cancellationToken).ConfigureAwait(false);
+        var json = await _httpClient.GetStringAsync(_endpoints.VersionCatalogUrl, cancellationToken).ConfigureAwait(false);
         var versions = ParseCatalog(json);
         _memory = versions;
         _memoryAt = DateTimeOffset.UtcNow;

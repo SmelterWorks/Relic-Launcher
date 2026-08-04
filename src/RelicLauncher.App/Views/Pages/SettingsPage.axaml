@@ -6,11 +6,11 @@
              x:Class="RelicLauncher.App.Views.Pages.SettingsPage"
              x:DataType="vm:SettingsViewModel">
   <ScrollViewer>
-    <StackPanel Spacing="16" MaxWidth="640">
+    <StackPanel Spacing="16" MaxWidth="720">
       <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
         <controls:PageHeader Grid.Column="0"
                              Title="Settings"
-                             Subtitle="Account, installs, data path, theme, and logs." />
+                             Subtitle="Account, installs, data path, theme, endpoints, and logs." />
         <TextBlock Grid.Column="1"
                    Text="{Binding SaveStatusMessage}"
                    Classes="muted"
@@ -25,17 +25,16 @@
                  Foreground="{DynamicResource Theme.Danger}"
                  TextWrapping="Wrap"
                  IsVisible="{Binding HasAccountError}" />
+      <TextBlock Text="The account portal requires captcha, so Relic opens an in-app browser to sign in. Optional: enter your email to label the saved session."
+                 Classes="muted"
+                 TextWrapping="Wrap" />
       <TextBox Text="{Binding AccountEmail}"
-               PlaceholderText="game account email"
-               IsEnabled="{Binding !IsSignedIn}" />
-      <TextBox Text="{Binding AccountPassword}"
-               PasswordChar="*"
-               PlaceholderText="password"
-               IsVisible="{Binding !IsSignedIn}"
-               IsEnabled="{Binding !IsSigningIn}" />
+               PlaceholderText="game account email (optional label)"
+               IsEnabled="{Binding !IsSignedIn}"
+               VerticalContentAlignment="Center" />
       <StackPanel Orientation="Horizontal" Spacing="8">
         <Button Classes="primary"
-                Content="Sign in"
+                Content="Sign in with browser"
                 Command="{Binding SignInCommand}"
                 IsVisible="{Binding !IsSignedIn}"
                 IsEnabled="{Binding !IsSigningIn}" />
@@ -43,7 +42,7 @@
                 Content="Sign out"
                 Command="{Binding SignOutCommand}"
                 IsVisible="{Binding IsSignedIn}" />
-        <TextBlock Text="Signing in..."
+        <TextBlock Text="Waiting for browser sign-in..."
                    Classes="muted"
                    VerticalAlignment="Center"
                    IsVisible="{Binding IsSigningIn}" />
@@ -137,6 +136,58 @@
       <CheckBox Content="Confirm before exit"
                 IsChecked="{Binding ConfirmBeforeExit}"
                 Margin="0,8,0,0" />
+
+      <TextBlock Text="Service URLs" Margin="0,16,0,0" Classes="brand" FontSize="18" />
+      <TextBlock Text="Override Vintage Story account, CDN, ModDB, version catalog, and news endpoints. Leave blank or reset to use defaults."
+                 Classes="muted"
+                 TextWrapping="Wrap" />
+
+      <TextBlock Text="Account base URL" Margin="0,8,0,0" />
+      <TextBox Text="{Binding AccountBaseUrl}"
+               PlaceholderText="https://account.vintagestory.at/"
+               VerticalContentAlignment="Center" />
+
+      <TextBlock Text="CDN base URL" Margin="0,8,0,0" />
+      <TextBox Text="{Binding CdnBaseUrl}"
+               PlaceholderText="https://cdn.vintagestory.at/"
+               VerticalContentAlignment="Center" />
+
+      <TextBlock Text="ModDB API base URL" Margin="0,8,0,0" />
+      <TextBox Text="{Binding ModDbApiBaseUrl}"
+               PlaceholderText="https://mods.vintagestory.at/api/"
+               VerticalContentAlignment="Center" />
+
+      <TextBlock Text="ModDB download URL" Margin="0,8,0,0" />
+      <TextBox Text="{Binding ModDbDownloadBaseUrl}"
+               PlaceholderText="https://mods.vintagestory.at/download"
+               VerticalContentAlignment="Center" />
+
+      <TextBlock Text="Version catalog URL" Margin="0,8,0,0" />
+      <TextBox Text="{Binding VersionCatalogUrl}"
+               PlaceholderText="https://api.vintagestory.at/stable-unstable.json"
+               VerticalContentAlignment="Center" />
+
+      <TextBlock Text="Latest stable URL" Margin="0,8,0,0" />
+      <TextBox Text="{Binding LatestStableUrl}"
+               PlaceholderText="https://api.vintagestory.at/lateststable.txt"
+               VerticalContentAlignment="Center" />
+
+      <TextBlock Text="News blog URL" Margin="0,8,0,0" />
+      <TextBox Text="{Binding NewsBlogUrl}"
+               PlaceholderText="https://www.vintagestory.at/blog.html/"
+               VerticalContentAlignment="Center" />
+
+      <Button Classes="ghost"
+              Content="Reset endpoint URLs"
+              Command="{Binding ResetEndpointUrlsCommand}"
+              HorizontalAlignment="Left"
+              Margin="0,8,0,0" />
+
+      <Button Classes="ghost"
+              Content="Reset settings to defaults"
+              Command="{Binding ResetSettingsCommand}"
+              HorizontalAlignment="Left"
+              Margin="0,8,0,0" />
 
       <controls:FolderPathRow DataContext="{Binding LogsFolder}" Margin="0,12,0,0" />
       <controls:FolderPathRow DataContext="{Binding ThemesFolder}" Margin="0,8,0,0" />

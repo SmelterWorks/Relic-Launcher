@@ -3,8 +3,10 @@
              xmlns:vm="using:RelicLauncher.App.ViewModels"
              xmlns:models="using:RelicLauncher.Core.Models"
              xmlns:controls="using:RelicLauncher.App.Views.Controls"
+             xmlns:i="https://github.com/projektanker/icons.avalonia"
              x:Class="RelicLauncher.App.Views.Pages.ModsPage"
              x:DataType="vm:ModsViewModel">
+  <Grid>
   <Grid RowDefinitions="Auto,Auto,*">
     <controls:PageHeader Title="Mods"
                          Subtitle="Browse ModDB and manage mods in your data folder." />
@@ -14,7 +16,10 @@
         <TextBox Text="{Binding SearchText}"
                  PlaceholderText="Search mods"
                  Width="240"
-                 MinWidth="160" />
+                 MinWidth="160"
+                 Height="40"
+                 VerticalContentAlignment="Center"
+                 VerticalAlignment="Center" />
         <Button Classes="primary" Content="Search" Command="{Binding SearchCommand}" IsEnabled="{Binding !IsLoading}" />
         <Button Classes="ghost" Content="Refresh installed" Command="{Binding RefreshInstalledCommand}" />
         <CheckBox Content="Filter by active version"
@@ -180,11 +185,16 @@
           <ScrollViewer Margin="16,0,16,0"
                         IsVisible="{Binding SelectedDetails, Converter={x:Static ObjectConverters.IsNotNull}}">
             <StackPanel Spacing="10" Margin="0,0,0,12">
-              <Image Source="{Binding DetailLogo}"
-                     MaxHeight="140"
-                     Stretch="Uniform"
-                     HorizontalAlignment="Left"
-                     IsVisible="{Binding DetailLogo, Converter={x:Static ObjectConverters.IsNotNull}}" />
+              <Button Classes="ghost"
+                      Padding="0"
+                      HorizontalAlignment="Left"
+                      Command="{Binding OpenDetailLogoCommand}"
+                      IsVisible="{Binding DetailLogo, Converter={x:Static ObjectConverters.IsNotNull}}">
+                <Image Source="{Binding DetailLogo}"
+                       MaxHeight="140"
+                       Stretch="Uniform"
+                       HorizontalAlignment="Left" />
+              </Button>
               <TextBlock Text="{Binding SelectedDetails.Name}" FontSize="18" FontWeight="SemiBold" TextWrapping="Wrap" />
               <TextBlock Text="{Binding SelectedDetails.Author}" Classes="muted" />
               <TextBlock Text="{Binding SelectedDetails.Summary}" TextWrapping="Wrap" />
@@ -211,7 +221,9 @@
                   </DataTemplate>
                 </ItemsControl.ItemTemplate>
               </ItemsControl>
-              <TextBlock Text="{Binding SelectedDetails.DescriptionText}" TextWrapping="Wrap" />
+              <TextBlock Text="{Binding SelectedDetails.DescriptionText}"
+                         TextWrapping="Wrap"
+                         LineHeight="22" />
               <StackPanel Orientation="Horizontal" Spacing="8">
                 <Button Classes="ghost" Content="Homepage" Command="{Binding OpenUrlCommand}" CommandParameter="{Binding SelectedDetails.HomepageUrl}"
                         IsVisible="{Binding SelectedDetails.HomepageUrl, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
@@ -222,15 +234,20 @@
                 <Button Classes="ghost" Content="Trailer" Command="{Binding OpenUrlCommand}" CommandParameter="{Binding SelectedDetails.TrailerVideoUrl}"
                         IsVisible="{Binding SelectedDetails.TrailerVideoUrl, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
               </StackPanel>
-              <ItemsControl ItemsSource="{Binding ScreenshotBitmaps}">
+              <ItemsControl ItemsSource="{Binding ScreenshotItems}">
                 <ItemsControl.ItemsPanel>
                   <ItemsPanelTemplate>
                     <WrapPanel />
                   </ItemsPanelTemplate>
                 </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
-                  <DataTemplate>
-                    <Image Source="{Binding}" Width="120" Height="80" Stretch="UniformToFill" Margin="0,0,8,8" />
+                  <DataTemplate x:DataType="vm:ModImageItemViewModel">
+                    <Button Classes="ghost"
+                            Padding="0"
+                            Margin="0,0,8,8"
+                            Command="{Binding OpenCommand}">
+                      <Image Source="{Binding Thumbnail}" Width="120" Height="80" Stretch="UniformToFill" />
+                    </Button>
                   </DataTemplate>
                 </ItemsControl.ItemTemplate>
               </ItemsControl>
@@ -239,5 +256,35 @@
         </DockPanel>
       </Border>
     </Grid>
+  </Grid>
+
+    <Border IsVisible="{Binding IsImageViewerOpen}"
+            Background="#CC000000"
+            ZIndex="100">
+      <Grid>
+        <Button Classes="ghost"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Top"
+                Margin="16"
+                Width="44"
+                Height="44"
+                Padding="0"
+                Command="{Binding CloseImageViewerCommand}"
+                ToolTip.Tip="Close">
+          <i:Icon Value="mdi-close" Width="20" Height="20" />
+        </Button>
+        <TextBlock Text="Loading image..."
+                   Classes="muted"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center"
+                   IsVisible="{Binding IsViewerLoading}" />
+        <Image Source="{Binding ViewerImage}"
+               Margin="48"
+               Stretch="Uniform"
+               HorizontalAlignment="Center"
+               VerticalAlignment="Center"
+               IsVisible="{Binding ViewerImage, Converter={x:Static ObjectConverters.IsNotNull}}" />
+      </Grid>
+    </Border>
   </Grid>
 </UserControl>

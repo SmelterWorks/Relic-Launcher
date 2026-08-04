@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Globalization;
 using RelicLauncher.Core.Abstractions;
+using RelicLauncher.Core.Constants;
 using RelicLauncher.Core.Models;
 using Serilog.Core;
 using Serilog.Events;
@@ -9,7 +10,7 @@ namespace RelicLauncher.Infrastructure.Logging;
 
 public sealed class DebugLogBuffer : IDebugLogBuffer, ILogEventSink
 {
-    private const int Capacity = 300;
+    private const int Capacity = RelicDefaults.DebugLogCapacity;
     private readonly ConcurrentQueue<DebugLogEntry> _entries = new();
     private int _count;
 
