@@ -65,6 +65,7 @@ Do not assume Relic can hot-patch game files or inject mods without following VS
 - Public API v1 documented in [references/moddb-api.md](references/moddb-api.md)
 - Installed under `{DataPath}/Mods/` (zip or folder). Disable with `.disabled` suffix
 - Relic Mods page browses ModDB and manages local installs
+- One enabled release per `modid` in the shared Mods folder; downloads cached by ModDB `fileid`
 
 Wiki modding entry points: search wiki for "Modding" and "Installing mods".
 
