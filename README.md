@@ -20,6 +20,7 @@ Built with C# / .NET 10 and Avalonia 12. Targets the same desktop platforms Vint
 - Back up mods, worlds, and game versions
 - Launcher sandboxing (the app itself, not the game)
 - Flatpak support
+- Server Hosting
 
 > [!NOTE]  
 > This project is AI-assisted using OpenCode and Open-Weight Models. 
