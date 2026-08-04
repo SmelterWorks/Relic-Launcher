@@ -85,10 +85,27 @@ jobs:
           dotnet publish src/RelicLauncher.App/RelicLauncher.App.csproj \
             -c Release \
             -r "$RID" \
-            --self-contained false \
+            --self-contained true \
+            -p:PublishSingleFile=false \
             -p:Version="$VERSION" \
             -o "artifacts/${RID}"
-          (cd "artifacts/${RID}" && tar -czf "../../relic-launcher-nightly-${STAMP}-${RID}.tar.gz" .)
+          case "$RID" in
+            win-x64)
+              (cd "artifacts/${RID}" && zip -r "../../relic-launcher-nightly-${STAMP}-${RID}.zip" .)
+              ;;
+            osx-x64|osx-arm64)
+              chmod +x packaging/macos/build-app-bundle.sh
+              packaging/macos/build-app-bundle.sh \
+                --version "$VERSION" \
+                --publish-dir "artifacts/${RID}" \
+                --output-dir . \
+                --rid "$RID"
+              mv "relic-launcher-${VERSION}-${RID}.app.zip" "relic-launcher-nightly-${STAMP}-${RID}.app.zip"
+              ;;
+            *)
+              (cd "artifacts/${RID}" && tar -czf "../../relic-launcher-nightly-${STAMP}-${RID}.tar.gz" .)
+              ;;
+          esac
 
       - name: Install packaging tools
         if: matrix.rid == 'linux-x64'
@@ -113,6 +130,8 @@ jobs:
           name: nightly-${{ matrix.rid }}
           path: |
             relic-launcher-nightly-*.tar.gz
+            relic-launcher-nightly-*.zip
+            relic-launcher-nightly-*.app.zip
             packages/*
           if-no-files-found: error
           retention-days: 7

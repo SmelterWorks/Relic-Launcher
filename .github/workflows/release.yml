@@ -103,10 +103,26 @@ jobs:
           dotnet publish src/RelicLauncher.App/RelicLauncher.App.csproj \
             -c Release \
             -r "$RID" \
-            --self-contained false \
+            --self-contained true \
+            -p:PublishSingleFile=false \
             -p:Version="$VERSION" \
             -o "artifacts/${RID}"
-          (cd "artifacts/${RID}" && tar -czf "../../relic-launcher-${VERSION}-${RID}.tar.gz" .)
+          case "$RID" in
+            win-x64)
+              (cd "artifacts/${RID}" && zip -r "../../relic-launcher-${VERSION}-${RID}.zip" .)
+              ;;
+            osx-x64|osx-arm64)
+              chmod +x packaging/macos/build-app-bundle.sh
+              packaging/macos/build-app-bundle.sh \
+                --version "$VERSION" \
+                --publish-dir "artifacts/${RID}" \
+                --output-dir . \
+                --rid "$RID"
+              ;;
+            *)
+              (cd "artifacts/${RID}" && tar -czf "../../relic-launcher-${VERSION}-${RID}.tar.gz" .)
+              ;;
+          esac
 
       - name: Install packaging tools
         if: matrix.rid == 'linux-x64'
@@ -131,6 +147,8 @@ jobs:
           name: release-${{ matrix.rid }}
           path: |
             relic-launcher-*.tar.gz
+            relic-launcher-*.zip
+            relic-launcher-*.app.zip
             packages/*
           if-no-files-found: error
           retention-days: 14

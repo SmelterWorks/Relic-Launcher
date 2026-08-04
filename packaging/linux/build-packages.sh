@@ -86,7 +86,6 @@ Version: ${DEB_VERSION}
 Section: games
 Priority: optional
 Architecture: amd64
-Depends: dotnet-runtime-10.0
 Maintainer: Relic Launcher Contributors <41898282+github-actions[bot]@users.noreply.github.com>
 Homepage: https://github.com/SmelterWorks/Relic-Launchder
 Description: Unofficial desktop launcher for Vintage Story
@@ -111,7 +110,6 @@ Release: ${RPM_RELEASE}
 Summary: Unofficial desktop launcher for Vintage Story
 License: BSD-0-Clause
 URL: https://github.com/SmelterWorks/Relic-Launchder
-Requires: dotnet-runtime-10.0
 BuildArch: x86_64
 
 %description
@@ -159,7 +157,6 @@ packager = Relic Launcher Contributors
 size = ${installed_size}
 arch = x86_64
 license = custom:BSD-0-Clause
-depend = dotnet-runtime>=10.0.0
 EOF
 
   local out="${OUTPUT_DIR}/relic-launcher-${VERSION}-linux-x64.pkg.tar.zst"
