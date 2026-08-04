@@ -90,11 +90,30 @@ jobs:
             -o "artifacts/${RID}"
           (cd "artifacts/${RID}" && tar -czf "../../relic-launcher-nightly-${STAMP}-${RID}.tar.gz" .)
 
+      - name: Install packaging tools
+        if: matrix.rid == 'linux-x64'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends rpm zstd libarchive-tools file
+
+      - name: Package Linux
+        if: matrix.rid == 'linux-x64'
+        env:
+          VERSION: "0.0.0-nightly.${{ needs.changes.outputs.stamp }}"
+        run: |
+          chmod +x packaging/linux/build-packages.sh
+          packaging/linux/build-packages.sh \
+            --version "$VERSION" \
+            --publish-dir "artifacts/linux-x64" \
+            --output-dir packages
+
       - name: Upload artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: nightly-${{ matrix.rid }}
-          path: relic-launcher-nightly-*.tar.gz
+          path: |
+            relic-launcher-nightly-*.tar.gz
+            packages/*
           if-no-files-found: error
           retention-days: 7
 
@@ -123,7 +142,7 @@ jobs:
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             gh release delete "$TAG" --repo "$GITHUB_REPOSITORY" --yes --cleanup-tag || true
           fi
-          gh release create "$TAG" dist/*.tar.gz \
+          gh release create "$TAG" dist/* \
             --repo "$GITHUB_REPOSITORY" \
             --title "Nightly ${STAMP}" \
             --notes "Automated nightly build for ${STAMP}." \

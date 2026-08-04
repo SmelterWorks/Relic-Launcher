@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Relic Launcher
+GenericName=Vintage Story Launcher
+Comment=Unofficial desktop launcher for Vintage Story
+Exec=relic-launcher %F
+Icon=relic-launcher
+Categories=Game;
+Terminal=false
+StartupWMClass=RelicLauncher.App
