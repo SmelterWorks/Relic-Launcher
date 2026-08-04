@@ -25,7 +25,7 @@ Built with C# / .NET 10 and Avalonia 12.1. Targets the same desktop platforms Vi
 - Disk efficient mod storage
 
 > [!NOTE]
-> This project is AI-assisted using OpenCode and Open-Weight Models.
+> Development is human-maintained. We use OpenCode with open-weight models as an editing aid. Every change is reviewed by a human before merge and must pass the project tests. Contributors own any AI-assisted patches they submit.
 
 ## Requirements
 
