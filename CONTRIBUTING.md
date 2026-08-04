@@ -33,7 +33,7 @@
 - You are the author. Review the full diff before opening a PR. Be able to explain and defend the change in review.
 - Unreviewed agent dumps and drive-by LLM patches will be closed.
 - Optional: note the tool in the PR description (for example `Assisted-by: OpenCode`). Do not use `Co-authored-by` for a model.
-- Maintainers use OpenCode with open-weight models the same way: human review, then merge only if tests pass.
+- Maintainers use OpenCode with open-weight models the same way: human review, then the human commits and merges only if tests pass.
 
 ## Agent context
 

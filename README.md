@@ -8,7 +8,9 @@ Built with C# / .NET 10 and Avalonia 12.1. Targets the same desktop platforms Vi
 
 - Sign in with your Vintage Story account
 - Install multiple game versions
-- Browse ModDB and install/manage mods
+- Browse official ModDB and install/manage mods.
+- Local mods support
+- Optional warning when a mod is on the official blocked-mods list
 - One-click play with mods, saves, and worlds kept in one shared folder
 - Game news, custom themes, and support for Windows, Linux, and macOS
 
@@ -17,12 +19,9 @@ Built with C# / .NET 10 and Avalonia 12.1. Targets the same desktop platforms Vi
 - Backup mods, worlds, and game versions
 - Launcher sandboxing (the app itself, not the game)
 - Packaging: Flatpak
-- Mod warnings/blocklist
 - Server Hosting
-- Mods Browser: Clickable and searchable by tags/categories
 - Wiki browser
 - Custom fonts support
-- Disk efficient mod storage
 
 > [!NOTE]
 > Development is human-maintained. We use OpenCode with open-weight models as an editing aid. Every change is reviewed by a human before merge and must pass the project tests. Contributors own any AI-assisted patches they submit.
