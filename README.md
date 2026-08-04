@@ -14,18 +14,23 @@ Built with C# / .NET 10 and Avalonia 12.1. Targets the same desktop platforms Vi
 
 ## Upcoming
 
-- Back up mods, worlds, and game versions
+- Backup mods, worlds, and game versions
 - Launcher sandboxing (the app itself, not the game)
-- Flatpak support
+- Packaging: Flatpak
+- Mod warnings/blocklist
 - Server Hosting
+- Mods Browser: Clickable and searchable by tags/categories
+- Wiki browser
+- Custom fonts support
+- Disk efficient mod storage
 
-> [!NOTE]  
-> This project is AI-assisted using OpenCode and Open-Weight Models. 
+> [!NOTE]
+> This project is AI-assisted using OpenCode and Open-Weight Models.
 
 ## Requirements
 
-- .NET 10 SDK to build
-- .NET 10 Desktop Runtime to run framework-dependent publishes
+- .NET 10 SDK to build from source
+- Release and nightly downloads are **self-contained** (no separate .NET Desktop Runtime install)
 
 ## Build and run
 
@@ -59,12 +64,20 @@ dotnet format RelicLauncher.sln --verify-no-changes
 
 ## Publish RIDs
 
+Self-contained publishes (what CI/release use):
+
 ```bash
-dotnet publish src/RelicLauncher.App/RelicLauncher.App.csproj -c Release -r win-x64 --self-contained false -o artifacts/win-x64
-dotnet publish src/RelicLauncher.App/RelicLauncher.App.csproj -c Release -r linux-x64 --self-contained false -o artifacts/linux-x64
-dotnet publish src/RelicLauncher.App/RelicLauncher.App.csproj -c Release -r osx-x64 --self-contained false -o artifacts/osx-x64
-dotnet publish src/RelicLauncher.App/RelicLauncher.App.csproj -c Release -r osx-arm64 --self-contained false -o artifacts/osx-arm64
+dotnet publish src/RelicLauncher.App/RelicLauncher.App.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=false -o artifacts/win-x64
+dotnet publish src/RelicLauncher.App/RelicLauncher.App.csproj -c Release -r linux-x64 --self-contained true -p:PublishSingleFile=false -o artifacts/linux-x64
+dotnet publish src/RelicLauncher.App/RelicLauncher.App.csproj -c Release -r osx-x64 --self-contained true -p:PublishSingleFile=false -o artifacts/osx-x64
+dotnet publish src/RelicLauncher.App/RelicLauncher.App.csproj -c Release -r osx-arm64 --self-contained true -p:PublishSingleFile=false -o artifacts/osx-arm64
 ```
+
+Release artifacts:
+
+- Windows: `relic-launcher-{version}-win-x64.zip` (extract and run `RelicLauncher.App.exe`)
+- macOS: `relic-launcher-{version}-osx-*.app.zip` (`Relic Launcher.app`, not notarized)
+- Linux: deb, rpm, Arch pkg, AppImage via `packaging/linux/build-packages.sh`
 
 ## Config and logs
 
@@ -78,7 +91,7 @@ Files:
 - `settings.json` theme, installs root, selected version, data path, exit confirm
 - `logs/relic-YYYYMMDD.log`
 - `cache/` downloads and news cache
-- `secrets/` encrypted account session
+- `secrets/` platform-protected account session
 - `themes/` reserved for user theme packs
 
 ## Themes
@@ -99,6 +112,10 @@ To add a built-in pack: create an `.axaml` resource dictionary with the same key
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## Security
+
+See [SECURITY.md](SECURITY.md) and [NOTICE](NOTICE).
 
 ## License
 
