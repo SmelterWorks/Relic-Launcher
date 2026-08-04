@@ -4,15 +4,19 @@
 
 Game account portal: `https://account.vintagestory.at/`
 
-Form POST:
+Form POST (legacy / may fail when captcha is required):
 
 - URL: `https://account.vintagestory.at/attemptlogin`
 - Fields: `email`, `password`, `loginredir` (empty string OK)
 - Game account is separate from forum account
-- Relic posts with redirects disabled and treats HTTP 3xx away from `attemptlogin` as success
-- Failures are logged with status, location, cookie names, and a short body preview
+- The portal currently shows Google reCAPTCHA. Direct POSTs without a captcha token return `Captcha verification failed`.
 
-Relic stores session cookies via `ISecretStore` (encrypted under Relic `secrets/`). Never persist passwords. Persist failures after a remote success are surfaced as sign-in errors.
+Relic sign-in path:
+
+- Open in-app `NativeWebView` to `account.vintagestory.at`
+- User completes captcha + login there
+- Relic imports cookies via `TryGetCookieManager` into `IAccountAuthService.ImportBrowserSessionAsync`
+- Session cookies are stored via `ISecretStore` (encrypted under Relic `secrets/`). Never persist passwords.
 
 ## Version catalog (public)
 
