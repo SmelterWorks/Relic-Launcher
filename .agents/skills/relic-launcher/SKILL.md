@@ -57,18 +57,20 @@ This is **Relic** config, not Vintage Story game data.
 Implemented:
 
 - Sidebar nav: Home, Versions, Mods, Settings, About
-- Home: play bar (if install path set), Vintage Story blog news list, optional background logo
-- Settings: install path, theme, logo mode/opacity/custom path, confirm-before-exit
+- Home: play (active managed version), Vintage Story blog news, optional background logo
+- Versions: catalog from api.vintagestory.at, install/uninstall/set active under InstallsRoot
+- Mods: ModDB browse/install plus local enable/disable/uninstall
+- Settings: account sign-in, installs root, data path, theme, logo, confirm-before-exit
 - About: version, commit, build time, logs folder open, 0BSD
 - Built-in themes: `relic-default`, `high-contrast`
 
-Placeholder / not implemented (Versions and Mods pages say so in UI):
+Still stubbed / out of scope:
 
-- Version management and game updating
-- Mod browse/install
-- Backups
+- Relic self-updater (`IUpdateCheckService`)
+- Multi-instance profiles
+- Steam library auto-detect
 
-Do not add UI copy implying these work unless you implement them.
+Do not add UI copy implying unimplemented features work.
 
 ## Key files
 

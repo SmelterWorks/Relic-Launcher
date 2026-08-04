@@ -2,19 +2,27 @@
 
 ## Game install directory (binaries)
 
-User selects one folder in Relic Settings. Valid install contains at least one of:
+Relic manages multi-version installs under Settings `InstallsRoot`:
+
+```text
+{InstallsRoot}/versions/{version}/
+{InstallsRoot}/versions.json
+```
+
+Each version folder should contain at least one of:
 
 - `Vintagestory`
 - `Vintagestory.exe`
 - `Vintagestory.dll`
 
-Typical layouts (varies by platform and Account Manager install):
+Typical defaults (via `IRuntimePlatform`):
 
-- Linux: `~/.local/share/Vintagestory/` or a custom path
-- Windows: `C:\Program Files\Vintagestory\` or user-chosen
-- macOS: `/Applications/Vintagestory.app` contents or extracted folder
+- Installs root: `~/Games/RelicLauncher/Vintagestory`
+- Linux data: `~/.config/VintagestoryData`
+- Windows data: `%AppData%\VintagestoryData`
+- macOS data: `~/Library/Application Support/VintagestoryData`
 
-Relic only checks the configured path. It does not scan Steam library folders automatically.
+`GameInstallPath` remains as a legacy/derived field pointing at the active version directory.
 
 ## Game data directory (saves, mods, settings)
 

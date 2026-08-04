@@ -21,7 +21,7 @@ Vintage Story is a survival voxel sandbox by **Anego Studios SIA** ([vintagestor
 
 Full list and notes: [references/official-urls.md](references/official-urls.md)
 
-There is **no documented public JSON API** for the blog or mod list that Relic Launcher uses today. News is parsed from blog HTML in `VintageStoryNewsService`.
+There is a **public version catalog** at `api.vintagestory.at` and a **public ModDB API** at `mods.vintagestory.at/api`. Account Manager login for client downloads uses form POST to `attemptlogin` (see [references/account-and-downloads.md](references/account-and-downloads.md)). Do not invent undocumented endpoints.
 
 ## Game client (what Relic Launcher launches)
 
@@ -33,7 +33,7 @@ Executable candidates searched in the **install directory root** (in order):
 
 Spelling is **`Vintagestory`** (one word, no space). Do not use `Vintage Story.exe` or invented binary names.
 
-Install path is user-configured in Relic Settings (`GameInstallPath`). Relic does not auto-detect Steam paths yet (`GameLocatorStub` only validates the configured directory).
+Install path is managed under Settings `InstallsRoot` with active `SelectedVersion` at `{InstallsRoot}/versions/{version}`. `GameInstallPath` is kept as a derived/legacy field. OS defaults come from `IRuntimePlatform`.
 
 ## Player data vs game install
 
@@ -59,11 +59,12 @@ Relic Launcher settings live under **`RelicLauncher`**, not `VintagestoryData`.
 
 Do not assume Relic can hot-patch game files or inject mods without following VS mod conventions on the wiki.
 
-## Mods (high level)
+## Mods
 
 - Hosted on **VS ModDB** (mods.vintagestory.at), not Steam Workshop
-- Mods are folders/files under the player's `Mods/` directory or downloaded via in-game/mod tools
-- Relic **Mods** page is a placeholder; do not implement fake mod APIs
+- Public API v1 documented in [references/moddb-api.md](references/moddb-api.md)
+- Installed under `{DataPath}/Mods/` (zip or folder). Disable with `.disabled` suffix
+- Relic Mods page browses ModDB and manages local installs
 
 Wiki modding entry points: search wiki for "Modding" and "Installing mods".
 
@@ -71,8 +72,8 @@ Wiki modding entry points: search wiki for "Modding" and "Installing mods".
 
 - Source: https://www.vintagestory.at/blog.html/
 - Parser looks for `h2.ipsType_pageTitle` with anchor links to article URLs
-- Articles open in the system browser via `IUrlLauncher`
-- Respect caching (15 min) and User-Agent `RelicLauncher/<version>`
+- Articles open in-app with text/image/video blocks
+- Respect caching and User-Agent `RelicLauncher/<version>`
 
 ## Branding and legal copy
 
