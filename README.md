@@ -3,21 +3,26 @@
 > [!WARNING]  
 > Still under heavy development and is not ready to be used. 
 
-Unofficial desktop launcher for [Vintage Story](https://www.vintagestory.at/). Relic Launcher is not affiliated with Anego Studios.
+**Unofficial** desktop launcher for [Vintage Story](https://www.vintagestory.at/). Relic Launcher and SmelterWorks is not affiliated with Anego Studios.
 
 Built with C# / .NET 10 and Avalonia 12. Targets the same desktop platforms Vintage Story supports: Windows 10+ x64, Linux x64, and macOS 13+ (x64 and arm64).
 
+## Features
+
+- Sign in with your Vintage Story account
+- Install multiple game versions
+- Browse ModDB and install/manage mods
+- One-click play with mods, saves, and worlds kept in one shared folder
+- Game news, custom themes, and support for Windows, Linux, and macOS
+
+## Upcoming
+
+- Back up mods, worlds, and game versions
+- Launcher sandboxing (the app itself, not the game)
+- Flatpak support
+
 > [!NOTE]  
 > This project is AI-assisted using OpenCode and Open-Weight Models. 
-
-## Upcoming Features
-
-- Version management
-- Updating 
-- Full mod support 
-- Backup mods, saves/worlds or versions
-- Cross-platform and Modern UI
-- Sandboxing (for app itself not the game currently)
 
 ## Requirements
 
@@ -72,8 +77,10 @@ App data root:
 
 Files:
 
-- `settings.json` selected theme, install path, exit confirm
+- `settings.json` theme, installs root, selected version, data path, exit confirm
 - `logs/relic-YYYYMMDD.log`
+- `cache/` downloads and news cache
+- `secrets/` encrypted account session
 - `themes/` reserved for user theme packs
 
 ## Themes
