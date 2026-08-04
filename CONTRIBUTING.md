@@ -32,7 +32,7 @@
 
 Skills for AI agents are in `.agents/skills/`. See `.agents/README.md` for the index. Load `relic-launcher` for repo work and `vintage-story` for game URLs, paths, and branding.
 
-## Prose
+## AI Prose
 
 Docs and issue text follow the anti-slop rules under `.agents/skills/`. Concrete headings, no filler phrases, no emdashes.
 
