@@ -1,8 +1,8 @@
 using System.Globalization;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
-using Avalonia.Platform;
 using Avalonia.Threading;
 using RelicLauncher.App.ViewModels;
 using RelicLauncher.Core.Wiki;
@@ -12,7 +12,9 @@ namespace RelicLauncher.App.Views.Pages;
 public partial class WikiPage : UserControl
 {
     private NativeWebView? _webView;
+    private Border? _wheelCatcher;
     private WikiViewModel? _boundVm;
+    private TopLevel? _topLevel;
     private bool _suppressNavigationHandler;
 
     public WikiPage()
@@ -23,9 +25,10 @@ public partial class WikiPage : UserControl
         DetachedFromVisualTree += OnDetachedFromVisualTree;
     }
 
-    private void OnAttachedToVisualTree(object? sender, Avalonia.VisualTreeAttachmentEventArgs e)
+    private void OnAttachedToVisualTree(object? sender, VisualTreeAttachmentEventArgs e)
     {
         _webView = this.FindControl<NativeWebView>("WikiWebView");
+        _wheelCatcher = this.FindControl<Border>("WikiWheelCatcher");
         if (_webView is null)
         {
             return;
@@ -37,7 +40,6 @@ public partial class WikiPage : UserControl
         _webView.NewWindowRequested -= OnNewWindowRequested;
         _webView.AdapterCreated -= OnAdapterCreated;
         _webView.AdapterDestroyed -= OnAdapterDestroyed;
-        _webView.EnvironmentRequested -= OnEnvironmentRequested;
         _webView.RemoveHandler(InputElement.PointerWheelChangedEvent, OnPointerWheelChanged);
 
         _webView.NavigationStarted += OnNavigationStarted;
@@ -45,15 +47,45 @@ public partial class WikiPage : UserControl
         _webView.NewWindowRequested += OnNewWindowRequested;
         _webView.AdapterCreated += OnAdapterCreated;
         _webView.AdapterDestroyed += OnAdapterDestroyed;
-        _webView.EnvironmentRequested += OnEnvironmentRequested;
-        _webView.AddHandler(InputElement.PointerWheelChangedEvent, OnPointerWheelChanged, RoutingStrategies.Tunnel);
+        _webView.AddHandler(InputElement.PointerWheelChangedEvent, OnPointerWheelChanged, RoutingStrategies.Tunnel | RoutingStrategies.Bubble);
+
+        if (_wheelCatcher is not null)
+        {
+            _wheelCatcher.RemoveHandler(InputElement.PointerWheelChangedEvent, OnPointerWheelChanged);
+            _wheelCatcher.PointerPressed -= OnWheelCatcherPressed;
+            _wheelCatcher.AddHandler(InputElement.PointerWheelChangedEvent, OnPointerWheelChanged, RoutingStrategies.Tunnel | RoutingStrategies.Bubble);
+            _wheelCatcher.PointerPressed += OnWheelCatcherPressed;
+        }
+
+        _topLevel = TopLevel.GetTopLevel(this);
+        if (_topLevel is not null)
+        {
+            _topLevel.RemoveHandler(InputElement.PointerWheelChangedEvent, OnTopLevelWheelChanged);
+            _topLevel.AddHandler(
+                InputElement.PointerWheelChangedEvent,
+                OnTopLevelWheelChanged,
+                RoutingStrategies.Tunnel,
+                handledEventsToo: true);
+        }
 
         HookViewModel(DataContext as WikiViewModel);
         NudgeWebViewLayout();
     }
 
-    private void OnDetachedFromVisualTree(object? sender, Avalonia.VisualTreeAttachmentEventArgs e)
+    private void OnDetachedFromVisualTree(object? sender, VisualTreeAttachmentEventArgs e)
     {
+        if (_topLevel is not null)
+        {
+            _topLevel.RemoveHandler(InputElement.PointerWheelChangedEvent, OnTopLevelWheelChanged);
+            _topLevel = null;
+        }
+
+        if (_wheelCatcher is not null)
+        {
+            _wheelCatcher.RemoveHandler(InputElement.PointerWheelChangedEvent, OnPointerWheelChanged);
+            _wheelCatcher.PointerPressed -= OnWheelCatcherPressed;
+        }
+
         if (_webView is not null)
         {
             _webView.NavigationStarted -= OnNavigationStarted;
@@ -61,7 +93,6 @@ public partial class WikiPage : UserControl
             _webView.NewWindowRequested -= OnNewWindowRequested;
             _webView.AdapterCreated -= OnAdapterCreated;
             _webView.AdapterDestroyed -= OnAdapterDestroyed;
-            _webView.EnvironmentRequested -= OnEnvironmentRequested;
             _webView.RemoveHandler(InputElement.PointerWheelChangedEvent, OnPointerWheelChanged);
         }
 
@@ -253,6 +284,7 @@ public partial class WikiPage : UserControl
             {
                 _boundVm.UpdateHistoryState(_webView.CanGoBack, _webView.CanGoForward);
                 NudgeWebViewLayout();
+                _ = InjectWheelAssistAsync();
             }
 
             _boundVm.HandleNavigationCompleted(e.Request, e.IsSuccess);
@@ -292,27 +324,72 @@ public partial class WikiPage : UserControl
         Dispatcher.UIThread.Post(() => _boundVm?.ReportWebViewUnavailable());
     }
 
-    private void OnEnvironmentRequested(object? sender, WebViewEnvironmentRequestedEventArgs e)
+    private void OnTopLevelWheelChanged(object? sender, PointerWheelEventArgs e)
     {
-        _ = sender;
-        if (e is LinuxWpeWebViewEnvironmentRequestedEventArgs linux)
+        if (_webView is null || _boundVm?.HasError == true || !IsVisible)
         {
-            // Improves wheel/input routing on some Linux sessions.
-            linux.PreferWebKitGtkInstead = true;
+            return;
         }
+
+        var point = e.GetPosition(_webView);
+        if (point.X < 0 || point.Y < 0 || point.X > _webView.Bounds.Width || point.Y > _webView.Bounds.Height)
+        {
+            return;
+        }
+
+        ForwardWheel(e);
     }
 
     private void OnPointerWheelChanged(object? sender, PointerWheelEventArgs e)
+        => ForwardWheel(e);
+
+    private void ForwardWheel(PointerWheelEventArgs e)
     {
         if (_webView is null || _boundVm?.HasError == true)
         {
             return;
         }
 
-        var dx = (-e.Delta.X * 64).ToString(CultureInfo.InvariantCulture);
-        var dy = (-e.Delta.Y * 64).ToString(CultureInfo.InvariantCulture);
+        var dx = (-e.Delta.X * 80).ToString(CultureInfo.InvariantCulture);
+        var dy = (-e.Delta.Y * 80).ToString(CultureInfo.InvariantCulture);
         _ = ScrollWebViewAsync(dx, dy);
         e.Handled = true;
+    }
+
+    private void OnWheelCatcherPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (_webView is null)
+        {
+            return;
+        }
+
+        var point = e.GetPosition(_webView);
+        var x = point.X.ToString(CultureInfo.InvariantCulture);
+        var y = point.Y.ToString(CultureInfo.InvariantCulture);
+        _ = ClickWebViewAsync(x, y);
+        e.Handled = true;
+    }
+
+    private async Task ClickWebViewAsync(string x, string y)
+    {
+        if (_webView is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await _webView.InvokeScript(
+                    $"(function(x,y){{var el=document.elementFromPoint(x,y);if(!el)return;" +
+                    $"['mousedown','mouseup','click'].forEach(function(t){{" +
+                    $"el.dispatchEvent(new MouseEvent(t,{{bubbles:true,cancelable:true,view:window,clientX:x,clientY:y}}));}}" +
+                    $");if(el.focus)el.focus();}})({x},{y});")
+                .ConfigureAwait(true);
+        }
+        catch
+        {
+            // Ignore script failures while the page is still loading.
+        }
     }
 
     private async Task ScrollWebViewAsync(string dx, string dy)
@@ -325,12 +402,54 @@ public partial class WikiPage : UserControl
         try
         {
             await _webView.InvokeScript(
-                $"(function(){{var t=document.scrollingElement||document.documentElement||document.body; if(t){{t.scrollBy({dx},{dy});}} else {{window.scrollBy({dx},{dy});}} }})();")
+                    $"(function(dx,dy){{" +
+                    $"function canScroll(el){{if(!el)return false;var s=getComputedStyle(el);var oy=s.overflowY;var ox=s.overflowX;" +
+                    $"var y=(oy==='auto'||oy==='scroll'||oy==='overlay')&&el.scrollHeight>el.clientHeight+1;" +
+                    $"var x=(ox==='auto'||ox==='scroll'||ox==='overlay')&&el.scrollWidth>el.clientWidth+1;return y||x;}}" +
+                    $"var nodes=[document.getElementById('content'),document.getElementById('bodyContent')," +
+                    $"document.getElementById('mw-content-text'),document.querySelector('.mw-body')," +
+                    $"document.querySelector('.vector-body'),document.scrollingElement,document.documentElement,document.body];" +
+                    $"for(var i=0;i<nodes.length;i++){{var n=nodes[i];if(!n)continue;var beforeY=n.scrollTop,beforeX=n.scrollLeft;" +
+                    $"n.scrollBy(dx,dy);if(n.scrollTop!==beforeY||n.scrollLeft!==beforeX)return;}}" +
+                    $"var el=document.elementFromPoint(Math.floor(window.innerWidth/2),Math.floor(window.innerHeight/2));" +
+                    $"while(el){{if(canScroll(el)){{el.scrollBy(dx,dy);return;}}el=el.parentElement;}}" +
+                    $"window.scrollBy(dx,dy);" +
+                    $"}})({dx},{dy});")
                 .ConfigureAwait(true);
         }
         catch
         {
             // Ignore script failures while the page is still loading.
+        }
+    }
+
+    private async Task InjectWheelAssistAsync()
+    {
+        if (_webView is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await _webView.InvokeScript(
+                    "(function(){if(window.__relicWheelAssist)return;window.__relicWheelAssist=true;" +
+                    "document.addEventListener('wheel',function(e){" +
+                    "var root=document.scrollingElement||document.documentElement||document.body;" +
+                    "if(!root)return;" +
+                    "var before=root.scrollTop;" +
+                    "root.scrollTop+=e.deltaY;" +
+                    "root.scrollLeft+=e.deltaX;" +
+                    "if(root.scrollTop===before){" +
+                    "var c=document.getElementById('content')||document.getElementById('bodyContent')||document.getElementById('mw-content-text');" +
+                    "if(c){c.scrollTop+=e.deltaY;c.scrollLeft+=e.deltaX;}" +
+                    "}" +
+                    "},{passive:true});})();")
+                .ConfigureAwait(true);
+        }
+        catch
+        {
+            // Best effort.
         }
     }
 

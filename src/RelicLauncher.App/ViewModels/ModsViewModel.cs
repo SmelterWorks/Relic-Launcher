@@ -15,7 +15,6 @@ namespace RelicLauncher.App.ViewModels;
 public partial class ModsViewModel : PageViewModelBase
 {
     private const int DefaultPageSize = RelicDefaults.ModBrowsePageSize;
-    private const int CollapsedTagCount = 12;
     private readonly IModDbClient _modDb;
     private readonly IModLibraryService _modLibrary;
     private readonly IModReleaseResolver _releaseResolver;
@@ -103,9 +102,6 @@ public partial class ModsViewModel : PageViewModelBase
     private string _selectedInstalledLabel = string.Empty;
 
     [ObservableProperty]
-    private bool _showAllTags;
-
-    [ObservableProperty]
     private Bitmap? _detailLogo = ModIconAssets.Default;
 
     [ObservableProperty]
@@ -143,10 +139,10 @@ public partial class ModsViewModel : PageViewModelBase
     public ObservableCollection<ModImageItemViewModel> ScreenshotItems { get; } = [];
     public ObservableCollection<TransferJobRowViewModel> ActiveTransfers { get; } = [];
     public ObservableCollection<ModTagChipViewModel> TagChips { get; } = [];
-    public ObservableCollection<ModTagChipViewModel> VisibleTagChips { get; } = [];
     public ObservableCollection<string> DetailTagNames { get; } = [];
-    public bool HasMoreTags => TagChips.Count > CollapsedTagCount;
-    public string ShowMoreTagsLabel => ShowAllTags ? "Show fewer tags" : "Show more tags";
+    public string TagsMenuLabel => HasSelectedTags
+        ? $"Tags ({_selectedTagIds.Count})"
+        : "Tags";
     public IReadOnlyList<ModSortOption> SortOptions { get; } =
     [
         new ModSortOption { Id = "downloads", Label = "Most downloads" },
@@ -202,9 +198,9 @@ public partial class ModsViewModel : PageViewModelBase
     {
         _settings = settings;
         _ready = true;
+        _ = RefreshInstalledAsync();
         if (refresh)
         {
-            _ = RefreshInstalledAsync();
             _ = LoadTagsAsync();
             _ = SearchAsync();
             _ = _modDb.PrefetchCatalogAsync();
@@ -580,6 +576,41 @@ public partial class ModsViewModel : PageViewModelBase
             return;
         }
 
+        var id = !string.IsNullOrWhiteSpace(summary.UrlAlias)
+            ? summary.UrlAlias
+            : summary.ModId.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        await OpenModByKeyAsync(id!).ConfigureAwait(true);
+    }
+
+    [RelayCommand]
+    private async Task OpenInstalledModAsync(InstalledModRowViewModel? row)
+    {
+        if (row is null)
+        {
+            return;
+        }
+
+        if (row.Catalog is not null)
+        {
+            await OpenModAsync(row.Catalog).ConfigureAwait(true);
+            return;
+        }
+
+        var id = NormalizeKey(row.Info.ModId);
+        if (string.IsNullOrEmpty(id))
+        {
+            SelectedDetails = null;
+            SelectedRelease = null;
+            DetailStatus = "This local mod is not linked to ModDB.";
+            UpdateSelectedInstalledState();
+            return;
+        }
+
+        await OpenModByKeyAsync(id).ConfigureAwait(true);
+    }
+
+    private async Task OpenModByKeyAsync(string id)
+    {
         IsLoadingDetails = true;
         DetailStatus = "Loading details...";
         SelectedDetails = null;
@@ -589,10 +620,7 @@ public partial class ModsViewModel : PageViewModelBase
         CloseImageViewer();
         UpdateSelectedInstalledState();
 
-        var id = !string.IsNullOrWhiteSpace(summary.UrlAlias)
-            ? summary.UrlAlias
-            : summary.ModId.ToString(System.Globalization.CultureInfo.InvariantCulture);
-        var result = await _modDb.GetModAsync(id!).ConfigureAwait(true);
+        var result = await _modDb.GetModAsync(id).ConfigureAwait(true);
         IsLoadingDetails = false;
         if (!result.IsSuccess)
         {
@@ -1009,27 +1037,8 @@ public partial class ModsViewModel : PageViewModelBase
                 OnTagChipToggled));
         }
 
-        RefreshVisibleTagChips();
         UpdateSelectedTagsLabel();
     }
-
-    private void RefreshVisibleTagChips()
-    {
-        VisibleTagChips.Clear();
-        var source = ShowAllTags ? TagChips : TagChips.Take(CollapsedTagCount);
-        foreach (var chip in source)
-        {
-            VisibleTagChips.Add(chip);
-        }
-
-        OnPropertyChanged(nameof(HasMoreTags));
-        OnPropertyChanged(nameof(ShowMoreTagsLabel));
-    }
-
-    partial void OnShowAllTagsChanged(bool value) => RefreshVisibleTagChips();
-
-    [RelayCommand]
-    private void ToggleShowAllTags() => ShowAllTags = !ShowAllTags;
 
     private void OnTagChipToggled(ModTagChipViewModel chip)
     {
@@ -1153,6 +1162,7 @@ public partial class ModsViewModel : PageViewModelBase
         SelectedTagsLabel = HasSelectedTags
             ? $"{_selectedTagIds.Count} tag filter(s)"
             : string.Empty;
+        OnPropertyChanged(nameof(TagsMenuLabel));
     }
 
     partial void OnSelectedReleaseChanged(ModReleaseInfo? value)

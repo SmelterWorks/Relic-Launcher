@@ -23,7 +23,6 @@
                  KeyDown="OnSearchKeyDown"
                  AutomationProperties.Name="Search mods" />
         <Button Classes="primary" Content="Search" Command="{Binding SearchCommand}" IsEnabled="{Binding !IsLoading}" AutomationProperties.Name="Search ModDB" />
-        <Button Classes="ghost" Content="Refresh installed" Command="{Binding RefreshInstalledCommand}" AutomationProperties.Name="Refresh installed mods" />
       </StackPanel>
       <StackPanel Orientation="Horizontal" Spacing="8">
         <ComboBox ItemsSource="{Binding SortOptions}"
@@ -46,60 +45,43 @@
             </DataTemplate>
           </ComboBox.ItemTemplate>
         </ComboBox>
+        <Button Classes="ghost"
+                Content="{Binding TagsMenuLabel}"
+                VerticalAlignment="Center"
+                Padding="12,8"
+                AutomationProperties.Name="Tag filters">
+          <Button.Flyout>
+            <Flyout Placement="BottomEdgeAlignedLeft">
+              <DockPanel Width="240" MaxHeight="300">
+                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="8" Margin="0,0,0,8">
+                  <TextBlock Text="Tags" Classes="muted" VerticalAlignment="Center" />
+                  <Button Classes="ghost"
+                          Content="Clear"
+                          Padding="8,4"
+                          Command="{Binding ClearSelectedTagsCommand}"
+                          IsVisible="{Binding HasSelectedTags}"
+                          VerticalAlignment="Center" />
+                </StackPanel>
+                <ScrollViewer HorizontalScrollBarVisibility="Disabled"
+                              VerticalScrollBarVisibility="Auto">
+                  <ItemsControl ItemsSource="{Binding TagChips}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="vm:ModTagChipViewModel">
+                        <CheckBox Content="{Binding Name}"
+                                  IsChecked="{Binding IsSelected, Mode=OneWay}"
+                                  Margin="0,2"
+                                  Command="{Binding ToggleCommand}" />
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </ScrollViewer>
+              </DockPanel>
+            </Flyout>
+          </Button.Flyout>
+        </Button>
         <CheckBox Content="Filter by active version"
                   IsChecked="{Binding FilterByActiveVersion}"
                   VerticalAlignment="Center" />
-      </StackPanel>
-
-      <StackPanel Spacing="4">
-        <StackPanel Orientation="Horizontal" Spacing="8">
-          <TextBlock Text="Tags"
-                     Classes="muted"
-                     VerticalAlignment="Center" />
-          <TextBlock Text="{Binding SelectedTagsLabel}"
-                     Classes="muted"
-                     VerticalAlignment="Center"
-                     IsVisible="{Binding HasSelectedTags}" />
-          <Button Classes="ghost"
-                  Content="Clear tags"
-                  Command="{Binding ClearSelectedTagsCommand}"
-                  IsVisible="{Binding HasSelectedTags}"
-                  VerticalAlignment="Center" />
-        </StackPanel>
-        <ScrollViewer HorizontalScrollBarVisibility="Disabled"
-                      VerticalScrollBarVisibility="Auto"
-                      MaxHeight="132">
-          <ItemsControl ItemsSource="{Binding VisibleTagChips}">
-            <ItemsControl.ItemsPanel>
-              <ItemsPanelTemplate>
-                <WrapPanel Orientation="Horizontal" />
-              </ItemsPanelTemplate>
-            </ItemsControl.ItemsPanel>
-            <ItemsControl.ItemTemplate>
-              <DataTemplate x:DataType="vm:ModTagChipViewModel">
-                <Button Classes="ghost"
-                        Margin="0,0,6,6"
-                        Padding="8,2"
-                        Command="{Binding ToggleCommand}"
-                        Background="{DynamicResource Theme.Bg1}">
-                  <Panel>
-                    <TextBlock Text="{Binding Name}"
-                               FontWeight="SemiBold"
-                               IsVisible="{Binding IsSelected}" />
-                    <TextBlock Text="{Binding Name}"
-                               IsVisible="{Binding !IsSelected}" />
-                  </Panel>
-                </Button>
-              </DataTemplate>
-            </ItemsControl.ItemTemplate>
-          </ItemsControl>
-        </ScrollViewer>
-        <Button Classes="ghost"
-                Content="{Binding ShowMoreTagsLabel}"
-                Command="{Binding ToggleShowAllTagsCommand}"
-                IsVisible="{Binding HasMoreTags}"
-                HorizontalAlignment="Left"
-                AutomationProperties.Name="Toggle more tags" />
       </StackPanel>
 
       <TextBlock Text="{Binding StatusMessage}"
@@ -213,7 +195,15 @@
                 <ItemsControl ItemsSource="{Binding InstalledMods}">
                   <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="vm:InstalledModRowViewModel">
-                      <Border Padding="10" Margin="0,0,0,8" Background="{DynamicResource Theme.Surface}" CornerRadius="{DynamicResource Theme.Radius}">
+                      <Button Classes="ghost"
+                              HorizontalAlignment="Stretch"
+                              HorizontalContentAlignment="Stretch"
+                              Margin="0,0,0,8"
+                              Padding="10"
+                              Background="{DynamicResource Theme.Surface}"
+                              Command="{Binding $parent[UserControl].((vm:ModsViewModel)DataContext).OpenInstalledModCommand}"
+                              CommandParameter="{Binding}"
+                              AutomationProperties.Name="Open installed mod details">
                         <Grid ColumnDefinitions="56,*,Auto" ColumnSpacing="10">
                           <Border Width="48" Height="48" CornerRadius="6" ClipToBounds="True" Background="{DynamicResource Theme.Bg1}">
                             <Panel>
@@ -264,7 +254,7 @@
                                     AutomationProperties.Name="Uninstall mod" />
                           </StackPanel>
                         </Grid>
-                      </Border>
+                      </Button>
                     </DataTemplate>
                   </ItemsControl.ItemTemplate>
                 </ItemsControl>
