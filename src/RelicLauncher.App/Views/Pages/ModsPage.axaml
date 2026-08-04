@@ -1,0 +1,243 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:RelicLauncher.App.ViewModels"
+             xmlns:models="using:RelicLauncher.Core.Models"
+             xmlns:controls="using:RelicLauncher.App.Views.Controls"
+             x:Class="RelicLauncher.App.Views.Pages.ModsPage"
+             x:DataType="vm:ModsViewModel">
+  <Grid RowDefinitions="Auto,Auto,*">
+    <controls:PageHeader Title="Mods"
+                         Subtitle="Browse ModDB and manage mods in your data folder." />
+
+    <StackPanel Grid.Row="1" Spacing="8" Margin="0,12,0,8">
+      <StackPanel Orientation="Horizontal" Spacing="8">
+        <TextBox Text="{Binding SearchText}"
+                 PlaceholderText="Search mods"
+                 Width="240"
+                 MinWidth="160" />
+        <Button Classes="primary" Content="Search" Command="{Binding SearchCommand}" IsEnabled="{Binding !IsLoading}" />
+        <Button Classes="ghost" Content="Refresh installed" Command="{Binding RefreshInstalledCommand}" />
+        <CheckBox Content="Filter by active version"
+                  IsChecked="{Binding FilterByActiveVersion}"
+                  VerticalAlignment="Center" />
+      </StackPanel>
+
+      <TextBlock Text="{Binding StatusMessage}"
+                 Classes="muted"
+                 TextWrapping="Wrap"
+                 IsVisible="{Binding StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+
+      <ItemsControl ItemsSource="{Binding ActiveTransfers}"
+                    IsVisible="{Binding ActiveTransfers.Count}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="vm:TransferJobRowViewModel">
+            <StackPanel Spacing="4" Margin="0,0,0,6">
+              <TextBlock Text="{Binding Label}" FontWeight="SemiBold" />
+              <TextBlock Text="{Binding StatusText}" Classes="muted" />
+              <ProgressBar Minimum="0" Maximum="1" Value="{Binding Progress}" Height="6" />
+            </StackPanel>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </StackPanel>
+
+    <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="16">
+      <Grid Grid.Column="0" RowDefinitions="*">
+        <TabControl>
+          <TabItem Header="Browse">
+            <Grid RowDefinitions="Auto,*,Auto">
+              <TextBlock Text="Loading mods..."
+                         Classes="muted"
+                         Margin="0,0,0,8"
+                         IsVisible="{Binding IsLoading}" />
+              <TextBlock Text="{Binding EmptyBrowseMessage}"
+                         Classes="muted"
+                         Margin="0,0,0,8"
+                         TextWrapping="Wrap"
+                         IsVisible="{Binding !HasBrowseResults}" />
+
+              <ScrollViewer Grid.Row="1">
+                <ItemsControl ItemsSource="{Binding BrowseResults}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:ModRowViewModel">
+                      <Button Classes="ghost"
+                              HorizontalAlignment="Stretch"
+                              HorizontalContentAlignment="Stretch"
+                              Margin="0,0,0,6"
+                              Command="{Binding OpenCommand}">
+                        <Grid ColumnDefinitions="56,*" ColumnSpacing="10">
+                          <Border Width="48" Height="48" CornerRadius="6" ClipToBounds="True" Background="{DynamicResource Theme.Bg1}">
+                            <Image Source="{Binding Logo}" Stretch="UniformToFill" />
+                          </Border>
+                          <StackPanel Grid.Column="1" Spacing="2">
+                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                            <TextBlock Text="{Binding Author}" Classes="muted" />
+                            <TextBlock Text="{Binding DownloadsLabel}" Classes="muted" FontSize="12" />
+                            <TextBlock Text="{Binding SummaryText}" Classes="muted" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" />
+                          </StackPanel>
+                        </Grid>
+                      </Button>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </ScrollViewer>
+
+              <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="8" Margin="0,8,0,0">
+                <Button Classes="ghost" Content="Previous" Command="{Binding PreviousPageCommand}" IsEnabled="{Binding HasPreviousPage}" />
+                <TextBlock Text="{Binding PageLabel}" Classes="muted" VerticalAlignment="Center" />
+                <Button Classes="ghost" Content="Next" Command="{Binding NextPageCommand}" IsEnabled="{Binding HasNextPage}" />
+              </StackPanel>
+            </Grid>
+          </TabItem>
+
+          <TabItem Header="Installed">
+            <Grid RowDefinitions="Auto,*">
+              <TextBlock Text="{Binding EmptyInstalledMessage}"
+                         Classes="muted"
+                         Margin="0,0,0,8"
+                         IsVisible="{Binding !HasInstalledMods}" />
+              <ScrollViewer Grid.Row="1">
+                <ItemsControl ItemsSource="{Binding InstalledMods}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="models:LocalModInfo">
+                      <Border Padding="10" Margin="0,0,0,8" Background="{DynamicResource Theme.Surface}" CornerRadius="{DynamicResource Theme.Radius}">
+                        <Grid ColumnDefinitions="*,Auto">
+                          <StackPanel Spacing="2">
+                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                            <TextBlock Text="{Binding Version}" Classes="muted" />
+                            <TextBlock Text="{Binding FileName}" Classes="muted" FontSize="12" />
+                            <TextBlock Text="Disabled" Classes="muted" IsVisible="{Binding !IsEnabled}" />
+                          </StackPanel>
+                          <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6">
+                            <Button Classes="ghost"
+                                    Content="Toggle"
+                                    Command="{Binding $parent[UserControl].((vm:ModsViewModel)DataContext).ToggleModCommand}"
+                                    CommandParameter="{Binding}" />
+                            <Button Classes="ghost"
+                                    Content="Uninstall"
+                                    Command="{Binding $parent[UserControl].((vm:ModsViewModel)DataContext).UninstallModCommand}"
+                                    CommandParameter="{Binding}" />
+                          </StackPanel>
+                        </Grid>
+                      </Border>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </ScrollViewer>
+            </Grid>
+          </TabItem>
+        </TabControl>
+      </Grid>
+
+      <Border Grid.Column="1"
+              Padding="0"
+              Background="{DynamicResource Theme.Surface}"
+              CornerRadius="{DynamicResource Theme.Radius}"
+              ClipToBounds="True">
+        <DockPanel LastChildFill="True">
+          <StackPanel DockPanel.Dock="Top" Spacing="8" Margin="16,16,16,8">
+            <TextBlock Text="Details" Classes="brand" FontSize="20" />
+            <TextBlock Text="Select a mod to see details."
+                       Classes="muted"
+                       IsVisible="{Binding SelectedDetails, Converter={x:Static ObjectConverters.IsNull}}" />
+            <TextBlock Text="{Binding DetailStatus}" Classes="muted" TextWrapping="Wrap"
+                       IsVisible="{Binding DetailStatus, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+            <TextBlock Text="Loading details..." Classes="muted" IsVisible="{Binding IsLoadingDetails}" />
+          </StackPanel>
+
+          <Border DockPanel.Dock="Bottom"
+                  Padding="16,8,16,16"
+                  IsVisible="{Binding SelectedDetails, Converter={x:Static ObjectConverters.IsNotNull}}">
+            <StackPanel Spacing="8">
+              <ComboBox ItemsSource="{Binding SelectedDetails.Releases}"
+                        SelectedItem="{Binding SelectedRelease}"
+                        PlaceholderText="Select release"
+                        HorizontalAlignment="Stretch">
+                <ComboBox.ItemTemplate>
+                  <DataTemplate x:DataType="models:ModReleaseInfo">
+                    <TextBlock>
+                      <TextBlock.Text>
+                        <MultiBinding StringFormat="{}{0}">
+                          <Binding Path="ModVersion" />
+                        </MultiBinding>
+                      </TextBlock.Text>
+                    </TextBlock>
+                  </DataTemplate>
+                </ComboBox.ItemTemplate>
+              </ComboBox>
+              <StackPanel IsVisible="{Binding IsInstalling}" Spacing="4">
+                <TextBlock Text="{Binding InstallProgressLabel}" Classes="muted" TextWrapping="Wrap" />
+                <ProgressBar Minimum="0" Maximum="1" Value="{Binding InstallProgress}" Height="8" />
+              </StackPanel>
+              <Button Classes="primary"
+                      Content="Install selected release"
+                      Command="{Binding InstallSelectedCommand}"
+                      HorizontalAlignment="Stretch"
+                      IsEnabled="{Binding !IsLoadingDetails}" />
+            </StackPanel>
+          </Border>
+
+          <ScrollViewer Margin="16,0,16,0"
+                        IsVisible="{Binding SelectedDetails, Converter={x:Static ObjectConverters.IsNotNull}}">
+            <StackPanel Spacing="10" Margin="0,0,0,12">
+              <Image Source="{Binding DetailLogo}"
+                     MaxHeight="140"
+                     Stretch="Uniform"
+                     HorizontalAlignment="Left"
+                     IsVisible="{Binding DetailLogo, Converter={x:Static ObjectConverters.IsNotNull}}" />
+              <TextBlock Text="{Binding SelectedDetails.Name}" FontSize="18" FontWeight="SemiBold" TextWrapping="Wrap" />
+              <TextBlock Text="{Binding SelectedDetails.Author}" Classes="muted" />
+              <TextBlock Text="{Binding SelectedDetails.Summary}" TextWrapping="Wrap" />
+              <TextBlock Classes="muted" TextWrapping="Wrap">
+                <TextBlock.Text>
+                  <MultiBinding StringFormat="Side: {0} · Downloads: {1:N0} · Follows: {2:N0}">
+                    <Binding Path="SelectedDetails.Side" />
+                    <Binding Path="SelectedDetails.Downloads" />
+                    <Binding Path="SelectedDetails.Follows" />
+                  </MultiBinding>
+                </TextBlock.Text>
+              </TextBlock>
+              <ItemsControl ItemsSource="{Binding SelectedDetails.Tags}">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate>
+                    <WrapPanel />
+                  </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate>
+                    <Border Margin="0,0,6,6" Padding="8,2" Background="{DynamicResource Theme.Bg1}" CornerRadius="4">
+                      <TextBlock Text="{Binding}" FontSize="12" />
+                    </Border>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+              <TextBlock Text="{Binding SelectedDetails.DescriptionText}" TextWrapping="Wrap" />
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <Button Classes="ghost" Content="Homepage" Command="{Binding OpenUrlCommand}" CommandParameter="{Binding SelectedDetails.HomepageUrl}"
+                        IsVisible="{Binding SelectedDetails.HomepageUrl, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                <Button Classes="ghost" Content="Wiki" Command="{Binding OpenUrlCommand}" CommandParameter="{Binding SelectedDetails.WikiUrl}"
+                        IsVisible="{Binding SelectedDetails.WikiUrl, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                <Button Classes="ghost" Content="Source" Command="{Binding OpenUrlCommand}" CommandParameter="{Binding SelectedDetails.SourceCodeUrl}"
+                        IsVisible="{Binding SelectedDetails.SourceCodeUrl, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                <Button Classes="ghost" Content="Trailer" Command="{Binding OpenUrlCommand}" CommandParameter="{Binding SelectedDetails.TrailerVideoUrl}"
+                        IsVisible="{Binding SelectedDetails.TrailerVideoUrl, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+              </StackPanel>
+              <ItemsControl ItemsSource="{Binding ScreenshotBitmaps}">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate>
+                    <WrapPanel />
+                  </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate>
+                    <Image Source="{Binding}" Width="120" Height="80" Stretch="UniformToFill" Margin="0,0,8,8" />
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </StackPanel>
+          </ScrollViewer>
+        </DockPanel>
+      </Border>
+    </Grid>
+  </Grid>
+</UserControl>

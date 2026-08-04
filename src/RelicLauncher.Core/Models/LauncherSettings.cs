@@ -6,6 +6,9 @@ public sealed class LauncherSettings
 
     public string SelectedThemeId { get; set; } = DefaultThemeId;
     public string? GameInstallPath { get; set; }
+    public string? InstallsRoot { get; set; }
+    public string? SelectedVersion { get; set; }
+    public string? DataPath { get; set; }
     public bool ConfirmBeforeExit { get; set; }
     public HomeBackgroundLogoMode HomeBackgroundLogoMode { get; set; } = HomeBackgroundLogoMode.Square;
     public string? HomeBackgroundCustomLogoPath { get; set; }

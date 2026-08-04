@@ -10,7 +10,7 @@
       <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
         <controls:PageHeader Grid.Column="0"
                              Title="Settings"
-                             Subtitle="Install path, theme, home background, and log locations." />
+                             Subtitle="Account, installs, data path, theme, and logs." />
         <TextBlock Grid.Column="1"
                    Text="{Binding SaveStatusMessage}"
                    Classes="muted"
@@ -19,21 +19,71 @@
                    IsVisible="{Binding IsSaveStatusVisible}" />
       </Grid>
 
-      <TextBlock Text="Game install path" Margin="0,12,0,0" />
+      <TextBlock Text="Vintage Story account" Margin="0,12,0,0" Classes="brand" FontSize="18" />
+      <TextBlock Text="{Binding AccountStatus}" Classes="muted" TextWrapping="Wrap" />
+      <TextBlock Text="{Binding AccountError}"
+                 Foreground="{DynamicResource Theme.Danger}"
+                 TextWrapping="Wrap"
+                 IsVisible="{Binding HasAccountError}" />
+      <TextBox Text="{Binding AccountEmail}"
+               PlaceholderText="game account email"
+               IsEnabled="{Binding !IsSignedIn}" />
+      <TextBox Text="{Binding AccountPassword}"
+               PasswordChar="*"
+               PlaceholderText="password"
+               IsVisible="{Binding !IsSignedIn}"
+               IsEnabled="{Binding !IsSigningIn}" />
+      <StackPanel Orientation="Horizontal" Spacing="8">
+        <Button Classes="primary"
+                Content="Sign in"
+                Command="{Binding SignInCommand}"
+                IsVisible="{Binding !IsSignedIn}"
+                IsEnabled="{Binding !IsSigningIn}" />
+        <Button Classes="ghost"
+                Content="Sign out"
+                Command="{Binding SignOutCommand}"
+                IsVisible="{Binding IsSignedIn}" />
+        <TextBlock Text="Signing in..."
+                   Classes="muted"
+                   VerticalAlignment="Center"
+                   IsVisible="{Binding IsSigningIn}" />
+      </StackPanel>
+
+      <TextBlock Text="Installs root" Margin="0,12,0,0" />
       <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
         <TextBox Grid.Column="0"
-                 Text="{Binding GameInstallPath}"
-                 PlaceholderText="/path/to/Vintagestory" />
+                 Text="{Binding InstallsRoot}"
+                 PlaceholderText="/path/to/RelicLauncher/Vintagestory" />
         <Button Grid.Column="1"
                 Classes="ghost"
                 Width="40"
                 Height="40"
                 Padding="0"
-                ToolTip.Tip="Select install folder"
-                Command="{Binding BrowseGameInstallPathCommand}">
+                ToolTip.Tip="Select installs root"
+                Command="{Binding BrowseInstallsRootCommand}">
           <i:Icon Value="mdi-folder" Width="18" Height="18" />
         </Button>
       </Grid>
+
+      <TextBlock Text="Game data path" Margin="0,8,0,0" />
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+        <TextBox Grid.Column="0"
+                 Text="{Binding DataPath}"
+                 PlaceholderText="/path/to/VintagestoryData" />
+        <Button Grid.Column="1"
+                Classes="ghost"
+                Width="40"
+                Height="40"
+                Padding="0"
+                ToolTip.Tip="Select data folder"
+                Command="{Binding BrowseDataPathCommand}">
+          <i:Icon Value="mdi-folder" Width="18" Height="18" />
+        </Button>
+      </Grid>
+
+      <TextBlock Text="Active version" Margin="0,8,0,0" />
+      <TextBlock Text="{Binding SelectedVersion}" Classes="muted" />
+      <TextBlock Text="Choose the active version on the Versions page." Classes="muted" FontSize="12" />
 
       <TextBlock Text="Theme" Margin="0,8,0,0" />
       <ComboBox ItemsSource="{Binding Themes}"
@@ -91,8 +141,24 @@
       <controls:FolderPathRow DataContext="{Binding LogsFolder}" Margin="0,12,0,0" />
       <controls:FolderPathRow DataContext="{Binding ThemesFolder}" Margin="0,8,0,0" />
 
+      <TextBlock Text="Debug viewer" Margin="0,16,0,0" Classes="brand" FontSize="18" />
+      <TextBlock Text="Recent warnings and errors from this session." Classes="muted" />
+      <StackPanel Orientation="Horizontal" Spacing="8">
+        <Button Classes="ghost" Content="Show / hide" Command="{Binding ToggleDebugViewerCommand}" />
+        <Button Classes="ghost" Content="Refresh" Command="{Binding RefreshDebugLogCommand}" />
+        <Button Classes="ghost" Content="Clear" Command="{Binding ClearDebugLogCommand}" />
+      </StackPanel>
+      <TextBox Text="{Binding DebugLogText}"
+               IsReadOnly="True"
+               AcceptsReturn="True"
+               TextWrapping="Wrap"
+               MinHeight="180"
+               MaxHeight="320"
+               IsVisible="{Binding ShowDebugViewer}" />
+
       <TextBlock Text="{Binding StatusMessage}"
                  Classes="muted"
+                 TextWrapping="Wrap"
                  IsVisible="{Binding StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
     </StackPanel>
   </ScrollViewer>

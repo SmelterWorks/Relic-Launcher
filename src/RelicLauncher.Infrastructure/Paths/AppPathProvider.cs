@@ -20,6 +20,8 @@ public sealed class AppPathProvider : RelicLauncher.Core.Abstractions.IAppPathPr
             SettingsFile = Path.Combine(root, "settings.json"),
             LogsDirectory = Path.Combine(root, "logs"),
             ThemesDirectory = Path.Combine(root, "themes"),
+            CacheDirectory = Path.Combine(root, "cache"),
+            SecretsDirectory = Path.Combine(root, "secrets"),
         };
     }
 }

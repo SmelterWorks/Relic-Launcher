@@ -52,10 +52,13 @@ internal static class Program
     internal static ServiceProvider BuildServices()
     {
         var pathProvider = new AppPathProvider();
-        var loggerFactory = ServiceCollectionExtensions.CreateSerilogLoggerFactory(pathProvider);
+        var debugLogBuffer = new RelicLauncher.Infrastructure.Logging.DebugLogBuffer();
+        var loggerFactory = ServiceCollectionExtensions.CreateSerilogLoggerFactory(pathProvider, debugLogBuffer);
 
         var services = new ServiceCollection();
         services.AddSingleton<IAppPathProvider>(pathProvider);
+        services.AddSingleton<RelicLauncher.Core.Abstractions.IDebugLogBuffer>(debugLogBuffer);
+        services.AddSingleton(debugLogBuffer);
         services.AddSingleton(loggerFactory);
         services.AddLogging(builder =>
         {
@@ -70,6 +73,8 @@ internal static class Program
         services.AddSingleton<IRemoteNewsImageLoader, RemoteNewsImageLoader>();
         services.AddSingleton<MainWindowViewModel>();
         services.AddTransient<HomeViewModel>();
+        services.AddTransient<VersionsViewModel>();
+        services.AddTransient<ModsViewModel>();
         services.AddTransient<PlaceholderPageViewModel>();
         services.AddTransient<SettingsViewModel>();
         services.AddTransient<AboutViewModel>();

@@ -48,27 +48,23 @@ public partial class MainWindowViewModel : ViewModelBase
     private void NavigateHome() => Navigate("home", () =>
     {
         var page = _services.GetRequiredService<HomeViewModel>();
-        page.Bind(Settings);
+        page.Bind(Settings, OnSettingsChanged);
         return page;
     });
 
     [RelayCommand]
     private void NavigateVersions() => Navigate("versions", () =>
     {
-        var page = _services.GetRequiredService<PlaceholderPageViewModel>();
-        page.Configure(
-            "Versions",
-            "Version management is not implemented in this scaffold. This page is a placeholder for install and update flows.");
+        var page = _services.GetRequiredService<VersionsViewModel>();
+        page.Bind(Settings, OnSettingsChanged);
         return page;
     });
 
     [RelayCommand]
     private void NavigateMods() => Navigate("mods", () =>
     {
-        var page = _services.GetRequiredService<PlaceholderPageViewModel>();
-        page.Configure(
-            "Mods",
-            "Mod browsing and install are not implemented in this scaffold. This page is a placeholder.");
+        var page = _services.GetRequiredService<ModsViewModel>();
+        page.Bind(Settings);
         return page;
     });
 
@@ -95,7 +91,19 @@ public partial class MainWindowViewModel : ViewModelBase
         Settings = settings;
         if (CurrentPage is HomeViewModel home)
         {
-            home.Bind(settings);
+            home.Bind(settings, OnSettingsChanged);
+        }
+        else if (CurrentPage is VersionsViewModel versions)
+        {
+            versions.Bind(settings, OnSettingsChanged);
+        }
+        else if (CurrentPage is ModsViewModel mods)
+        {
+            mods.Bind(settings);
+        }
+        else if (CurrentPage is SettingsViewModel settingsPage)
+        {
+            settingsPage.Bind(settings, OnSettingsChanged);
         }
     }
 

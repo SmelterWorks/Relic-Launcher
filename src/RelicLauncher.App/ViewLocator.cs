@@ -12,6 +12,8 @@ public sealed class ViewLocator : IDataTemplate
         return param switch
         {
             HomeViewModel => new HomePage(),
+            VersionsViewModel => new VersionsPage(),
+            ModsViewModel => new ModsPage(),
             PlaceholderPageViewModel => new PlaceholderPage(),
             SettingsViewModel => new SettingsPage(),
             AboutViewModel => new AboutPage(),

@@ -6,19 +6,23 @@ using Microsoft.Extensions.Logging;
 using RelicLauncher.App.Services;
 using RelicLauncher.Core.Abstractions;
 using RelicLauncher.Core.Models;
+using RelicLauncher.Core.Versions;
 
 namespace RelicLauncher.App.ViewModels;
 
 public partial class HomeViewModel : PageViewModelBase
 {
-    private readonly IGameLocator _gameLocator;
-    private readonly IProcessRunner _processRunner;
+    private readonly IGameLaunchService _launchService;
     private readonly IVintageStoryNewsService _newsService;
     private readonly IRemoteNewsImageLoader _imageLoader;
     private readonly IUrlLauncher _urlLauncher;
+    private readonly IRuntimePlatform _platform;
+    private readonly IInstalledVersionStore _installedStore;
+    private readonly ILauncherSettingsStore _settingsStore;
     private readonly ILogger<HomeViewModel> _logger;
     private LauncherSettings _settings = new();
-    private string? _resolvedExecutable;
+    private Action<LauncherSettings>? _onChanged;
+    private bool _bindingVersions;
 
     [ObservableProperty]
     private bool _canPlay;
@@ -50,55 +54,134 @@ public partial class HomeViewModel : PageViewModelBase
     [ObservableProperty]
     private string _selectedArticlePublished = string.Empty;
 
+    [ObservableProperty]
+    private string _activeVersionLabel = string.Empty;
+
+    [ObservableProperty]
+    private string? _selectedInstalledVersion;
+
+    [ObservableProperty]
+    private bool _hasInstalledVersions;
+
     public ObservableCollection<NewsArticleViewModel> NewsArticles { get; } = [];
     public ObservableCollection<NewsContentBlockViewModel> SelectedArticleBlocks { get; } = [];
+    public ObservableCollection<string> InstalledVersions { get; } = [];
 
     public HomeViewModel(
-        IGameLocator gameLocator,
-        IProcessRunner processRunner,
+        IGameLaunchService launchService,
         IVintageStoryNewsService newsService,
         IRemoteNewsImageLoader imageLoader,
         IUrlLauncher urlLauncher,
+        IRuntimePlatform platform,
+        IInstalledVersionStore installedStore,
+        ILauncherSettingsStore settingsStore,
         ILogger<HomeViewModel> logger)
     {
-        _gameLocator = gameLocator;
-        _processRunner = processRunner;
+        _launchService = launchService;
         _newsService = newsService;
         _imageLoader = imageLoader;
         _urlLauncher = urlLauncher;
+        _platform = platform;
+        _installedStore = installedStore;
+        _settingsStore = settingsStore;
         _logger = logger;
-        StatusMessage = "Set a Vintage Story install path in Settings to enable Play.";
+        StatusMessage = "Install a Vintage Story version on the Versions page to enable Play.";
     }
 
-    public void Bind(LauncherSettings settings)
+    public void Bind(LauncherSettings settings, Action<LauncherSettings>? onChanged = null)
     {
         _settings = settings;
+        _onChanged = onChanged;
         ApplyLogoSettings(settings);
         IsShowingArticle = false;
+        _ = RefreshInstalledVersionsAsync();
         _ = RefreshStatusAsync();
         _ = LoadNewsAsync();
+    }
+
+    partial void OnSelectedInstalledVersionChanged(string? value)
+    {
+        if (_bindingVersions || string.IsNullOrWhiteSpace(value))
+        {
+            return;
+        }
+
+        if (string.Equals(_settings.SelectedVersion, value, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        _ = SetActiveVersionAsync(value);
+    }
+
+    private async Task SetActiveVersionAsync(string version)
+    {
+        _settings.SelectedVersion = version;
+        var save = await _settingsStore.SaveAsync(_settings).ConfigureAwait(true);
+        if (!save.IsSuccess)
+        {
+            StatusMessage = save.Error ?? "Could not save selected version.";
+            return;
+        }
+
+        _onChanged?.Invoke(_settings);
+        await RefreshStatusAsync().ConfigureAwait(true);
+    }
+
+    private async Task RefreshInstalledVersionsAsync()
+    {
+        var installsRoot = _settings.InstallsRoot ?? _platform.GetPlatformInfo().DefaultInstallsRoot;
+        var installed = await _installedStore.ListAsync(installsRoot).ConfigureAwait(true);
+        _bindingVersions = true;
+        InstalledVersions.Clear();
+        if (installed.IsSuccess)
+        {
+            foreach (var version in installed.Value!.OrderByDescending(v => v.Version, Comparer<string>.Create(GameVersionComparer.Compare)))
+            {
+                InstalledVersions.Add(version.Version);
+            }
+        }
+
+        HasInstalledVersions = InstalledVersions.Count > 0;
+        SelectedInstalledVersion = InstalledVersions.FirstOrDefault(v =>
+            string.Equals(v, _settings.SelectedVersion, StringComparison.OrdinalIgnoreCase))
+            ?? InstalledVersions.FirstOrDefault();
+        _bindingVersions = false;
     }
 
     private async Task RefreshStatusAsync()
     {
         CanPlay = false;
-        _resolvedExecutable = null;
+        var installsRoot = _settings.InstallsRoot ?? _platform.GetPlatformInfo().DefaultInstallsRoot;
+        var version = _settings.SelectedVersion;
+        ActiveVersionLabel = string.IsNullOrWhiteSpace(version) ? "No version selected" : $"Version {version}";
 
-        var result = await _gameLocator.LocateAsync(_settings.GameInstallPath).ConfigureAwait(true);
-        if (!result.IsSuccess)
+        if (string.IsNullOrWhiteSpace(version))
         {
-            StatusMessage = result.Error ?? "Install path not ready.";
+            StatusMessage = "Install and select a version on the Versions page.";
             return;
         }
 
-        var info = result.Value!;
-        if (!info.ExecutableFound || string.IsNullOrWhiteSpace(info.ExecutablePath))
+        var resolved = await _launchService.ResolveAsync(new GameLaunchRequest
         {
-            StatusMessage = $"Install found at {info.InstallPath}, but no client executable was detected yet.";
+            InstallsRoot = installsRoot,
+            Version = version,
+            DataPath = _settings.DataPath,
+        }).ConfigureAwait(true);
+
+        if (!resolved.IsSuccess)
+        {
+            StatusMessage = resolved.Error ?? "Install path not ready.";
             return;
         }
 
-        _resolvedExecutable = info.ExecutablePath;
+        var info = resolved.Value!;
+        if (!info.ExecutableFound)
+        {
+            StatusMessage = $"Version {version} is installed but no client executable was found.";
+            return;
+        }
+
         CanPlay = true;
         StatusMessage = $"Ready: {info.InstallPath}";
     }
@@ -150,7 +233,6 @@ public partial class HomeViewModel : PageViewModelBase
 
         if (!result.IsSuccess)
         {
-            SelectedArticleBlocks.Clear();
             SelectedArticleBlocks.Add(new NewsContentBlockViewModel(
                 new NewsContentBlock
                 {
@@ -188,13 +270,14 @@ public partial class HomeViewModel : PageViewModelBase
     [RelayCommand(CanExecute = nameof(CanPlay))]
     private async Task PlayAsync()
     {
-        if (string.IsNullOrWhiteSpace(_resolvedExecutable))
+        var installsRoot = _settings.InstallsRoot ?? _platform.GetPlatformInfo().DefaultInstallsRoot;
+        var result = await _launchService.LaunchAsync(new GameLaunchRequest
         {
-            StatusMessage = "No executable to launch.";
-            return;
-        }
+            InstallsRoot = installsRoot,
+            Version = _settings.SelectedVersion ?? string.Empty,
+            DataPath = _settings.DataPath,
+        }).ConfigureAwait(true);
 
-        var result = await _processRunner.StartAsync(_resolvedExecutable, Array.Empty<string>()).ConfigureAwait(true);
         if (!result.IsSuccess)
         {
             _logger.LogWarning("Play failed: {Error}", result.Error);

@@ -17,5 +17,8 @@ public class LauncherSettingsTests
         settings.HomeBackgroundLogoOpacity.Should().Be(0.2);
         settings.ConfirmBeforeExit.Should().BeFalse();
         settings.GameInstallPath.Should().BeNull();
+        settings.InstallsRoot.Should().BeNull();
+        settings.SelectedVersion.Should().BeNull();
+        settings.DataPath.Should().BeNull();
     }
 }

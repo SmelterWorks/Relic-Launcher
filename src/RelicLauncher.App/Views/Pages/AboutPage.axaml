@@ -2,9 +2,15 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:RelicLauncher.App.ViewModels"
              xmlns:controls="using:RelicLauncher.App.Views.Controls"
+             xmlns:services="using:RelicLauncher.App.Services"
              x:Class="RelicLauncher.App.Views.Pages.AboutPage"
              x:DataType="vm:AboutViewModel">
   <StackPanel Spacing="14" MaxWidth="640">
+    <Image Source="{x:Static services:AppBranding.AboutLogoUri}"
+           Width="96"
+           Height="96"
+           Stretch="Uniform"
+           HorizontalAlignment="Left" />
     <controls:PageHeader Title="{Binding Title}" />
     <TextBlock Text="{Binding Version, StringFormat=Version {0}}" Classes="muted" />
     <TextBlock Text="{Binding CommitSha, StringFormat=Commit {0}}" Classes="muted" />

@@ -2,13 +2,21 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using RelicLauncher.Core.Abstractions;
+using RelicLauncher.Infrastructure.Auth;
+using RelicLauncher.Infrastructure.Caching;
 using RelicLauncher.Infrastructure.Hosting;
+using RelicLauncher.Infrastructure.Launch;
 using RelicLauncher.Infrastructure.Logging;
+using RelicLauncher.Infrastructure.Mods;
 using RelicLauncher.Infrastructure.News;
 using RelicLauncher.Infrastructure.Paths;
+using RelicLauncher.Infrastructure.Platform;
 using RelicLauncher.Infrastructure.Process;
+using RelicLauncher.Infrastructure.Security;
 using RelicLauncher.Infrastructure.Settings;
 using RelicLauncher.Infrastructure.Stubs;
+using RelicLauncher.Infrastructure.Transfers;
+using RelicLauncher.Infrastructure.Versions;
 using Serilog;
 
 namespace RelicLauncher.Infrastructure;
@@ -18,10 +26,22 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddRelicInfrastructure(this IServiceCollection services)
     {
         services.TryAddSingleton<IAppPathProvider, AppPathProvider>();
+        services.AddSingleton<IRuntimePlatform, RuntimePlatform>();
         services.AddSingleton<ILauncherSettingsStore, JsonLauncherSettingsStore>();
+        services.AddSingleton<ISecretStore, FileSecretStore>();
+        services.AddSingleton<AccountAuthService>();
+        services.AddSingleton<IAccountAuthService>(sp => sp.GetRequiredService<AccountAuthService>());
         services.AddSingleton<IGameLocator, GameLocatorStub>();
         services.AddSingleton<IProcessRunner, SafeProcessRunner>();
         services.AddSingleton<IUpdateCheckService, UpdateCheckServiceStub>();
+        services.AddSingleton<IGameVersionCatalog, VintageStoryVersionCatalog>();
+        services.AddSingleton<IInstalledVersionStore, JsonInstalledVersionStore>();
+        services.AddSingleton<IGameVersionInstaller, GameVersionInstaller>();
+        services.AddSingleton<IGameLaunchService, GameLaunchService>();
+        services.AddSingleton<IModDbClient, ModDbClient>();
+        services.AddSingleton<IModLibraryService, ModLibraryService>();
+        services.AddSingleton<ITransferTracker, TransferTracker>();
+        services.AddSingleton<IRemoteImageCache, DiskRemoteImageCache>();
         services.AddSingleton<NewsCacheStore>();
         services.AddSingleton<IVintageStoryNewsService, VintageStoryNewsService>();
         services.AddSingleton<IFileExplorerService, FileExplorerService>();
@@ -31,12 +51,14 @@ public static class ServiceCollectionExtensions
         return services;
     }
 
-    public static ILoggerFactory CreateSerilogLoggerFactory(IAppPathProvider pathProvider)
+    public static ILoggerFactory CreateSerilogLoggerFactory(IAppPathProvider pathProvider, DebugLogBuffer debugBuffer)
     {
         var paths = pathProvider.GetPaths();
         Directory.CreateDirectory(paths.LogsDirectory);
+        Directory.CreateDirectory(paths.CacheDirectory);
+        Directory.CreateDirectory(paths.SecretsDirectory);
 
-        Log.Logger = SerilogBootstrap.CreateLogger(paths.LogsDirectory);
+        Log.Logger = SerilogBootstrap.CreateLogger(paths.LogsDirectory, debugBuffer);
         return new LoggerFactory().AddSerilog(Log.Logger, dispose: false);
     }
 

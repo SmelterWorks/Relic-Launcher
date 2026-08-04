@@ -5,7 +5,7 @@ namespace RelicLauncher.Infrastructure.Logging;
 
 public static class SerilogBootstrap
 {
-    public static ILogger CreateLogger(string logsDirectory)
+    public static ILogger CreateLogger(string logsDirectory, DebugLogBuffer? debugBuffer = null)
     {
         var logPath = Path.Combine(logsDirectory, "relic-.log");
 
@@ -19,6 +19,11 @@ public static class SerilogBootstrap
                 retainedFileCountLimit: 14,
                 shared: true,
                 outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {SourceContext}{NewLine}{Message:lj}{NewLine}{Exception}");
+
+        if (debugBuffer is not null)
+        {
+            config = config.WriteTo.Sink(debugBuffer);
+        }
 
 #if DEBUG
         config = config.WriteTo.Debug();
