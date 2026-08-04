@@ -39,7 +39,7 @@ Test projects: `RelicLauncher.Core.Tests`, `RelicLauncher.Infrastructure.Tests`,
 2. **IO behind interfaces**: settings, HTTP, process start, folder open, URL open go through `ILauncherSettingsStore`, `IVintageStoryNewsService`, `IProcessRunner`, `IFileExplorerService`, `IUrlLauncher`, etc.
 3. **Expected failures use `Result` / `Result<T>`**: do not throw across UI boundaries for normal errors.
 4. **Stubs are intentional**: `GameLocatorStub`, `UpdateCheckServiceStub` are placeholders until real version/mod flows exist. Do not pretend they are complete.
-5. **Reuse before duplicating**: `PathValidator`, `VintageStoryExecutableLocator`, `PageViewModelBase`, `PageHeader`, `FolderPathRow`, `PlaceholderPageViewModel`, `HomeBackgroundLogoResolver`, `RelicLauncher.Testing` helpers.
+5. **Reuse before duplicating**: `PathValidator`, `VintageStoryExecutableLocator`, `PageViewModelBase`, `PageHeader`, `FolderPathRow`, `HomeBackgroundLogoResolver`, `RelicLauncher.Testing` helpers.
 6. **No god files**: split new features into services/controls/ViewModels. Home page already combines launch + news + logo; extend via extracted services, not more logic in one class.
 7. **Comments**: only non-obvious why. No TODO markers. No emdashes in comments or docs.
 
@@ -112,7 +112,7 @@ See [references/testing.md](references/testing.md).
 ## UI conventions
 
 - Icons: Optris Material Design (`mdi-*`), registered in `Program.cs`
-- Reusable: `PageHeader`, `FolderPathRow`, `PlaceholderPage`
+- Reusable: `PageHeader`, `FolderPathRow`, `SettingsSection`
 - `CornerRadius` theme key is `Theme.Radius` as `<CornerRadius>` in AXAML, not `Double`
 - Background logos: bundled under `Assets/Branding/` (`vs-logo-square.png`, `vs-logo-banner.png`), attribution in `NOTICE.txt`, press kit source in vintage-story skill
 

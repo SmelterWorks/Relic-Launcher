@@ -6,7 +6,7 @@
 |-----------|---------|------------------------|
 | `IRuntimePlatform` | OS/arch, default paths, package key | `RuntimePlatform` |
 | `IAccountAuthService` | Game account login/session (`auth3` gamelogin) | `AccountAuthService` |
-| `ISecretStore` | Encrypted secret persistence | `FileSecretStore` |
+| `ISecretStore` | Encrypted secret persistence | `PlatformSecretStore` |
 | `IGameVersionCatalog` | Remote version list | `VintageStoryVersionCatalog` |
 | `IInstalledVersionStore` | Local versions inventory | `JsonInstalledVersionStore` |
 | `IGameVersionInstaller` | Download/extract/uninstall | `GameVersionInstaller` |
