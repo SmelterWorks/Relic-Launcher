@@ -147,7 +147,9 @@ public partial class VersionsViewModel : PageViewModelBase
         IsLoading = false;
         if (string.IsNullOrWhiteSpace(StatusMessage))
         {
-            StatusMessage = $"Loaded {_allRows.Count} versions from catalog cache or network.";
+            StatusMessage = _catalog.LastCatalogWasStale
+                ? $"Loaded {_allRows.Count} versions from offline cache."
+                : $"Loaded {_allRows.Count} versions from catalog cache or network.";
         }
     }
 

@@ -136,11 +136,12 @@ public partial class App : Application
             if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime { MainWindow: Window window })
             {
                 var paths = _services?.GetService<IAppPathProvider>()?.GetPaths();
-                var logHint = paths?.LogsDirectory ?? "application logs folder";
-                _ = MessageBoxHelper.ShowAsync(
+                var fileExplorer = _services?.GetService<IFileExplorerService>();
+                _ = CrashReportService.ShowRecoveredAsync(
                     window,
-                    "Relic Launcher hit an error and recovered. Details are in the log folder:\n" + logHint,
-                    "Error");
+                    e.Exception,
+                    paths?.LogsDirectory,
+                    fileExplorer);
             }
         }
         catch

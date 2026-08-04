@@ -23,6 +23,7 @@ public sealed class ModDbClient : IModDbClient
     private readonly SemaphoreSlim _catalogGate = new(1, 1);
     private IReadOnlyList<ModSummary>? _memoryCatalog;
     private DateTimeOffset _memoryCatalogAt;
+    private bool _lastCatalogWasStale;
 
     public ModDbClient(IAppPathProvider pathProvider, IEndpointProvider endpoints, ILogger<ModDbClient> logger)
         : this(pathProvider, endpoints, logger, CreateDefaultClient())
@@ -72,6 +73,7 @@ public sealed class ModDbClient : IModDbClient
                 Page = page,
                 PageSize = pageSize,
                 FromCache = resolved.Value.FromCache,
+                IsStale = resolved.Value.IsStale,
             });
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException or IOException)
@@ -88,22 +90,22 @@ public sealed class ModDbClient : IModDbClient
             var remote = await FetchRemoteSearchAsync(query, cancellationToken).ConfigureAwait(false);
             if (remote.IsSuccess)
             {
-                return Result<SearchSource>.Success(new SearchSource(remote.Value!, false));
+                return Result<SearchSource>.Success(new SearchSource(remote.Value!, false, false));
             }
 
             var fallback = await TryLocalFilterAsync(query, cancellationToken).ConfigureAwait(false);
             return fallback is null
                 ? Result<SearchSource>.Failure(remote.Error ?? "Mod search failed.")
-                : Result<SearchSource>.Success(new SearchSource(fallback, true));
+                : Result<SearchSource>.Success(new SearchSource(fallback, true, _lastCatalogWasStale));
         }
 
         var catalog = await EnsureCatalogAsync(forceRefresh: !query.PreferCache, cancellationToken).ConfigureAwait(false);
         return catalog is null
             ? Result<SearchSource>.Failure("Could not load mod catalog.")
-            : Result<SearchSource>.Success(new SearchSource(catalog, true));
+            : Result<SearchSource>.Success(new SearchSource(catalog, true, _lastCatalogWasStale));
     }
 
-    private sealed record SearchSource(IReadOnlyList<ModSummary> Mods, bool FromCache);
+    private sealed record SearchSource(IReadOnlyList<ModSummary> Mods, bool FromCache, bool IsStale);
 
     public async Task<Result<ModDetails>> GetModAsync(string modIdOrAlias, CancellationToken cancellationToken = default)
     {
@@ -113,10 +115,16 @@ public sealed class ModDbClient : IModDbClient
         }
 
         var key = modIdOrAlias.Trim();
-        var cached = await ReadDetailsCacheAsync(key, cancellationToken).ConfigureAwait(false);
+        var cached = await TryReadDetailsCacheAsync(key, cancellationToken).ConfigureAwait(false);
         if (cached is not null)
         {
-            return Result<ModDetails>.Success(cached);
+            if (DateTimeOffset.UtcNow - cached.CachedAt <= DetailsTtl)
+            {
+                return Result<ModDetails>.Success(cached.Mod);
+            }
+
+            _ = RefreshDetailsInBackgroundAsync(key);
+            return Result<ModDetails>.Success(cached.Mod);
         }
 
         try
@@ -135,7 +143,31 @@ public sealed class ModDbClient : IModDbClient
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException or IOException)
         {
             _logger.LogWarning(ex, "ModDB details failed for {Mod}", key);
+            var stale = await TryReadDetailsCacheAsync(key, cancellationToken).ConfigureAwait(false);
+            if (stale is not null)
+            {
+                return Result<ModDetails>.Success(stale.Mod);
+            }
+
             return Result<ModDetails>.Failure(ex.Message);
+        }
+    }
+
+    private async Task RefreshDetailsInBackgroundAsync(string key)
+    {
+        try
+        {
+            var json = await _httpClient.GetStringAsync(ApiUrl($"mod/{Uri.EscapeDataString(key)}"), CancellationToken.None)
+                .ConfigureAwait(false);
+            var details = ParseDetails(json, _endpoints.BuildModDownloadUrl);
+            if (details is not null)
+            {
+                await WriteDetailsCacheAsync(key, details, CancellationToken.None).ConfigureAwait(false);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Background mod details refresh failed for {Mod}", key);
         }
     }
 
@@ -169,21 +201,24 @@ public sealed class ModDbClient : IModDbClient
                 _memoryCatalog is not null &&
                 DateTimeOffset.UtcNow - _memoryCatalogAt < CatalogTtl)
             {
+                _lastCatalogWasStale = false;
                 return _memoryCatalog;
             }
 
             if (!forceRefresh)
             {
-                var disk = await ReadCatalogCacheAsync(cancellationToken).ConfigureAwait(false);
+                var disk = await TryReadCatalogCacheAsync(cancellationToken).ConfigureAwait(false);
                 if (disk is not null)
                 {
-                    _memoryCatalog = disk;
+                    _lastCatalogWasStale = DateTimeOffset.UtcNow - disk.CachedAt > CatalogTtl;
+                    _memoryCatalog = disk.Mods;
                     _memoryCatalogAt = DateTimeOffset.UtcNow;
                     _ = RefreshCatalogInBackgroundAsync();
-                    return disk;
+                    return disk.Mods;
                 }
             }
 
+            _lastCatalogWasStale = false;
             return await RefreshCatalogCoreAsync(cancellationToken).ConfigureAwait(false);
         }
         finally
@@ -223,6 +258,12 @@ public sealed class ModDbClient : IModDbClient
         {
             var json = await _httpClient.GetStringAsync(ApiUrl("mods?orderby=downloads"), cancellationToken).ConfigureAwait(false);
             var mods = ParseSearch(json);
+            if (!HasModsProperty(json))
+            {
+                throw new JsonException("Mod catalog response is missing a mods array.");
+            }
+
+            _lastCatalogWasStale = false;
             _memoryCatalog = mods;
             _memoryCatalogAt = DateTimeOffset.UtcNow;
             await WriteCatalogCacheAsync(mods, cancellationToken).ConfigureAwait(false);
@@ -232,8 +273,28 @@ public sealed class ModDbClient : IModDbClient
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException or IOException)
         {
             _logger.LogWarning(ex, "Failed to refresh ModDB catalog");
-            return _memoryCatalog;
+            return await TryServeStaleCatalogAsync(cancellationToken).ConfigureAwait(false);
         }
+    }
+
+    private async Task<IReadOnlyList<ModSummary>?> TryServeStaleCatalogAsync(CancellationToken cancellationToken)
+    {
+        var stale = await TryReadCatalogCacheAsync(cancellationToken).ConfigureAwait(false);
+        if (stale is not null)
+        {
+            _lastCatalogWasStale = true;
+            _memoryCatalog = stale.Mods;
+            _memoryCatalogAt = DateTimeOffset.UtcNow;
+            return stale.Mods;
+        }
+
+        return _memoryCatalog;
+    }
+
+    private static bool HasModsProperty(string json)
+    {
+        using var doc = JsonDocument.Parse(json);
+        return doc.RootElement.TryGetProperty("mods", out _);
     }
 
     private static List<ModSummary> FilterAndSort(IReadOnlyList<ModSummary> source, ModSearchQuery query)
@@ -270,6 +331,11 @@ public sealed class ModDbClient : IModDbClient
         if (!doc.RootElement.TryGetProperty("mods", out var modsEl))
         {
             return [];
+        }
+
+        if (modsEl.ValueKind != JsonValueKind.Array)
+        {
+            throw new JsonException("Mod catalog mods field must be a JSON array.");
         }
 
         var list = new List<ModSummary>();
@@ -561,7 +627,7 @@ public sealed class ModDbClient : IModDbClient
         WriteIndented = false,
     };
 
-    private async Task<IReadOnlyList<ModSummary>?> ReadCatalogCacheAsync(CancellationToken cancellationToken)
+    private async Task<CatalogCacheSnapshot?> TryReadCatalogCacheAsync(CancellationToken cancellationToken)
     {
         try
         {
@@ -572,18 +638,47 @@ public sealed class ModDbClient : IModDbClient
 
             var json = await File.ReadAllTextAsync(CatalogCachePath, cancellationToken).ConfigureAwait(false);
             var entry = JsonSerializer.Deserialize<CatalogCacheEntry>(json, CacheJsonOptions);
-            if (entry is null || DateTimeOffset.UtcNow - entry.CachedAt > CatalogTtl)
+            if (entry?.Mods is null)
             {
                 return null;
             }
 
-            return entry.Mods;
+            return new CatalogCacheSnapshot(entry.CachedAt, entry.Mods);
         }
         catch (Exception ex) when (ex is IOException or JsonException)
         {
             return null;
         }
     }
+
+    private async Task<DetailsCacheSnapshot?> TryReadDetailsCacheAsync(string key, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var path = DetailsCachePath(key);
+            if (!File.Exists(path))
+            {
+                return null;
+            }
+
+            var json = await File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false);
+            var entry = JsonSerializer.Deserialize<DetailsCacheEntry>(json, CacheJsonOptions);
+            if (entry?.Mod is null)
+            {
+                return null;
+            }
+
+            return new DetailsCacheSnapshot(entry.CachedAt, entry.Mod);
+        }
+        catch (Exception ex) when (ex is IOException or JsonException)
+        {
+            return null;
+        }
+    }
+
+    private sealed record CatalogCacheSnapshot(DateTimeOffset CachedAt, IReadOnlyList<ModSummary> Mods);
+
+    private sealed record DetailsCacheSnapshot(DateTimeOffset CachedAt, ModDetails Mod);
 
     private async Task WriteCatalogCacheAsync(IReadOnlyList<ModSummary> mods, CancellationToken cancellationToken)
     {
@@ -601,31 +696,6 @@ public sealed class ModDbClient : IModDbClient
         catch (IOException ex)
         {
             _logger.LogDebug(ex, "Could not write mod catalog cache");
-        }
-    }
-
-    private async Task<ModDetails?> ReadDetailsCacheAsync(string key, CancellationToken cancellationToken)
-    {
-        try
-        {
-            var path = DetailsCachePath(key);
-            if (!File.Exists(path))
-            {
-                return null;
-            }
-
-            var json = await File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false);
-            var entry = JsonSerializer.Deserialize<DetailsCacheEntry>(json, CacheJsonOptions);
-            if (entry?.Mod is null || DateTimeOffset.UtcNow - entry.CachedAt > DetailsTtl)
-            {
-                return null;
-            }
-
-            return entry.Mod;
-        }
-        catch (Exception ex) when (ex is IOException or JsonException)
-        {
-            return null;
         }
     }
 

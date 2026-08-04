@@ -5,6 +5,8 @@ namespace RelicLauncher.Core.Abstractions;
 
 public interface IGameVersionCatalog
 {
+    bool LastCatalogWasStale { get; }
+
     Task<Result<IReadOnlyList<GameVersionInfo>>> GetVersionsAsync(
         GameVersionChannel? channel = null,
         CancellationToken cancellationToken = default);

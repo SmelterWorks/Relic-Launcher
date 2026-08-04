@@ -89,7 +89,7 @@ public sealed class VintageStoryVersionCatalog : IGameVersionCatalog
                 return Result<string?>.Success(_latestStableMemory);
             }
 
-            var cached = await ReadLatestCacheAsync(cancellationToken).ConfigureAwait(false);
+            var cached = await ReadLatestCacheAsync(allowStale: false, cancellationToken).ConfigureAwait(false);
             if (cached is not null)
             {
                 _latestStableMemory = cached;
@@ -111,6 +111,14 @@ public sealed class VintageStoryVersionCatalog : IGameVersionCatalog
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or IOException)
         {
+            var stale = await ReadLatestCacheAsync(allowStale: true, cancellationToken).ConfigureAwait(false);
+            if (stale is not null)
+            {
+                _latestStableMemory = stale;
+                _latestStableAt = DateTimeOffset.UtcNow;
+                return Result<string?>.Success(stale);
+            }
+
             return Result<string?>.Failure(ex.Message);
         }
     }
@@ -122,18 +130,21 @@ public sealed class VintageStoryVersionCatalog : IGameVersionCatalog
         {
             if (_memory is not null && DateTimeOffset.UtcNow - _memoryAt < CatalogTtl)
             {
+                LastCatalogWasStale = false;
                 return _memory;
             }
 
-            var disk = await ReadCatalogCacheAsync(cancellationToken).ConfigureAwait(false);
+            var disk = await TryReadCatalogCacheAsync(cancellationToken).ConfigureAwait(false);
             if (disk is not null)
             {
-                _memory = disk;
+                LastCatalogWasStale = DateTimeOffset.UtcNow - disk.CachedAt > CatalogTtl;
+                _memory = disk.Versions;
                 _memoryAt = DateTimeOffset.UtcNow;
                 _ = RefreshCatalogInBackgroundAsync();
-                return disk;
+                return disk.Versions;
             }
 
+            LastCatalogWasStale = false;
             return await RefreshCatalogCoreAsync(cancellationToken).ConfigureAwait(false);
         }
         finally
@@ -185,25 +196,61 @@ public sealed class VintageStoryVersionCatalog : IGameVersionCatalog
 
     private async Task<IReadOnlyList<GameVersionInfo>?> RefreshCatalogCoreAsync(CancellationToken cancellationToken)
     {
-        var json = await _httpClient.GetStringAsync(_endpoints.VersionCatalogUrl, cancellationToken).ConfigureAwait(false);
-        var versions = ParseCatalog(json);
-        _memory = versions;
-        _memoryAt = DateTimeOffset.UtcNow;
-        await WriteCatalogCacheAsync(json, cancellationToken).ConfigureAwait(false);
-        return versions;
+        try
+        {
+            var json = await _httpClient.GetStringAsync(_endpoints.VersionCatalogUrl, cancellationToken).ConfigureAwait(false);
+            var versions = ParseCatalog(json);
+            LastCatalogWasStale = false;
+            _memory = versions;
+            _memoryAt = DateTimeOffset.UtcNow;
+            await WriteCatalogCacheAsync(json, cancellationToken).ConfigureAwait(false);
+            return versions;
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException or IOException)
+        {
+            _logger.LogWarning(ex, "Failed to refresh version catalog");
+            return await TryServeStaleCatalogAsync(cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private async Task<IReadOnlyList<GameVersionInfo>?> TryServeStaleCatalogAsync(CancellationToken cancellationToken)
+    {
+        var stale = await TryReadCatalogCacheAsync(cancellationToken).ConfigureAwait(false);
+        if (stale is not null)
+        {
+            LastCatalogWasStale = true;
+            _memory = stale.Versions;
+            _memoryAt = DateTimeOffset.UtcNow;
+            return stale.Versions;
+        }
+
+        return _memory;
     }
 
     public static IReadOnlyList<GameVersionInfo> ParseCatalog(string json)
     {
         using var document = JsonDocument.Parse(json);
-        var list = new List<GameVersionInfo>();
-        foreach (var versionProperty in document.RootElement.EnumerateObject())
+        var root = document.RootElement;
+        if (root.ValueKind != JsonValueKind.Object)
         {
+            throw new JsonException("Version catalog root must be a JSON object.");
+        }
+
+        var list = new List<GameVersionInfo>();
+        var entryCount = 0;
+        foreach (var versionProperty in root.EnumerateObject())
+        {
+            entryCount++;
             var parsed = ParseVersionEntry(versionProperty);
             if (parsed is not null)
             {
                 list.Add(parsed);
             }
+        }
+
+        if (list.Count == 0 && entryCount > 0)
+        {
+            throw new JsonException("No versions could be parsed from the catalog response.");
         }
 
         return list
@@ -308,7 +355,7 @@ public sealed class VintageStoryVersionCatalog : IGameVersionCatalog
     private string CatalogCachePath => Path.Combine(_pathProvider.GetPaths().CacheDirectory, "versions", "catalog.json");
     private string LatestCachePath => Path.Combine(_pathProvider.GetPaths().CacheDirectory, "versions", "lateststable.txt");
 
-    private async Task<IReadOnlyList<GameVersionInfo>?> ReadCatalogCacheAsync(CancellationToken cancellationToken)
+    private async Task<CatalogCacheSnapshot?> TryReadCatalogCacheAsync(CancellationToken cancellationToken)
     {
         try
         {
@@ -321,19 +368,21 @@ public sealed class VintageStoryVersionCatalog : IGameVersionCatalog
             using var doc = JsonDocument.Parse(json);
             if (!doc.RootElement.TryGetProperty("cachedAt", out var atEl) ||
                 !DateTimeOffset.TryParse(atEl.GetString(), CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var cachedAt) ||
-                DateTimeOffset.UtcNow - cachedAt > CatalogTtl ||
                 !doc.RootElement.TryGetProperty("payload", out var payloadEl))
             {
                 return null;
             }
 
-            return ParseCatalog(payloadEl.GetString() ?? string.Empty);
+            var versions = ParseCatalog(payloadEl.GetString() ?? string.Empty);
+            return new CatalogCacheSnapshot(cachedAt, versions);
         }
         catch (Exception ex) when (ex is IOException or JsonException)
         {
             return null;
         }
     }
+
+    private sealed record CatalogCacheSnapshot(DateTimeOffset CachedAt, IReadOnlyList<GameVersionInfo> Versions);
 
     private async Task WriteCatalogCacheAsync(string payloadJson, CancellationToken cancellationToken)
     {
@@ -353,7 +402,7 @@ public sealed class VintageStoryVersionCatalog : IGameVersionCatalog
         }
     }
 
-    private async Task<string?> ReadLatestCacheAsync(CancellationToken cancellationToken)
+    private async Task<string?> ReadLatestCacheAsync(bool allowStale, CancellationToken cancellationToken)
     {
         try
         {
@@ -363,7 +412,8 @@ public sealed class VintageStoryVersionCatalog : IGameVersionCatalog
             }
 
             var info = new FileInfo(LatestCachePath);
-            if (DateTimeOffset.UtcNow - new DateTimeOffset(info.LastWriteTimeUtc) > CatalogTtl)
+            var cachedAt = new DateTimeOffset(info.LastWriteTimeUtc);
+            if (!allowStale && DateTimeOffset.UtcNow - cachedAt > CatalogTtl)
             {
                 return null;
             }

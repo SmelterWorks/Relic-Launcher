@@ -238,7 +238,9 @@ public partial class ModsViewModel : PageViewModelBase
 
         if (page.FromCache && string.IsNullOrWhiteSpace(StatusMessage) && TotalCount > 0)
         {
-            StatusMessage = $"Showing cached catalog ({TotalCount:N0} mods).";
+            StatusMessage = page.IsStale
+                ? $"Showing offline cached catalog ({TotalCount:N0} mods)."
+                : $"Showing cached catalog ({TotalCount:N0} mods).";
         }
 
         foreach (var row in BrowseResults)

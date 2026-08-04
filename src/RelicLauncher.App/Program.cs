@@ -16,9 +16,22 @@ namespace RelicLauncher.App;
 
 internal static class Program
 {
+    private static string? _logsDirectory;
+
     [STAThread]
     public static int Main(string[] args)
     {
+        try
+        {
+            var pathProvider = new AppPathProvider();
+            _logsDirectory = pathProvider.GetPaths().LogsDirectory;
+            Directory.CreateDirectory(_logsDirectory);
+        }
+        catch
+        {
+            // Best effort only before logging is available.
+        }
+
         AppDomain.CurrentDomain.UnhandledException += OnUnhandledException;
         TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
 
@@ -88,6 +101,7 @@ internal static class Program
         if (e.ExceptionObject is Exception ex)
         {
             TryLogFatal(ex);
+            CrashReportService.TryShowFatal(ex, _logsDirectory, fileExplorer: null);
         }
     }
 

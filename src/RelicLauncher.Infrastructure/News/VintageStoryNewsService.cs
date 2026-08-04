@@ -146,6 +146,12 @@ public sealed partial class VintageStoryNewsService : IVintageStoryNewsService
 
             var html = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
             var articles = ParseArticles(html, maxItems);
+            if (articles.Count == 0 && LooksLikeBlogPage(html))
+            {
+                return Result<IReadOnlyList<NewsArticle>>.Failure(
+                    "Could not parse news from the blog page. The site layout may have changed.");
+            }
+
             var cachedAt = DateTimeOffset.UtcNow;
             _memoryListCache = articles;
             _memoryListExpiresAt = cachedAt + ListCacheLifetime;
@@ -156,6 +162,14 @@ public sealed partial class VintageStoryNewsService : IVintageStoryNewsService
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or IOException)
         {
             _logger.LogWarning(ex, "Failed to fetch Vintage Story news");
+            var diskList = await _cacheStore.ReadListAsync(cancellationToken).ConfigureAwait(false);
+            if (diskList is not null && diskList.Articles.Count > 0)
+            {
+                _memoryListCache = diskList.Articles;
+                _memoryListExpiresAt = diskList.CachedAt + ListCacheLifetime;
+                return Result<IReadOnlyList<NewsArticle>>.Success(diskList.Articles.Take(maxItems).ToList());
+            }
+
             return Result<IReadOnlyList<NewsArticle>>.Failure(ex.Message);
         }
     }
@@ -600,6 +614,11 @@ public sealed partial class VintageStoryNewsService : IVintageStoryNewsService
 
         return articles;
     }
+
+    internal static bool LooksLikeBlogPage(string html)
+        => html.Length > 200 &&
+           (html.Contains("ipsType_pageTitle", StringComparison.OrdinalIgnoreCase) ||
+            html.Contains("blog.html", StringComparison.OrdinalIgnoreCase));
 
     private static string? TryExtractPublishedLabel(string html, int titleIndex)
     {
