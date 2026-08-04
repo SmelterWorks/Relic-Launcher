@@ -1,0 +1,21 @@
+NOTICE
+
+Relic Launcher third-party notices
+
+Vintage Story branding
+----------------------
+Vintage Story square and banner logos are from the official press kit:
+https://www.vintagestory.at/presskit.html/
+
+Used for unofficial fan launcher presentation only. Vintage Story is a trademark of Anego Studios SIA.
+
+Source Serif 4
+--------------
+Source Serif 4 Regular
+Copyright 2014-2021 Adobe (http://www.adobe.com/)
+SIL Open Font License 1.1
+https://github.com/adobe-fonts/source-serif
+
+See also:
+src/RelicLauncher.App/Assets/Branding/NOTICE.txt
+src/RelicLauncher.Themes/Assets/Fonts/NOTICE.txt
