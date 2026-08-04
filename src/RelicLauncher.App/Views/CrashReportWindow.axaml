@@ -1,6 +1,8 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:RelicLauncher.App.ViewModels"
         x:Class="RelicLauncher.App.Views.CrashReportWindow"
+        x:DataType="vm:CrashReportWindowViewModel"
         Title="Relic Launcher Error"
         Width="760"
         Height="520"

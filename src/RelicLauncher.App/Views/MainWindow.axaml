@@ -37,7 +37,7 @@
         </StackPanel>
 
         <TextBlock DockPanel.Dock="Bottom"
-                   Text="{Binding AppVersion, StringFormat=v{0}}"
+                   Text="{Binding AppVersion, StringFormat=v{0} Unofficial Launcher}"
                    Classes="muted"
                    FontSize="11"
                    HorizontalAlignment="Center"

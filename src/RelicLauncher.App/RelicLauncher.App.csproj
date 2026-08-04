@@ -26,9 +26,9 @@
 
   <ItemGroup>
     <PackageReference Include="Avalonia" />
-    <PackageReference Include="Avalonia.Controls.WebView" />
     <PackageReference Include="Avalonia.Desktop" />
     <PackageReference Include="Avalonia.Themes.Fluent" />
+    <PackageReference Include="Avalonia.Wayland" />
     <PackageReference Include="CommunityToolkit.Mvvm" />
     <PackageReference Include="Optris.Icons.Avalonia" />
     <PackageReference Include="Optris.Icons.Avalonia.MaterialDesign" />

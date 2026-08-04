@@ -6,11 +6,11 @@
              x:Class="RelicLauncher.App.Views.Pages.SettingsPage"
              x:DataType="vm:SettingsViewModel">
   <ScrollViewer>
-    <StackPanel Spacing="16" MaxWidth="720">
+    <StackPanel Spacing="12" MaxWidth="720">
       <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
         <controls:PageHeader Grid.Column="0"
                              Title="Settings"
-                             Subtitle="Account, installs, data path, theme, endpoints, and logs." />
+                             Subtitle="Sign in, pick folders, change the look. Advanced stuff is tucked away below." />
         <TextBlock Grid.Column="1"
                    Text="{Binding SaveStatusMessage}"
                    Classes="muted"
@@ -19,193 +19,259 @@
                    IsVisible="{Binding IsSaveStatusVisible}" />
       </Grid>
 
-      <TextBlock Text="Vintage Story account" Margin="0,12,0,0" Classes="brand" FontSize="18" />
-      <TextBlock Text="{Binding AccountStatus}" Classes="muted" TextWrapping="Wrap" />
-      <TextBlock Text="{Binding AccountError}"
-                 Foreground="{DynamicResource Theme.Danger}"
-                 TextWrapping="Wrap"
-                 IsVisible="{Binding HasAccountError}" />
-      <TextBlock Text="The account portal requires captcha, so Relic opens an in-app browser to sign in. Optional: enter your email to label the saved session."
-                 Classes="muted"
-                 TextWrapping="Wrap" />
-      <TextBox Text="{Binding AccountEmail}"
-               PlaceholderText="game account email (optional label)"
-               IsEnabled="{Binding !IsSignedIn}"
-               VerticalContentAlignment="Center" />
-      <StackPanel Orientation="Horizontal" Spacing="8">
-        <Button Classes="primary"
-                Content="Sign in with browser"
-                Command="{Binding SignInCommand}"
-                IsVisible="{Binding !IsSignedIn}"
-                IsEnabled="{Binding !IsSigningIn}" />
-        <Button Classes="ghost"
-                Content="Sign out"
-                Command="{Binding SignOutCommand}"
-                IsVisible="{Binding IsSignedIn}" />
-        <TextBlock Text="Waiting for browser sign-in..."
-                   Classes="muted"
-                   VerticalAlignment="Center"
-                   IsVisible="{Binding IsSigningIn}" />
-      </StackPanel>
+      <controls:SettingsSection Title="Account"
+                                Subtitle="Sign in so Play can auto-fill your Vintage Story game session. Downloads do not need this."
+                                IsExpanded="True">
+        <controls:SettingsSection.SectionContent>
+          <StackPanel Spacing="10">
+            <TextBlock Text="{Binding AccountStatus}" Classes="muted" TextWrapping="Wrap" />
+            <TextBlock Text="{Binding AccountError}"
+                       Foreground="{DynamicResource Theme.Danger}"
+                       TextWrapping="Wrap"
+                       IsVisible="{Binding HasAccountError}" />
+            <TextBlock Text="Same game account email and password as the official client. Relic never stores your password."
+                       Classes="settings-field-hint"
+                       IsVisible="{Binding !IsSignedIn}" />
+            <StackPanel Spacing="8" IsVisible="{Binding !IsSignedIn}">
+              <TextBox Text="{Binding AccountEmail}"
+                       PlaceholderText="Email"
+                       IsEnabled="{Binding !IsSigningIn}" />
+              <TextBox Text="{Binding AccountPassword}"
+                       PasswordChar="*"
+                       PlaceholderText="Password"
+                       IsEnabled="{Binding !IsSigningIn}" />
+              <StackPanel Spacing="4" IsVisible="{Binding RequiresTotp}">
+                <TextBlock Text="Access code (2FA)" Classes="settings-field-label" />
+                <TextBox Text="{Binding AccountTotpCode}"
+                         PlaceholderText="6-digit code"
+                         MaxLength="8"
+                         IsEnabled="{Binding !IsSigningIn}" />
+              </StackPanel>
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <Button Classes="primary"
+                        Content="{Binding SignInButtonText}"
+                        Command="{Binding SignInCommand}"
+                        IsEnabled="{Binding !IsSigningIn}" />
+                <TextBlock Text="Signing in..."
+                           Classes="muted"
+                           VerticalAlignment="Center"
+                           IsVisible="{Binding IsSigningIn}" />
+              </StackPanel>
+            </StackPanel>
+            <Button Classes="ghost"
+                    Content="Sign out"
+                    Command="{Binding SignOutCommand}"
+                    IsVisible="{Binding IsSignedIn}"
+                    HorizontalAlignment="Left" />
+          </StackPanel>
+        </controls:SettingsSection.SectionContent>
+      </controls:SettingsSection>
 
-      <TextBlock Text="Installs root" Margin="0,12,0,0" />
-      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-        <TextBox Grid.Column="0"
-                 Text="{Binding InstallsRoot}"
-                 PlaceholderText="/path/to/RelicLauncher/Vintagestory" />
-        <Button Grid.Column="1"
-                Classes="ghost"
-                Width="40"
-                Height="40"
-                Padding="0"
-                ToolTip.Tip="Select installs root"
-                Command="{Binding BrowseInstallsRootCommand}">
-          <i:Icon Value="mdi-folder" Width="18" Height="18" />
-        </Button>
-      </Grid>
+      <controls:SettingsSection Title="Game folders"
+                                Subtitle="Where Relic installs versions, and where Vintage Story keeps saves and mods."
+                                IsExpanded="True">
+        <controls:SettingsSection.SectionContent>
+          <StackPanel Spacing="12">
+            <StackPanel Spacing="4">
+              <TextBlock Text="Installs folder" Classes="settings-field-label" />
+              <TextBlock Text="Game versions download here." Classes="settings-field-hint" />
+              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                <TextBox Grid.Column="0"
+                         Text="{Binding InstallsRoot}"
+                         PlaceholderText="Folder for Relic game installs" />
+                <Button Grid.Column="1"
+                        Classes="ghost"
+                        Width="40"
+                        Height="40"
+                        Padding="0"
+                        ToolTip.Tip="Browse"
+                        Command="{Binding BrowseInstallsRootCommand}">
+                  <i:Icon Value="mdi-folder" Width="18" Height="18" />
+                </Button>
+              </Grid>
+            </StackPanel>
 
-      <TextBlock Text="Game data path" Margin="0,8,0,0" />
-      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-        <TextBox Grid.Column="0"
-                 Text="{Binding DataPath}"
-                 PlaceholderText="/path/to/VintagestoryData" />
-        <Button Grid.Column="1"
-                Classes="ghost"
-                Width="40"
-                Height="40"
-                Padding="0"
-                ToolTip.Tip="Select data folder"
-                Command="{Binding BrowseDataPathCommand}">
-          <i:Icon Value="mdi-folder" Width="18" Height="18" />
-        </Button>
-      </Grid>
+            <StackPanel Spacing="4">
+              <TextBlock Text="Game data folder" Classes="settings-field-label" />
+              <TextBlock Text="Saves, mods, and configs. Usually VintagestoryData." Classes="settings-field-hint" />
+              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                <TextBox Grid.Column="0"
+                         Text="{Binding DataPath}"
+                         PlaceholderText="Folder for saves and mods" />
+                <Button Grid.Column="1"
+                        Classes="ghost"
+                        Width="40"
+                        Height="40"
+                        Padding="0"
+                        ToolTip.Tip="Browse"
+                        Command="{Binding BrowseDataPathCommand}">
+                  <i:Icon Value="mdi-folder" Width="18" Height="18" />
+                </Button>
+              </Grid>
+            </StackPanel>
 
-      <TextBlock Text="Active version" Margin="0,8,0,0" />
-      <TextBlock Text="{Binding SelectedVersion}" Classes="muted" />
-      <TextBlock Text="Choose the active version on the Versions page." Classes="muted" FontSize="12" />
+            <StackPanel Spacing="4">
+              <TextBlock Text="Active version" Classes="settings-field-label" />
+              <TextBlock Text="{Binding SelectedVersion}"
+                         Classes="muted"
+                         IsVisible="{Binding SelectedVersion, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+              <TextBlock Text="None selected yet. Pick one on the Versions page."
+                         Classes="settings-field-hint"
+                         IsVisible="{Binding SelectedVersion, Converter={x:Static StringConverters.IsNullOrEmpty}}" />
+              <TextBlock Text="Change this on the Versions page."
+                         Classes="settings-field-hint"
+                         IsVisible="{Binding SelectedVersion, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+            </StackPanel>
+          </StackPanel>
+        </controls:SettingsSection.SectionContent>
+      </controls:SettingsSection>
 
-      <TextBlock Text="Theme" Margin="0,8,0,0" />
-      <ComboBox ItemsSource="{Binding Themes}"
-                SelectedItem="{Binding SelectedTheme}"
-                MinWidth="280">
-        <ComboBox.ItemTemplate>
-          <DataTemplate>
-            <TextBlock Text="{Binding DisplayName}" />
-          </DataTemplate>
-        </ComboBox.ItemTemplate>
-      </ComboBox>
+      <controls:SettingsSection Title="Look and feel"
+                                Subtitle="Theme, home screen logo, and exit prompt."
+                                IsExpanded="True">
+        <controls:SettingsSection.SectionContent>
+          <StackPanel Spacing="12">
+            <StackPanel Spacing="4">
+              <TextBlock Text="Theme" Classes="settings-field-label" />
+              <ComboBox ItemsSource="{Binding Themes}"
+                        SelectedItem="{Binding SelectedTheme}"
+                        MinWidth="280"
+                        HorizontalAlignment="Left">
+                <ComboBox.ItemTemplate>
+                  <DataTemplate>
+                    <TextBlock Text="{Binding DisplayName}" />
+                  </DataTemplate>
+                </ComboBox.ItemTemplate>
+              </ComboBox>
+            </StackPanel>
 
-      <TextBlock Text="Home background logo" Margin="0,8,0,0" />
-      <ComboBox ItemsSource="{Binding LogoModeOptions}"
-                SelectedItem="{Binding SelectedLogoModeOption}"
-                MinWidth="280">
-        <ComboBox.ItemTemplate>
-          <DataTemplate x:DataType="vm:LogoModeOption">
-            <TextBlock Text="{Binding Label}" />
-          </DataTemplate>
-        </ComboBox.ItemTemplate>
-      </ComboBox>
+            <StackPanel Spacing="4">
+              <TextBlock Text="Home background logo" Classes="settings-field-label" />
+              <ComboBox ItemsSource="{Binding LogoModeOptions}"
+                        SelectedItem="{Binding SelectedLogoModeOption}"
+                        MinWidth="280"
+                        HorizontalAlignment="Left">
+                <ComboBox.ItemTemplate>
+                  <DataTemplate x:DataType="vm:LogoModeOption">
+                    <TextBlock Text="{Binding Label}" />
+                  </DataTemplate>
+                </ComboBox.ItemTemplate>
+              </ComboBox>
+            </StackPanel>
 
-      <StackPanel IsVisible="{Binding IsCustomLogoMode}" Spacing="8" Margin="0,8,0,0">
-        <TextBlock Text="Custom logo file path" />
-        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-          <TextBox Grid.Column="0"
-                   Text="{Binding HomeBackgroundCustomLogoPath}"
-                   PlaceholderText="/path/to/logo.png" />
-          <Button Grid.Column="1"
-                  Classes="ghost"
-                  Width="40"
-                  Height="40"
-                  Padding="0"
-                  ToolTip.Tip="Select image file"
-                  Command="{Binding BrowseCustomLogoPathCommand}">
-            <i:Icon Value="mdi-file-image" Width="18" Height="18" />
-          </Button>
-        </Grid>
-      </StackPanel>
+            <StackPanel IsVisible="{Binding IsCustomLogoMode}" Spacing="4">
+              <TextBlock Text="Custom logo file" Classes="settings-field-label" />
+              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                <TextBox Grid.Column="0"
+                         Text="{Binding HomeBackgroundCustomLogoPath}"
+                         PlaceholderText="Path to a PNG or JPG" />
+                <Button Grid.Column="1"
+                        Classes="ghost"
+                        Width="40"
+                        Height="40"
+                        Padding="0"
+                        ToolTip.Tip="Pick image"
+                        Command="{Binding BrowseCustomLogoPathCommand}">
+                  <i:Icon Value="mdi-file-image" Width="18" Height="18" />
+                </Button>
+              </Grid>
+            </StackPanel>
 
-      <StackPanel Spacing="6" Margin="0,8,0,0">
-        <TextBlock Text="Logo opacity" />
-        <Slider Minimum="0.02"
-                Maximum="0.35"
-                Value="{Binding HomeBackgroundLogoOpacity}"
-                TickFrequency="0.01"
-                IsSnapToTickEnabled="True" />
-      </StackPanel>
+            <StackPanel Spacing="4">
+              <TextBlock Text="Logo opacity" Classes="settings-field-label" />
+              <Slider Minimum="0.02"
+                      Maximum="0.35"
+                      Value="{Binding HomeBackgroundLogoOpacity}"
+                      TickFrequency="0.01"
+                      IsSnapToTickEnabled="True" />
+            </StackPanel>
 
-      <CheckBox Content="Confirm before exit"
-                IsChecked="{Binding ConfirmBeforeExit}"
-                Margin="0,8,0,0" />
+            <CheckBox Content="Ask before closing Relic"
+                      IsChecked="{Binding ConfirmBeforeExit}" />
+          </StackPanel>
+        </controls:SettingsSection.SectionContent>
+      </controls:SettingsSection>
 
-      <TextBlock Text="Service URLs" Margin="0,16,0,0" Classes="brand" FontSize="18" />
-      <TextBlock Text="Override Vintage Story account, CDN, ModDB, version catalog, and news endpoints. Leave blank or reset to use defaults."
-                 Classes="muted"
-                 TextWrapping="Wrap" />
+      <controls:SettingsSection Title="Service URLs"
+                                Subtitle="Only change these if you are testing a mirror or custom endpoint."
+                                IsExpanded="False">
+        <controls:SettingsSection.SectionContent>
+          <StackPanel Spacing="10">
+            <StackPanel Spacing="4">
+              <TextBlock Text="Account" Classes="settings-field-label" />
+              <TextBox Text="{Binding AccountBaseUrl}"
+                       PlaceholderText="https://account.vintagestory.at/" />
+            </StackPanel>
+            <StackPanel Spacing="4">
+              <TextBlock Text="CDN" Classes="settings-field-label" />
+              <TextBox Text="{Binding CdnBaseUrl}"
+                       PlaceholderText="https://cdn.vintagestory.at/" />
+            </StackPanel>
+            <StackPanel Spacing="4">
+              <TextBlock Text="ModDB API" Classes="settings-field-label" />
+              <TextBox Text="{Binding ModDbApiBaseUrl}"
+                       PlaceholderText="https://mods.vintagestory.at/api/" />
+            </StackPanel>
+            <StackPanel Spacing="4">
+              <TextBlock Text="ModDB downloads" Classes="settings-field-label" />
+              <TextBox Text="{Binding ModDbDownloadBaseUrl}"
+                       PlaceholderText="https://mods.vintagestory.at/download" />
+            </StackPanel>
+            <StackPanel Spacing="4">
+              <TextBlock Text="Version list" Classes="settings-field-label" />
+              <TextBox Text="{Binding VersionCatalogUrl}"
+                       PlaceholderText="https://api.vintagestory.at/stable-unstable.json" />
+            </StackPanel>
+            <StackPanel Spacing="4">
+              <TextBlock Text="Latest stable" Classes="settings-field-label" />
+              <TextBox Text="{Binding LatestStableUrl}"
+                       PlaceholderText="https://api.vintagestory.at/lateststable.txt" />
+            </StackPanel>
+            <StackPanel Spacing="4">
+              <TextBlock Text="News blog" Classes="settings-field-label" />
+              <TextBox Text="{Binding NewsBlogUrl}"
+                       PlaceholderText="https://www.vintagestory.at/blog.html/" />
+            </StackPanel>
+            <Button Classes="ghost"
+                    Content="Reset URLs to defaults"
+                    Command="{Binding ResetEndpointUrlsCommand}"
+                    HorizontalAlignment="Left" />
+          </StackPanel>
+        </controls:SettingsSection.SectionContent>
+      </controls:SettingsSection>
 
-      <TextBlock Text="Account base URL" Margin="0,8,0,0" />
-      <TextBox Text="{Binding AccountBaseUrl}"
-               PlaceholderText="https://account.vintagestory.at/"
-               VerticalContentAlignment="Center" />
+      <controls:SettingsSection Title="Troubleshooting"
+                                Subtitle="Logs, debug output, and a full settings reset."
+                                IsExpanded="False">
+        <controls:SettingsSection.SectionContent>
+          <StackPanel Spacing="12">
+            <controls:FolderPathRow DataContext="{Binding LogsFolder}" />
+            <controls:FolderPathRow DataContext="{Binding ThemesFolder}" />
 
-      <TextBlock Text="CDN base URL" Margin="0,8,0,0" />
-      <TextBox Text="{Binding CdnBaseUrl}"
-               PlaceholderText="https://cdn.vintagestory.at/"
-               VerticalContentAlignment="Center" />
+            <StackPanel Spacing="8">
+              <TextBlock Text="Debug log" Classes="settings-field-label" />
+              <TextBlock Text="Recent warnings and errors from this session." Classes="settings-field-hint" />
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <Button Classes="ghost" Content="Show / hide" Command="{Binding ToggleDebugViewerCommand}" />
+                <Button Classes="ghost" Content="Refresh" Command="{Binding RefreshDebugLogCommand}" />
+                <Button Classes="ghost" Content="Clear" Command="{Binding ClearDebugLogCommand}" />
+              </StackPanel>
+              <TextBox Text="{Binding DebugLogText}"
+                       IsReadOnly="True"
+                       AcceptsReturn="True"
+                       TextWrapping="Wrap"
+                       MinHeight="180"
+                       MaxHeight="320"
+                       IsVisible="{Binding ShowDebugViewer}" />
+            </StackPanel>
 
-      <TextBlock Text="ModDB API base URL" Margin="0,8,0,0" />
-      <TextBox Text="{Binding ModDbApiBaseUrl}"
-               PlaceholderText="https://mods.vintagestory.at/api/"
-               VerticalContentAlignment="Center" />
-
-      <TextBlock Text="ModDB download URL" Margin="0,8,0,0" />
-      <TextBox Text="{Binding ModDbDownloadBaseUrl}"
-               PlaceholderText="https://mods.vintagestory.at/download"
-               VerticalContentAlignment="Center" />
-
-      <TextBlock Text="Version catalog URL" Margin="0,8,0,0" />
-      <TextBox Text="{Binding VersionCatalogUrl}"
-               PlaceholderText="https://api.vintagestory.at/stable-unstable.json"
-               VerticalContentAlignment="Center" />
-
-      <TextBlock Text="Latest stable URL" Margin="0,8,0,0" />
-      <TextBox Text="{Binding LatestStableUrl}"
-               PlaceholderText="https://api.vintagestory.at/lateststable.txt"
-               VerticalContentAlignment="Center" />
-
-      <TextBlock Text="News blog URL" Margin="0,8,0,0" />
-      <TextBox Text="{Binding NewsBlogUrl}"
-               PlaceholderText="https://www.vintagestory.at/blog.html/"
-               VerticalContentAlignment="Center" />
-
-      <Button Classes="ghost"
-              Content="Reset endpoint URLs"
-              Command="{Binding ResetEndpointUrlsCommand}"
-              HorizontalAlignment="Left"
-              Margin="0,8,0,0" />
-
-      <Button Classes="ghost"
-              Content="Reset settings to defaults"
-              Command="{Binding ResetSettingsCommand}"
-              HorizontalAlignment="Left"
-              Margin="0,8,0,0" />
-
-      <controls:FolderPathRow DataContext="{Binding LogsFolder}" Margin="0,12,0,0" />
-      <controls:FolderPathRow DataContext="{Binding ThemesFolder}" Margin="0,8,0,0" />
-
-      <TextBlock Text="Debug viewer" Margin="0,16,0,0" Classes="brand" FontSize="18" />
-      <TextBlock Text="Recent warnings and errors from this session." Classes="muted" />
-      <StackPanel Orientation="Horizontal" Spacing="8">
-        <Button Classes="ghost" Content="Show / hide" Command="{Binding ToggleDebugViewerCommand}" />
-        <Button Classes="ghost" Content="Refresh" Command="{Binding RefreshDebugLogCommand}" />
-        <Button Classes="ghost" Content="Clear" Command="{Binding ClearDebugLogCommand}" />
-      </StackPanel>
-      <TextBox Text="{Binding DebugLogText}"
-               IsReadOnly="True"
-               AcceptsReturn="True"
-               TextWrapping="Wrap"
-               MinHeight="180"
-               MaxHeight="320"
-               IsVisible="{Binding ShowDebugViewer}" />
+            <Button Classes="ghost"
+                    Content="Reset all settings to defaults"
+                    Command="{Binding ResetSettingsCommand}"
+                    HorizontalAlignment="Left" />
+          </StackPanel>
+        </controls:SettingsSection.SectionContent>
+      </controls:SettingsSection>
 
       <TextBlock Text="{Binding StatusMessage}"
                  Classes="muted"

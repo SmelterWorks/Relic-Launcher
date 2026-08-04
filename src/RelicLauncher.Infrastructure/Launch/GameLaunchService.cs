@@ -9,11 +9,16 @@ public sealed class GameLaunchService : IGameLaunchService
 {
     private readonly IProcessRunner _processRunner;
     private readonly IRuntimePlatform _platform;
+    private readonly IClientSettingsSessionWriter _sessionWriter;
 
-    public GameLaunchService(IProcessRunner processRunner, IRuntimePlatform platform)
+    public GameLaunchService(
+        IProcessRunner processRunner,
+        IRuntimePlatform platform,
+        IClientSettingsSessionWriter sessionWriter)
     {
         _processRunner = processRunner;
         _platform = platform;
+        _sessionWriter = sessionWriter;
     }
 
     public Task<Result<GameInstallInfo>> ResolveAsync(GameLaunchRequest request, CancellationToken cancellationToken = default)
@@ -63,6 +68,8 @@ public sealed class GameLaunchService : IGameLaunchService
             : request.DataPath.Trim();
         Directory.CreateDirectory(dataPath);
         Directory.CreateDirectory(GameInstallLayout.GetModsDirectory(dataPath));
+
+        _ = await _sessionWriter.ApplySessionAsync(dataPath, cancellationToken).ConfigureAwait(false);
 
         var args = new[] { "--dataPath", dataPath };
         return await _processRunner.StartAsync(info.ExecutablePath, args, cancellationToken).ConfigureAwait(false);

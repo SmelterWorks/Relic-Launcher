@@ -12,7 +12,7 @@
            Stretch="Uniform"
            HorizontalAlignment="Left" />
     <controls:PageHeader Title="{Binding Title}" />
-    <TextBlock Text="{Binding Version, StringFormat=Version {0}}" Classes="muted" />
+    <TextBlock Text="{Binding Version, StringFormat=Version {0} Unofficial Launcher}" Classes="muted" />
     <TextBlock Text="{Binding CommitSha, StringFormat=Commit {0}}" Classes="muted" />
     <TextBlock Text="{Binding BuildTimeUtc, StringFormat=Built {0} UTC}" Classes="muted" />
     <TextBlock Text="{Binding Disclaimer}" TextWrapping="Wrap" FontSize="15" />

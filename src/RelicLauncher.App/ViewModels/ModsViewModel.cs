@@ -24,6 +24,7 @@ public partial class ModsViewModel : PageViewModelBase
     private LauncherSettings _settings = new();
     private CancellationTokenSource? _searchCts;
     private int _activeInstalls;
+    private bool _ready;
 
     [ObservableProperty]
     private string _searchText = string.Empty;
@@ -36,6 +37,12 @@ public partial class ModsViewModel : PageViewModelBase
 
     [ObservableProperty]
     private bool _filterByActiveVersion = true;
+
+    [ObservableProperty]
+    private ModSortOption? _selectedSortOption;
+
+    [ObservableProperty]
+    private ModSideFilterOption? _selectedSideFilter;
 
     [ObservableProperty]
     private ModDetails? _selectedDetails;
@@ -74,7 +81,7 @@ public partial class ModsViewModel : PageViewModelBase
     private string _emptyInstalledMessage = "No mods installed in the data folder yet.";
 
     [ObservableProperty]
-    private Bitmap? _detailLogo;
+    private Bitmap? _detailLogo = ModIconAssets.Default;
 
     [ObservableProperty]
     private ModReleaseInfo? _selectedRelease;
@@ -101,6 +108,24 @@ public partial class ModsViewModel : PageViewModelBase
     public ObservableCollection<LocalModInfo> InstalledMods { get; } = [];
     public ObservableCollection<ModImageItemViewModel> ScreenshotItems { get; } = [];
     public ObservableCollection<TransferJobRowViewModel> ActiveTransfers { get; } = [];
+    public IReadOnlyList<ModSortOption> SortOptions { get; } =
+    [
+        new ModSortOption { Id = "downloads", Label = "Most downloads" },
+        new ModSortOption { Id = "follows", Label = "Most follows" },
+        new ModSortOption { Id = "trending", Label = "Trending" },
+        new ModSortOption { Id = "updated", Label = "Recently updated" },
+        new ModSortOption { Id = "name", Label = "Name A-Z" },
+    ];
+
+    public IReadOnlyList<ModSideFilterOption> SideFilterOptions { get; } =
+    [
+        new ModSideFilterOption { Id = "any", Label = "Any side" },
+        new ModSideFilterOption { Id = "client", Label = "Client" },
+        new ModSideFilterOption { Id = "server", Label = "Server" },
+        new ModSideFilterOption { Id = "both", Label = "Both" },
+    ];
+
+    public bool ShowEmptyBrowse => !IsLoading && !HasBrowseResults;
 
     public ModsViewModel(
         IModDbClient modDb,
@@ -118,6 +143,8 @@ public partial class ModsViewModel : PageViewModelBase
         _images = images;
         _urlLauncher = urlLauncher;
         _logger = logger;
+        SelectedSortOption = SortOptions[0];
+        SelectedSideFilter = SideFilterOptions[0];
         _transfers.Changed += (_, _) => OnTransfersChanged();
         OnTransfersChanged();
     }
@@ -125,6 +152,7 @@ public partial class ModsViewModel : PageViewModelBase
     public void Bind(LauncherSettings settings)
     {
         _settings = settings;
+        _ready = true;
         _ = RefreshInstalledAsync();
         _ = SearchAsync();
         _ = _modDb.PrefetchCatalogAsync();
@@ -135,7 +163,33 @@ public partial class ModsViewModel : PageViewModelBase
             ? _platform.GetPlatformInfo().DefaultDataPath
             : _settings.DataPath!;
 
-    partial void OnFilterByActiveVersionChanged(bool value) => _ = SearchAsync();
+    partial void OnFilterByActiveVersionChanged(bool value)
+    {
+        if (_ready)
+        {
+            _ = SearchAsync();
+        }
+    }
+
+    partial void OnSelectedSortOptionChanged(ModSortOption? value)
+    {
+        if (_ready && value is not null)
+        {
+            _ = SearchAsync();
+        }
+    }
+
+    partial void OnSelectedSideFilterChanged(ModSideFilterOption? value)
+    {
+        if (_ready && value is not null)
+        {
+            _ = SearchAsync();
+        }
+    }
+
+    partial void OnIsLoadingChanged(bool value) => OnPropertyChanged(nameof(ShowEmptyBrowse));
+
+    partial void OnHasBrowseResultsChanged(bool value) => OnPropertyChanged(nameof(ShowEmptyBrowse));
 
     [RelayCommand]
     private async Task SearchAsync()
@@ -175,13 +229,21 @@ public partial class ModsViewModel : PageViewModelBase
     {
         IsLoading = true;
         StatusMessage = string.Empty;
+        BrowseResults.Clear();
+        HasBrowseResults = false;
         try
         {
+            var orderBy = SelectedSortOption?.Id ?? "downloads";
+            var orderDirection = string.Equals(orderBy, "name", StringComparison.OrdinalIgnoreCase)
+                ? "asc"
+                : "desc";
             var result = await _modDb.SearchAsync(new ModSearchQuery
             {
                 Text = SearchText,
                 GameVersion = FilterByActiveVersion ? _settings.SelectedVersion : null,
-                OrderBy = "downloads",
+                OrderBy = orderBy,
+                OrderDirection = orderDirection,
+                Side = SelectedSideFilter?.Id,
                 Page = Page,
                 PageSize = DefaultPageSize,
                 PreferCache = true,
@@ -293,7 +355,7 @@ public partial class ModsViewModel : PageViewModelBase
         DetailStatus = "Loading details...";
         SelectedDetails = null;
         SelectedRelease = null;
-        DetailLogo = null;
+        DetailLogo = ModIconAssets.Default;
         ScreenshotItems.Clear();
         CloseImageViewer();
 
@@ -325,6 +387,14 @@ public partial class ModsViewModel : PageViewModelBase
                 using var stream = new MemoryStream(bytes);
                 DetailLogo = new Bitmap(stream);
             }
+            else
+            {
+                DetailLogo = ModIconAssets.Default;
+            }
+        }
+        else
+        {
+            DetailLogo = ModIconAssets.Default;
         }
 
         ScreenshotItems.Clear();

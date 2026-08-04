@@ -33,6 +33,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<ISecretStore, FileSecretStore>();
         services.AddSingleton<AccountAuthService>();
         services.AddSingleton<IAccountAuthService>(sp => sp.GetRequiredService<AccountAuthService>());
+        services.AddSingleton<IClientSettingsSessionWriter, ClientSettingsSessionWriter>();
         services.AddSingleton<IGameLocator, GameLocatorStub>();
         services.AddSingleton<IProcessRunner, SafeProcessRunner>();
         services.AddSingleton<IUpdateCheckService, UpdateCheckServiceStub>();

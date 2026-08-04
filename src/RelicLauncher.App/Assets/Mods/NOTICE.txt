@@ -1,0 +1,8 @@
+# Mod browser assets
+
+`mod-default.png` is the ModDB placeholder icon from:
+https://mods.vintagestory.at/web/img/mod-default.png
+
+Source repo: https://github.com/anegostudios/vsmoddb (web/img/mod-default.png)
+
+Used when a mod has no custom logo. Vintage Story / ModDB assets remain trademarks of Anego Studios SIA.

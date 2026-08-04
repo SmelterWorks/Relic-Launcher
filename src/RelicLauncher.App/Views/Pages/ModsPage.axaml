@@ -22,6 +22,28 @@
                  VerticalAlignment="Center" />
         <Button Classes="primary" Content="Search" Command="{Binding SearchCommand}" IsEnabled="{Binding !IsLoading}" />
         <Button Classes="ghost" Content="Refresh installed" Command="{Binding RefreshInstalledCommand}" />
+      </StackPanel>
+      <StackPanel Orientation="Horizontal" Spacing="8">
+        <ComboBox ItemsSource="{Binding SortOptions}"
+                  SelectedItem="{Binding SelectedSortOption}"
+                  MinWidth="160"
+                  VerticalAlignment="Center">
+          <ComboBox.ItemTemplate>
+            <DataTemplate x:DataType="vm:ModSortOption">
+              <TextBlock Text="{Binding Label}" />
+            </DataTemplate>
+          </ComboBox.ItemTemplate>
+        </ComboBox>
+        <ComboBox ItemsSource="{Binding SideFilterOptions}"
+                  SelectedItem="{Binding SelectedSideFilter}"
+                  MinWidth="120"
+                  VerticalAlignment="Center">
+          <ComboBox.ItemTemplate>
+            <DataTemplate x:DataType="vm:ModSideFilterOption">
+              <TextBlock Text="{Binding Label}" />
+            </DataTemplate>
+          </ComboBox.ItemTemplate>
+        </ComboBox>
         <CheckBox Content="Filter by active version"
                   IsChecked="{Binding FilterByActiveVersion}"
                   VerticalAlignment="Center" />
@@ -51,15 +73,15 @@
         <TabControl>
           <TabItem Header="Browse">
             <Grid RowDefinitions="Auto,*,Auto">
-              <TextBlock Text="Loading mods..."
-                         Classes="muted"
-                         Margin="0,0,0,8"
-                         IsVisible="{Binding IsLoading}" />
-              <TextBlock Text="{Binding EmptyBrowseMessage}"
-                         Classes="muted"
-                         Margin="0,0,0,8"
-                         TextWrapping="Wrap"
-                         IsVisible="{Binding !HasBrowseResults}" />
+              <Panel Margin="0,0,0,8">
+                <TextBlock Text="Loading mods..."
+                           Classes="muted"
+                           IsVisible="{Binding IsLoading}" />
+                <TextBlock Text="{Binding EmptyBrowseMessage}"
+                           Classes="muted"
+                           TextWrapping="Wrap"
+                           IsVisible="{Binding ShowEmptyBrowse}" />
+              </Panel>
 
               <ScrollViewer Grid.Row="1">
                 <ItemsControl ItemsSource="{Binding BrowseResults}">
@@ -189,7 +211,7 @@
                       Padding="0"
                       HorizontalAlignment="Left"
                       Command="{Binding OpenDetailLogoCommand}"
-                      IsVisible="{Binding DetailLogo, Converter={x:Static ObjectConverters.IsNotNull}}">
+                      IsVisible="{Binding SelectedDetails, Converter={x:Static ObjectConverters.IsNotNull}}">
                 <Image Source="{Binding DetailLogo}"
                        MaxHeight="140"
                        Stretch="Uniform"

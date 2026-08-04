@@ -9,6 +9,7 @@ public sealed class ModSummary
     public string? Summary { get; init; }
     public int Downloads { get; init; }
     public int Follows { get; init; }
+    public int TrendingPoints { get; init; }
     public string? UrlAlias { get; init; }
     public string? Side { get; init; }
     public string? LogoUrl { get; init; }

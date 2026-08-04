@@ -52,7 +52,7 @@ public partial class MainWindowViewModel : ViewModelBase
     private void NavigateHome() => Navigate("home", () =>
     {
         var page = _services.GetRequiredService<HomeViewModel>();
-        page.Bind(Settings, OnSettingsChanged);
+        page.Bind(Settings, OnSettingsChanged, () => NavigateSettingsCommand.Execute(null));
         return page;
     });
 
@@ -96,7 +96,7 @@ public partial class MainWindowViewModel : ViewModelBase
         _endpoints.Apply(settings);
         if (CurrentPage is HomeViewModel home)
         {
-            home.Bind(settings, OnSettingsChanged);
+            home.Bind(settings, OnSettingsChanged, () => NavigateSettingsCommand.Execute(null));
         }
         else if (CurrentPage is VersionsViewModel versions)
         {

@@ -34,6 +34,12 @@
                     PlaceholderText="Version"
                     IsEnabled="{Binding HasInstalledVersions}"
                     VerticalAlignment="Center" />
+          <Button Classes="ghost"
+                  Content="Sign in"
+                  Command="{Binding GoToSignInCommand}"
+                  IsVisible="{Binding ShowSignInPrompt}"
+                  VerticalAlignment="Center"
+                  MinWidth="100" />
         </StackPanel>
         <TextBlock Text="{Binding ActiveVersionLabel}"
                    Classes="muted"

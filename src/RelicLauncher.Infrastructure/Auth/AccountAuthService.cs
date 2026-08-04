@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
 using RelicLauncher.Core.Abstractions;
 using RelicLauncher.Core.Constants;
@@ -12,27 +13,31 @@ namespace RelicLauncher.Infrastructure.Auth;
 
 public sealed class AccountAuthService : IAccountAuthService
 {
-    public const string CookieSecretKey = RelicSecretKeys.AccountCookies;
+    public const string SessionSecretKey = RelicSecretKeys.AccountSession;
     public const string EmailSecretKey = RelicSecretKeys.AccountEmail;
+    public const string LegacyCookieSecretKey = RelicSecretKeys.AccountCookies;
+
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+    };
 
     private readonly ISecretStore _secretStore;
     private readonly IEndpointProvider _endpoints;
     private readonly ILogger<AccountAuthService> _logger;
-    private readonly CookieContainer _cookies;
     private readonly HttpClient _httpClient;
-    private string? _email;
+    private StoredSession? _session;
 
     public AccountAuthService(ISecretStore secretStore, IEndpointProvider endpoints, ILogger<AccountAuthService> logger)
-        : this(secretStore, endpoints, logger, CreateHandler(out var cookies), cookies)
+        : this(secretStore, endpoints, logger, CreateHandler())
     {
     }
 
     internal AccountAuthService(
         ISecretStore secretStore,
         ILogger<AccountAuthService> logger,
-        HttpMessageHandler handler,
-        CookieContainer cookies)
-        : this(secretStore, new EndpointProvider(), logger, handler, cookies)
+        HttpMessageHandler handler)
+        : this(secretStore, new EndpointProvider(), logger, handler)
     {
     }
 
@@ -40,13 +45,11 @@ public sealed class AccountAuthService : IAccountAuthService
         ISecretStore secretStore,
         IEndpointProvider endpoints,
         ILogger<AccountAuthService> logger,
-        HttpMessageHandler handler,
-        CookieContainer cookies)
+        HttpMessageHandler handler)
     {
         _secretStore = secretStore;
         _endpoints = endpoints;
         _logger = logger;
-        _cookies = cookies;
         _httpClient = new HttpClient(handler)
         {
             Timeout = TimeSpan.FromSeconds(45),
@@ -57,164 +60,86 @@ public sealed class AccountAuthService : IAccountAuthService
         }
     }
 
-    private Uri AccountBaseUri => new(_endpoints.AccountBaseUrl);
-
-    public HttpClient HttpClient => _httpClient;
-
-    public CookieContainer CookieContainer => _cookies;
-
     public async Task<Result<AccountSessionStatus>> GetStatusAsync(CancellationToken cancellationToken = default)
     {
         await RestoreSessionAsync(cancellationToken).ConfigureAwait(false);
-        if (string.IsNullOrWhiteSpace(_email))
+        if (_session is null || string.IsNullOrWhiteSpace(_session.Email))
         {
             return Result<AccountSessionStatus>.Success(new AccountSessionStatus { IsSignedIn = false });
         }
 
-        return Result<AccountSessionStatus>.Success(new AccountSessionStatus
-        {
-            IsSignedIn = true,
-            Email = _email,
-        });
+        return Result<AccountSessionStatus>.Success(ToStatus(_session));
     }
 
     public async Task<Result<AccountSessionStatus>> LoginAsync(AccountCredentials credentials, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(credentials.Email) || string.IsNullOrWhiteSpace(credentials.Password))
         {
-            _logger.LogWarning("Account login rejected: email or password missing");
+            _logger.LogWarning("Game account login rejected: email or password missing");
             return Result<AccountSessionStatus>.Failure("Email and password are required.");
         }
 
         try
         {
-            foreach (Cookie cookie in _cookies.GetCookies(AccountBaseUri).Cast<Cookie>().ToList())
-            {
-                cookie.Expired = true;
-            }
-
-            using var content = new FormUrlEncodedContent(new Dictionary<string, string>(StringComparer.Ordinal)
+            var gameLoginVersion = await FetchGameLoginVersionAsync(cancellationToken).ConfigureAwait(false);
+            var form = new Dictionary<string, string>(StringComparer.Ordinal)
             {
                 ["email"] = credentials.Email.Trim(),
                 ["password"] = credentials.Password,
-                ["loginredir"] = string.Empty,
-            });
+                ["totpcode"] = credentials.TotpCode?.Trim() ?? string.Empty,
+                ["prelogintoken"] = credentials.PreLoginToken?.Trim() ?? string.Empty,
+                ["gameloginversion"] = gameLoginVersion,
+            };
 
-            using var response = await _httpClient.PostAsync(new Uri(AccountBaseUri, "attemptlogin"), content, cancellationToken).ConfigureAwait(false);
+            using var content = new FormUrlEncodedContent(form);
+            using var response = await _httpClient
+                .PostAsync(VintageStoryEndpoints.GameLoginUrl, content, cancellationToken)
+                .ConfigureAwait(false);
             var body = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
-            var location = response.Headers.Location?.ToString();
-            var cookieNames = string.Join(", ",
-                _cookies.GetCookies(AccountBaseUri).Cast<Cookie>().Select(c => c.Name).Distinct(StringComparer.Ordinal));
 
-            if (body.Contains("Captcha verification failed", StringComparison.OrdinalIgnoreCase))
+            if (!response.IsSuccessStatusCode)
             {
-                _logger.LogWarning("Account login blocked by captcha. Status={Status}", (int)response.StatusCode);
-                return Result<AccountSessionStatus>.Failure(
-                    "The account portal requires a captcha. Use Sign in with browser in Settings (in-app account page), then click Use this session.");
+                _logger.LogWarning("Game login HTTP {Status}. BodyPreview={Preview}", (int)response.StatusCode, Truncate(body, 240));
+                return Result<AccountSessionStatus>.Failure($"Sign-in failed with HTTP {(int)response.StatusCode}.");
             }
 
-            if (!LooksSignedIn(response, body, location))
+            GameLoginResponse? parsed;
+            try
             {
-                return FailLogin(response, body, location, cookieNames);
+                parsed = JsonSerializer.Deserialize<GameLoginResponse>(body, JsonOptions);
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogWarning(ex, "Game login returned non-JSON. BodyPreview={Preview}", Truncate(body, 240));
+                return Result<AccountSessionStatus>.Failure("Sign-in failed. Unexpected response from the game auth server.");
             }
 
-            return await CompleteLoginAsync(credentials.Email.Trim(), cancellationToken).ConfigureAwait(false);
+            if (parsed is null)
+            {
+                return Result<AccountSessionStatus>.Failure("Sign-in failed. Empty response from the game auth server.");
+            }
+
+            if (parsed.Valid == 1)
+            {
+                return await CompleteLoginAsync(credentials.Email.Trim(), parsed, cancellationToken).ConfigureAwait(false);
+            }
+
+            return HandleLoginFailure(parsed);
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or IOException)
         {
-            _logger.LogError(ex, "Account login request failed");
+            _logger.LogError(ex, "Game account login request failed");
             return Result<AccountSessionStatus>.Failure("Network error during sign-in: " + ex.Message);
         }
     }
 
-
-    private Result<AccountSessionStatus> FailLogin(HttpResponseMessage response, string body, string? location, string cookieNames)
-    {
-        var reason = ExplainLoginFailure(response, body, location);
-        _logger.LogWarning(
-            "Account login failed. Status={Status} Location={Location} Cookies=[{Cookies}] Reason={Reason} BodyPreview={Preview}",
-            (int)response.StatusCode,
-            location ?? "(none)",
-            cookieNames,
-            reason,
-            Truncate(body, 240));
-        return Result<AccountSessionStatus>.Failure(reason);
-    }
-
-    private async Task<Result<AccountSessionStatus>> CompleteLoginAsync(string email, CancellationToken cancellationToken)
-    {
-        _email = email;
-        var persist = await PersistSessionAsync(cancellationToken).ConfigureAwait(false);
-        if (!persist.IsSuccess)
-        {
-            _logger.LogError("Account login succeeded remotely but session persist failed: {Error}", persist.Error);
-            _email = null;
-            return Result<AccountSessionStatus>.Failure(
-                "Signed in on the server but Relic could not save the session: " + (persist.Error ?? "unknown error"));
-        }
-
-        _logger.LogInformation("Account login succeeded for {Email}", _email);
-        return Result<AccountSessionStatus>.Success(new AccountSessionStatus
-        {
-            IsSignedIn = true,
-            Email = _email,
-        });
-    }
-
-    public async Task<Result<AccountSessionStatus>> ImportBrowserSessionAsync(
-        string email,
-        IReadOnlyList<Cookie> cookies,
-        CancellationToken cancellationToken = default)
-    {
-        if (string.IsNullOrWhiteSpace(email))
-        {
-            return Result<AccountSessionStatus>.Failure("Email is required to label the saved session.");
-        }
-
-        if (cookies.Count == 0)
-        {
-            return Result<AccountSessionStatus>.Failure("No cookies were provided from the browser session.");
-        }
-
-        foreach (Cookie cookie in _cookies.GetCookies(AccountBaseUri).Cast<Cookie>().ToList())
-        {
-            cookie.Expired = true;
-        }
-
-        foreach (var cookie in cookies)
-        {
-            try
-            {
-                var domain = string.IsNullOrWhiteSpace(cookie.Domain) ? ".vintagestory.at" : cookie.Domain;
-                var host = domain.StartsWith(".", StringComparison.Ordinal) ? domain.TrimStart('.') : domain;
-                _cookies.Add(new Uri("https://" + host + "/"), new Cookie(cookie.Name, cookie.Value)
-                {
-                    Domain = domain,
-                    Path = string.IsNullOrWhiteSpace(cookie.Path) ? "/" : cookie.Path,
-                    HttpOnly = cookie.HttpOnly,
-                    Secure = cookie.Secure,
-                });
-            }
-            catch (CookieException ex)
-            {
-                _logger.LogDebug(ex, "Skipped invalid browser cookie {Name}", cookie.Name);
-            }
-        }
-
-        return await CompleteLoginAsync(email.Trim(), cancellationToken).ConfigureAwait(false);
-    }
-
     public async Task<Result> LogoutAsync(CancellationToken cancellationToken = default)
     {
-        _email = null;
-        foreach (Cookie cookie in _cookies.GetCookies(AccountBaseUri))
-        {
-            cookie.Expired = true;
-        }
-
-        await _secretStore.DeleteAsync(CookieSecretKey, cancellationToken).ConfigureAwait(false);
+        _session = null;
+        await _secretStore.DeleteAsync(SessionSecretKey, cancellationToken).ConfigureAwait(false);
         await _secretStore.DeleteAsync(EmailSecretKey, cancellationToken).ConfigureAwait(false);
-        _logger.LogInformation("Account signed out");
+        await _secretStore.DeleteAsync(LegacyCookieSecretKey, cancellationToken).ConfigureAwait(false);
+        _logger.LogInformation("Game account signed out");
         return Result.Success();
     }
 
@@ -234,169 +159,212 @@ public sealed class AccountAuthService : IAccountAuthService
         return Result.Failure("Sign in with your Vintage Story game account in Settings.");
     }
 
+    private Result<AccountSessionStatus> HandleLoginFailure(GameLoginResponse parsed)
+    {
+        var reason = parsed.Reason?.Trim() ?? string.Empty;
+        if (string.Equals(reason, "requiretotpcode", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(reason, "wrongtotpcode", StringComparison.OrdinalIgnoreCase))
+        {
+            if (string.IsNullOrWhiteSpace(parsed.PreLoginToken) &&
+                string.Equals(reason, "requiretotpcode", StringComparison.OrdinalIgnoreCase))
+            {
+                return Result<AccountSessionStatus>.Failure("Two-factor login required, but no pre-login token was returned.");
+            }
+
+            _logger.LogInformation("Game login requires TOTP. Reason={Reason}", reason);
+            return Result<AccountSessionStatus>.Success(new AccountSessionStatus
+            {
+                IsSignedIn = false,
+                RequiresTotp = true,
+                PreLoginToken = parsed.PreLoginToken,
+            });
+        }
+
+        var message = reason switch
+        {
+            "invalidemailorpassword" => "Wrong email or password (game account, not forum).",
+            "ipchanged" => "Sign-in blocked because your IP changed. Try again from the official client once, then retry here.",
+            "temporarilyblocked" => "This account is temporarily blocked from signing in.",
+            _ => string.IsNullOrWhiteSpace(reason)
+                ? "Sign-in failed."
+                : "Sign-in failed: " + reason,
+        };
+        _logger.LogWarning("Game login failed. Reason={Reason}", reason);
+        return Result<AccountSessionStatus>.Failure(message);
+    }
+
+    private async Task<Result<AccountSessionStatus>> CompleteLoginAsync(
+        string email,
+        GameLoginResponse parsed,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(parsed.SessionKey) ||
+            string.IsNullOrWhiteSpace(parsed.SessionSignature) ||
+            string.IsNullOrWhiteSpace(parsed.Uid) ||
+            string.IsNullOrWhiteSpace(parsed.PlayerName))
+        {
+            return Result<AccountSessionStatus>.Failure("Sign-in succeeded but the auth server omitted session fields.");
+        }
+
+        var session = new StoredSession
+        {
+            Email = email,
+            PlayerName = parsed.PlayerName,
+            PlayerUid = parsed.Uid,
+            SessionKey = parsed.SessionKey,
+            SessionSignature = parsed.SessionSignature,
+            Entitlements = FormatEntitlements(parsed.Entitlements),
+            MpToken = FormatOptional(parsed.MpToken),
+            HostGameServer = FormatHostGameServer(parsed.HasGameServer),
+        };
+
+        var persist = await PersistSessionAsync(session, cancellationToken).ConfigureAwait(false);
+        if (!persist.IsSuccess)
+        {
+            _logger.LogError("Game login succeeded remotely but session persist failed: {Error}", persist.Error);
+            return Result<AccountSessionStatus>.Failure(
+                "Signed in on the server but Relic could not save the session: " + (persist.Error ?? "unknown error"));
+        }
+
+        _session = session;
+        await _secretStore.DeleteAsync(LegacyCookieSecretKey, cancellationToken).ConfigureAwait(false);
+        _logger.LogInformation("Game account login succeeded for {Email} as {Player}", email, session.PlayerName);
+        return Result<AccountSessionStatus>.Success(ToStatus(session));
+    }
+
     private async Task RestoreSessionAsync(CancellationToken cancellationToken)
     {
-        if (_email is not null)
+        if (_session is not null)
         {
             return;
         }
 
-        var emailResult = await _secretStore.GetAsync(EmailSecretKey, cancellationToken).ConfigureAwait(false);
-        var cookieResult = await _secretStore.GetAsync(CookieSecretKey, cancellationToken).ConfigureAwait(false);
-        if (!emailResult.IsSuccess || !cookieResult.IsSuccess)
+        var sessionResult = await _secretStore.GetAsync(SessionSecretKey, cancellationToken).ConfigureAwait(false);
+        if (!sessionResult.IsSuccess)
         {
-            if (!emailResult.IsSuccess)
-            {
-                _logger.LogWarning("Could not read saved account email: {Error}", emailResult.Error);
-            }
-
-            if (!cookieResult.IsSuccess)
-            {
-                _logger.LogWarning("Could not read saved account cookies: {Error}", cookieResult.Error);
-            }
-
+            _logger.LogWarning("Could not read saved game session: {Error}", sessionResult.Error);
             return;
         }
 
-        if (string.IsNullOrWhiteSpace(emailResult.Value))
-        {
-            return;
-        }
-
-        _email = emailResult.Value;
-        if (string.IsNullOrWhiteSpace(cookieResult.Value))
+        if (string.IsNullOrWhiteSpace(sessionResult.Value))
         {
             return;
         }
 
         try
         {
-            var entries = JsonSerializer.Deserialize<List<CookieDto>>(cookieResult.Value) ?? [];
-            foreach (var entry in entries)
+            var stored = JsonSerializer.Deserialize<StoredSession>(sessionResult.Value, JsonOptions);
+            if (stored is null ||
+                string.IsNullOrWhiteSpace(stored.Email) ||
+                string.IsNullOrWhiteSpace(stored.SessionKey) ||
+                string.IsNullOrWhiteSpace(stored.SessionSignature) ||
+                string.IsNullOrWhiteSpace(stored.PlayerUid))
             {
-                var domainUri = entry.Domain.StartsWith("http", StringComparison.Ordinal)
-                    ? entry.Domain
-                    : "https://" + entry.Domain.TrimStart('.');
-                _cookies.Add(new Uri(domainUri), new Cookie(entry.Name, entry.Value)
-                {
-                    Domain = entry.Domain,
-                    Path = entry.Path ?? "/",
-                    HttpOnly = entry.HttpOnly,
-                    Secure = entry.Secure,
-                });
+                return;
             }
+
+            _session = stored;
         }
         catch (JsonException ex)
         {
-            _logger.LogWarning(ex, "Failed to restore account cookies");
+            _logger.LogWarning(ex, "Failed to restore game account session");
         }
     }
 
-    private async Task<Result> PersistSessionAsync(CancellationToken cancellationToken)
+    private async Task<Result> PersistSessionAsync(StoredSession session, CancellationToken cancellationToken)
     {
-        if (!string.IsNullOrWhiteSpace(_email))
+        var emailSave = await _secretStore.SetAsync(EmailSecretKey, session.Email, cancellationToken).ConfigureAwait(false);
+        if (!emailSave.IsSuccess)
         {
-            var emailSave = await _secretStore.SetAsync(EmailSecretKey, _email, cancellationToken).ConfigureAwait(false);
-            if (!emailSave.IsSuccess)
-            {
-                return emailSave;
-            }
+            return emailSave;
         }
 
-        var cookies = new List<CookieDto>();
-        CollectCookies(AccountBaseUri, cookies);
-        CollectCookies(new Uri(_endpoints.CdnBaseUrl), cookies);
-
-        var json = JsonSerializer.Serialize(cookies);
-        return await _secretStore.SetAsync(CookieSecretKey, json, cancellationToken).ConfigureAwait(false);
+        var json = JsonSerializer.Serialize(session);
+        return await _secretStore.SetAsync(SessionSecretKey, json, cancellationToken).ConfigureAwait(false);
     }
 
-    private void CollectCookies(Uri uri, List<CookieDto> cookies)
+    private async Task<string> FetchGameLoginVersionAsync(CancellationToken cancellationToken)
     {
-        foreach (Cookie cookie in _cookies.GetCookies(uri))
+        try
         {
-            if (cookie.Expired)
-            {
-                continue;
-            }
-
-            cookies.Add(new CookieDto
-            {
-                Name = cookie.Name,
-                Value = cookie.Value,
-                Domain = cookie.Domain,
-                Path = cookie.Path,
-                HttpOnly = cookie.HttpOnly,
-                Secure = cookie.Secure,
-            });
+            var text = await _httpClient.GetStringAsync(VintageStoryEndpoints.LatestUnstableUrl, cancellationToken)
+                .ConfigureAwait(false);
+            var version = text.Trim();
+            return string.IsNullOrWhiteSpace(version) ? "1.0.0" : version;
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or IOException)
+        {
+            _logger.LogDebug(ex, "Could not fetch latestunstable for gameloginversion");
+            return "1.0.0";
         }
     }
 
-    internal static bool LooksSignedIn(HttpResponseMessage response, string body, string? location)
+    private static AccountSessionStatus ToStatus(StoredSession session)
+        => new()
+        {
+            IsSignedIn = true,
+            Email = session.Email,
+            PlayerName = session.PlayerName,
+            PlayerUid = session.PlayerUid,
+            SessionKey = session.SessionKey,
+            SessionSignature = session.SessionSignature,
+            Entitlements = session.Entitlements,
+            MpToken = session.MpToken,
+            HostGameServer = session.HostGameServer,
+        };
+
+    private static string FormatEntitlements(JsonElement? entitlements)
     {
-        var code = (int)response.StatusCode;
-        if (code is >= 300 and < 400)
+        if (entitlements is null)
         {
-            if (!string.IsNullOrWhiteSpace(location) &&
-                location.Contains("attemptlogin", StringComparison.OrdinalIgnoreCase))
-            {
-                return false;
-            }
-
-            return true;
+            return string.Empty;
         }
 
-        if (HasLoginForm(body))
+        var value = entitlements.Value;
+        return value.ValueKind switch
         {
-            return false;
-        }
-
-        if (ContainsAuthFailurePhrase(body))
-        {
-            return false;
-        }
-
-        return response.IsSuccessStatusCode;
+            JsonValueKind.String => value.GetString() ?? string.Empty,
+            JsonValueKind.Undefined or JsonValueKind.Null => string.Empty,
+            _ => value.GetRawText(),
+        };
     }
 
-    private static string ExplainLoginFailure(HttpResponseMessage response, string body, string? location)
+    private static string FormatOptional(JsonElement? value)
     {
-        if (body.Contains("Captcha verification failed", StringComparison.OrdinalIgnoreCase))
+        if (value is null)
         {
-            return "The account portal requires a captcha. Use Sign in with browser in Settings.";
+            return string.Empty;
         }
 
-        if (ContainsAuthFailurePhrase(body))
+        var element = value.Value;
+        return element.ValueKind switch
         {
-            return "Sign-in failed. Check email and password (game account, not forum).";
-        }
-
-        if (HasLoginForm(body))
-        {
-            return "Sign-in failed. The account portal returned the login form again. Check email and password (game account, not forum).";
-        }
-
-        if ((int)response.StatusCode is >= 400)
-        {
-            return $"Sign-in failed with HTTP {(int)response.StatusCode}.";
-        }
-
-        if (!string.IsNullOrWhiteSpace(location))
-        {
-            return $"Sign-in failed after redirect to {location}.";
-        }
-
-        return "Sign-in failed. Check email and password (game account, not forum).";
+            JsonValueKind.String => element.GetString() ?? string.Empty,
+            JsonValueKind.Number => element.GetRawText(),
+            JsonValueKind.True => "true",
+            JsonValueKind.False => "false",
+            JsonValueKind.Undefined or JsonValueKind.Null => string.Empty,
+            _ => element.GetRawText(),
+        };
     }
 
-    private static bool HasLoginForm(string body)
-        => body.Contains("attemptlogin", StringComparison.OrdinalIgnoreCase) &&
-           body.Contains("type=\"password\"", StringComparison.OrdinalIgnoreCase);
+    private static string FormatHostGameServer(JsonElement? hasGameServer)
+    {
+        if (hasGameServer is null)
+        {
+            return string.Empty;
+        }
 
-    private static bool ContainsAuthFailurePhrase(string body)
-        => body.Contains("Sign-in failed", StringComparison.OrdinalIgnoreCase) ||
-           body.Contains("Invalid email or password", StringComparison.OrdinalIgnoreCase) ||
-           body.Contains("incorrect password", StringComparison.OrdinalIgnoreCase);
+        var element = hasGameServer.Value;
+        return element.ValueKind switch
+        {
+            JsonValueKind.True => "true",
+            JsonValueKind.False => "false",
+            JsonValueKind.String => element.GetString() ?? string.Empty,
+            JsonValueKind.Number => element.GetRawText(),
+            _ => string.Empty,
+        };
+    }
 
     private static string Truncate(string value, int max)
     {
@@ -408,24 +376,54 @@ public sealed class AccountAuthService : IAccountAuthService
         return value[..max] + "...";
     }
 
-    private static HttpMessageHandler CreateHandler(out CookieContainer cookies)
-    {
-        cookies = new CookieContainer();
-        return new HttpClientHandler
+    private static HttpMessageHandler CreateHandler()
+        => new HttpClientHandler
         {
-            CookieContainer = cookies,
             AutomaticDecompression = DecompressionMethods.All,
-            AllowAutoRedirect = false,
         };
+
+    private sealed class StoredSession
+    {
+        public string Email { get; set; } = string.Empty;
+        public string PlayerName { get; set; } = string.Empty;
+        public string PlayerUid { get; set; } = string.Empty;
+        public string SessionKey { get; set; } = string.Empty;
+        public string SessionSignature { get; set; } = string.Empty;
+        public string Entitlements { get; set; } = string.Empty;
+        public string MpToken { get; set; } = string.Empty;
+        public string HostGameServer { get; set; } = string.Empty;
     }
 
-    private sealed class CookieDto
+    private sealed class GameLoginResponse
     {
-        public string Name { get; set; } = string.Empty;
-        public string Value { get; set; } = string.Empty;
-        public string Domain { get; set; } = string.Empty;
-        public string? Path { get; set; }
-        public bool HttpOnly { get; set; }
-        public bool Secure { get; set; }
+        [JsonPropertyName("valid")]
+        public int Valid { get; set; }
+
+        [JsonPropertyName("reason")]
+        public string? Reason { get; set; }
+
+        [JsonPropertyName("prelogintoken")]
+        public string? PreLoginToken { get; set; }
+
+        [JsonPropertyName("sessionkey")]
+        public string? SessionKey { get; set; }
+
+        [JsonPropertyName("sessionsignature")]
+        public string? SessionSignature { get; set; }
+
+        [JsonPropertyName("uid")]
+        public string? Uid { get; set; }
+
+        [JsonPropertyName("playername")]
+        public string? PlayerName { get; set; }
+
+        [JsonPropertyName("entitlements")]
+        public JsonElement? Entitlements { get; set; }
+
+        [JsonPropertyName("mptoken")]
+        public JsonElement? MpToken { get; set; }
+
+        [JsonPropertyName("hasgameserver")]
+        public JsonElement? HasGameServer { get; set; }
     }
 }

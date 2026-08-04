@@ -27,7 +27,7 @@ public class VintageStoryVersionCatalogResilienceTests
   public async Task GetVersionsAsync_ServesExpiredDiskCache_WhenNetworkFails()
   {
     using var temp = new TempAppPaths();
-    await WriteExpiredCatalogCacheAsync(temp, SampleCatalogJson).ConfigureAwait(false);
+    await WriteExpiredCatalogCacheAsync(temp, SampleCatalogJson);
 
     var handler = new StubHandler(_ => throw new HttpRequestException("offline"));
     var catalog = CreateCatalog(temp, handler);
@@ -78,7 +78,7 @@ public class VintageStoryVersionCatalogResilienceTests
     using var temp = new TempAppPaths();
     var latestPath = Path.Combine(temp.Paths.CacheDirectory, "versions", "lateststable.txt");
     Directory.CreateDirectory(Path.GetDirectoryName(latestPath)!);
-    await File.WriteAllTextAsync(latestPath, "1.22.6").ConfigureAwait(false);
+    await File.WriteAllTextAsync(latestPath, "1.22.6");
     File.SetLastWriteTimeUtc(latestPath, DateTime.UtcNow.AddHours(-12));
 
     var handler = new StubHandler(request =>

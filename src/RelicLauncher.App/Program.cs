@@ -54,8 +54,19 @@ internal static class Program
     public static AppBuilder BuildAvaloniaApp()
     {
         IconProvider.Current.Register<MaterialDesignIconProvider>();
-        return AppBuilder.Configure<App>()
-            .UsePlatformDetect()
+
+        // Prefer native Wayland when available. UsePlatformDetect() stays on X11/XWayland
+        // unless UseWayland() is called explicitly (Avalonia 12.1+).
+        var builder = AppBuilder.Configure<App>()
+            .UsePlatformDetect();
+
+        if (OperatingSystem.IsLinux()
+            && Environment.GetEnvironmentVariable("WAYLAND_DISPLAY") is not null)
+        {
+            builder = builder.UseWayland();
+        }
+
+        return builder
 #if DEBUG
             .WithDeveloperTools()
 #endif
@@ -83,7 +94,6 @@ internal static class Program
         services.AddSingleton<IThemeService, AvaloniaThemeService>();
         services.AddSingleton<MainWindowHolder>();
         services.AddSingleton<IStoragePickerService, AvaloniaStoragePickerService>();
-        services.AddSingleton<IAccountBrowserLoginService, AccountBrowserLoginService>();
         services.AddSingleton<IRemoteNewsImageLoader, RemoteNewsImageLoader>();
         services.AddSingleton<MainWindowViewModel>();
         services.AddTransient<HomeViewModel>();

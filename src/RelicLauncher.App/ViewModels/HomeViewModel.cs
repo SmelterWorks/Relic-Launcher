@@ -19,13 +19,21 @@ public partial class HomeViewModel : PageViewModelBase
     private readonly IRuntimePlatform _platform;
     private readonly IInstalledVersionStore _installedStore;
     private readonly ILauncherSettingsStore _settingsStore;
+    private readonly IAccountAuthService _accountAuth;
     private readonly ILogger<HomeViewModel> _logger;
     private LauncherSettings _settings = new();
     private Action<LauncherSettings>? _onChanged;
+    private Action? _navigateToSettings;
     private bool _bindingVersions;
 
     [ObservableProperty]
     private bool _canPlay;
+
+    [ObservableProperty]
+    private bool _isSignedIn;
+
+    [ObservableProperty]
+    private bool _showSignInPrompt;
 
     [ObservableProperty]
     private bool _isLoadingNews;
@@ -75,6 +83,7 @@ public partial class HomeViewModel : PageViewModelBase
         IRuntimePlatform platform,
         IInstalledVersionStore installedStore,
         ILauncherSettingsStore settingsStore,
+        IAccountAuthService accountAuth,
         ILogger<HomeViewModel> logger)
     {
         _launchService = launchService;
@@ -84,19 +93,35 @@ public partial class HomeViewModel : PageViewModelBase
         _platform = platform;
         _installedStore = installedStore;
         _settingsStore = settingsStore;
+        _accountAuth = accountAuth;
         _logger = logger;
         StatusMessage = "Install a Vintage Story version on the Versions page to enable Play.";
     }
 
-    public void Bind(LauncherSettings settings, Action<LauncherSettings>? onChanged = null)
+    public void Bind(
+        LauncherSettings settings,
+        Action<LauncherSettings>? onChanged = null,
+        Action? navigateToSettings = null)
     {
         _settings = settings;
         _onChanged = onChanged;
+        _navigateToSettings = navigateToSettings;
         ApplyLogoSettings(settings);
         IsShowingArticle = false;
+        _ = RefreshAccountStatusAsync();
         _ = RefreshInstalledVersionsAsync();
         _ = RefreshStatusAsync();
         _ = LoadNewsAsync();
+    }
+
+    [RelayCommand]
+    private void GoToSignIn() => _navigateToSettings?.Invoke();
+
+    private async Task RefreshAccountStatusAsync()
+    {
+        var status = await _accountAuth.GetStatusAsync().ConfigureAwait(true);
+        IsSignedIn = status.IsSuccess && status.Value is { IsSignedIn: true };
+        ShowSignInPrompt = !IsSignedIn;
     }
 
     partial void OnSelectedInstalledVersionChanged(string? value)

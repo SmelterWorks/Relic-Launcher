@@ -41,7 +41,7 @@ public class VintageStoryNewsServiceResilienceTests
       Content = new StringContent(VintageStoryNewsHtml.SingleArticle, Encoding.UTF8, "text/html"),
     });
     var service = CreateService(temp, handler);
-    await service.FetchLatestAsync(5).ConfigureAwait(false);
+    await service.FetchLatestAsync(5);
 
     var offlineHandler = new StubHandler(_ => throw new HttpRequestException("offline"));
     var offlineService = CreateService(temp, offlineHandler);
@@ -59,6 +59,7 @@ public class VintageStoryNewsServiceResilienceTests
 
     VintageStoryNewsService.LooksLikeBlogPage(html).Should().BeTrue();
     VintageStoryNewsService.LooksLikeBlogPage("<html><body>short</body></html>").Should().BeFalse();
+    VintageStoryNewsService.LooksLikeBlogPage(new string('x', 250) + "blog.html").Should().BeTrue();
   }
 
   private static VintageStoryNewsService CreateService(TempAppPaths temp, HttpMessageHandler handler)

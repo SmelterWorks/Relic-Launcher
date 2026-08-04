@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Security.Cryptography;
@@ -311,6 +312,18 @@ public sealed class ModDbClient : IModDbClient
                 m.Tags.Any(t => t.Contains(text, StringComparison.OrdinalIgnoreCase)));
         }
 
+        if (!string.IsNullOrWhiteSpace(query.Side) &&
+            !string.Equals(query.Side, "any", StringComparison.OrdinalIgnoreCase))
+        {
+            var side = query.Side.Trim();
+            filtered = filtered.Where(m =>
+                string.Equals(m.Side, side, StringComparison.OrdinalIgnoreCase) ||
+                (string.Equals(side, "client", StringComparison.OrdinalIgnoreCase) &&
+                 string.Equals(m.Side, "both", StringComparison.OrdinalIgnoreCase)) ||
+                (string.Equals(side, "server", StringComparison.OrdinalIgnoreCase) &&
+                 string.Equals(m.Side, "both", StringComparison.OrdinalIgnoreCase)));
+        }
+
         var orderBy = query.OrderBy ?? "downloads";
         var desc = !string.Equals(query.OrderDirection, "asc", StringComparison.OrdinalIgnoreCase);
         filtered = orderBy.ToLowerInvariant() switch
@@ -319,10 +332,28 @@ public sealed class ModDbClient : IModDbClient
                 ? filtered.OrderByDescending(m => m.Name, StringComparer.OrdinalIgnoreCase)
                 : filtered.OrderBy(m => m.Name, StringComparer.OrdinalIgnoreCase),
             "follows" => desc ? filtered.OrderByDescending(m => m.Follows) : filtered.OrderBy(m => m.Follows),
+            "trending" or "trendingpoints" => desc
+                ? filtered.OrderByDescending(m => m.TrendingPoints)
+                : filtered.OrderBy(m => m.TrendingPoints),
+            "updated" or "lastreleased" => desc
+                ? filtered.OrderByDescending(m => ParseReleaseDate(m.LastReleased))
+                : filtered.OrderBy(m => ParseReleaseDate(m.LastReleased)),
             _ => desc ? filtered.OrderByDescending(m => m.Downloads) : filtered.OrderBy(m => m.Downloads),
         };
 
         return filtered.ToList();
+    }
+
+    private static DateTime ParseReleaseDate(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return DateTime.MinValue;
+        }
+
+        return DateTime.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var parsed)
+            ? parsed
+            : DateTime.MinValue;
     }
 
     public static IReadOnlyList<ModSummary> ParseSearch(string json)
@@ -448,6 +479,7 @@ public sealed class ModDbClient : IModDbClient
             Summary = mod.TryGetProperty("summary", out var summary) ? summary.GetString() : null,
             Downloads = mod.TryGetProperty("downloads", out var downloads) ? downloads.GetInt32() : 0,
             Follows = mod.TryGetProperty("follows", out var follows) ? follows.GetInt32() : 0,
+            TrendingPoints = mod.TryGetProperty("trendingpoints", out var trending) ? trending.GetInt32() : 0,
             UrlAlias = mod.TryGetProperty("urlalias", out var alias) ? alias.GetString() : null,
             Side = mod.TryGetProperty("side", out var side) ? side.GetString() : null,
             LogoUrl = mod.TryGetProperty("logo", out var logo) ? logo.GetString() : null,

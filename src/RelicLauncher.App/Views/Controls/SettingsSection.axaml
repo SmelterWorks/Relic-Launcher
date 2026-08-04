@@ -1,0 +1,53 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="using:RelicLauncher.App.Views.Controls"
+             xmlns:i="https://github.com/projektanker/icons.avalonia"
+             x:Class="RelicLauncher.App.Views.Controls.SettingsSection"
+             x:Name="SettingsSectionRoot"
+             x:DataType="controls:SettingsSection">
+  <Border Background="{DynamicResource Theme.Surface}"
+          BorderBrush="{DynamicResource Theme.Border}"
+          BorderThickness="1"
+          CornerRadius="{DynamicResource Theme.Radius}"
+          ClipToBounds="True">
+    <StackPanel>
+      <Button Classes="settings-section-header"
+              Command="{Binding #SettingsSectionRoot.ToggleExpandedCommand}"
+              HorizontalAlignment="Stretch"
+              HorizontalContentAlignment="Stretch">
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+          <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
+            <TextBlock Text="{Binding #SettingsSectionRoot.Title}"
+                       Classes="brand"
+                       FontSize="18"
+                       FontWeight="SemiBold" />
+            <TextBlock Text="{Binding #SettingsSectionRoot.Subtitle}"
+                       Classes="muted"
+                       FontSize="13"
+                       TextWrapping="Wrap"
+                       IsVisible="{Binding #SettingsSectionRoot.Subtitle, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+          </StackPanel>
+          <Panel Grid.Column="1"
+                 Width="28"
+                 Height="28"
+                 VerticalAlignment="Center">
+            <i:Icon Value="mdi-chevron-down"
+                    Width="22"
+                    Height="22"
+                    Classes="settings-section-chevron"
+                    IsVisible="{Binding #SettingsSectionRoot.IsExpanded}" />
+            <i:Icon Value="mdi-chevron-right"
+                    Width="22"
+                    Height="22"
+                    Classes="settings-section-chevron"
+                    IsVisible="{Binding #SettingsSectionRoot.IsExpanded, Converter={x:Static BoolConverters.Not}}" />
+          </Panel>
+        </Grid>
+      </Button>
+      <Border Padding="14,0,14,14"
+              IsVisible="{Binding #SettingsSectionRoot.IsExpanded}">
+        <ContentControl Content="{Binding #SettingsSectionRoot.SectionContent}" />
+      </Border>
+    </StackPanel>
+  </Border>
+</UserControl>

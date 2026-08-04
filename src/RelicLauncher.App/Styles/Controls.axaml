@@ -1,5 +1,6 @@
 <Styles xmlns="https://github.com/avaloniaui"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:i="https://github.com/projektanker/icons.avalonia">
 
   <Style Selector="Window">
     <Setter Property="Background" Value="{DynamicResource Theme.Bg0}" />
@@ -89,6 +90,39 @@
     <Setter Property="Background" Value="{DynamicResource Theme.Bg2}" />
     <Setter Property="Foreground" Value="{DynamicResource Theme.Text}" />
     <Setter Property="BorderBrush" Value="{DynamicResource Theme.Border}" />
+  </Style>
+
+  <Style Selector="Button.settings-section-header">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Padding" Value="14,12" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+  </Style>
+
+  <Style Selector="Button.settings-section-header:pointerover">
+    <Setter Property="Background" Value="{DynamicResource Theme.Bg2}" />
+  </Style>
+
+  <Style Selector="Button.settings-section-header:pressed">
+    <Setter Property="Background" Value="{DynamicResource Theme.Bg2}" />
+  </Style>
+
+  <Style Selector="i|Icon.settings-section-chevron">
+    <Setter Property="Foreground" Value="{DynamicResource Theme.TextMuted}" />
+  </Style>
+
+  <Style Selector="TextBlock.settings-field-label">
+    <Setter Property="Foreground" Value="{DynamicResource Theme.Text}" />
+    <Setter Property="FontSize" Value="14" />
+    <Setter Property="Margin" Value="0,0,0,4" />
+  </Style>
+
+  <Style Selector="TextBlock.settings-field-hint">
+    <Setter Property="Foreground" Value="{DynamicResource Theme.TextMuted}" />
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="TextWrapping" Value="Wrap" />
   </Style>
 
 </Styles>

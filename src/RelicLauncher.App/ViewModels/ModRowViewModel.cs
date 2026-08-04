@@ -1,6 +1,7 @@
 using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using RelicLauncher.App.Services;
 using RelicLauncher.Core.Abstractions;
 using RelicLauncher.Core.Models;
 
@@ -21,6 +22,7 @@ public sealed partial class ModRowViewModel : ViewModelBase
         SummaryText = summary.Summary ?? string.Empty;
         DownloadsLabel = $"{summary.Downloads:N0} downloads";
         LogoUrl = summary.LogoUrl;
+        Logo = ModIconAssets.Default;
     }
 
     public ModSummary Summary { get; }
@@ -41,8 +43,9 @@ public sealed partial class ModRowViewModel : ViewModelBase
 
     public async Task LoadLogoAsync()
     {
-        if (string.IsNullOrWhiteSpace(LogoUrl) || Logo is not null)
+        if (string.IsNullOrWhiteSpace(LogoUrl))
         {
+            Logo = ModIconAssets.Default;
             return;
         }
 
@@ -52,6 +55,7 @@ public sealed partial class ModRowViewModel : ViewModelBase
             var bytes = await _images.GetImageBytesAsync(LogoUrl).ConfigureAwait(true);
             if (bytes is null)
             {
+                Logo = ModIconAssets.Default;
                 return;
             }
 

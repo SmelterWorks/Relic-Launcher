@@ -1,36 +1,61 @@
 using System.Formats.Tar;
 using System.IO.Compression;
+using System.Net;
+using System.Net.Http.Headers;
 using System.Security.Cryptography;
 using Microsoft.Extensions.Logging;
 using RelicLauncher.Core.Abstractions;
 using RelicLauncher.Core.Models;
 using RelicLauncher.Core.Paths;
 using RelicLauncher.Core.Results;
-using RelicLauncher.Infrastructure.Auth;
 
 namespace RelicLauncher.Infrastructure.Versions;
 
-public sealed class GameVersionInstaller : IGameVersionInstaller
+public sealed class GameVersionInstaller : IGameVersionInstaller, IDisposable
 {
     private readonly IAppPathProvider _pathProvider;
     private readonly IInstalledVersionStore _installedStore;
     private readonly IRuntimePlatform _platform;
-    private readonly AccountAuthService _auth;
+    private readonly HttpClient _httpClient;
     private readonly ILogger<GameVersionInstaller> _logger;
 
     public GameVersionInstaller(
         IAppPathProvider pathProvider,
         IInstalledVersionStore installedStore,
         IRuntimePlatform platform,
-        IAccountAuthService auth,
         ILogger<GameVersionInstaller> logger)
+        : this(pathProvider, installedStore, platform, logger, CreateHttpClient())
+    {
+    }
+
+    internal GameVersionInstaller(
+        IAppPathProvider pathProvider,
+        IInstalledVersionStore installedStore,
+        IRuntimePlatform platform,
+        ILogger<GameVersionInstaller> logger,
+        HttpClient httpClient)
     {
         _pathProvider = pathProvider;
         _installedStore = installedStore;
         _platform = platform;
-        _auth = auth as AccountAuthService
-            ?? throw new InvalidOperationException("AccountAuthService implementation is required for downloads.");
+        _httpClient = httpClient;
         _logger = logger;
+    }
+
+    public void Dispose() => _httpClient.Dispose();
+
+    private static HttpClient CreateHttpClient()
+    {
+        var client = new HttpClient(new HttpClientHandler
+        {
+            AutomaticDecompression = DecompressionMethods.All,
+            AllowAutoRedirect = false,
+        })
+        {
+            Timeout = TimeSpan.FromMinutes(30),
+        };
+        client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("RelicLauncher", "0.1.0"));
+        return client;
     }
 
     public GameVersionPackage? SelectClientPackage(GameVersionInfo version, PlatformInfo platform)
@@ -57,12 +82,6 @@ public sealed class GameVersionInstaller : IGameVersionInstaller
         if (package is null)
         {
             return Result<InstalledGameVersion>.Failure($"No client package found for {platform.ClientPackageKey}.");
-        }
-
-        var auth = await _auth.EnsureAuthenticatedAsync(cancellationToken).ConfigureAwait(false);
-        if (!auth.IsSuccess)
-        {
-            return Result<InstalledGameVersion>.Failure(auth.Error ?? "Sign-in required.");
         }
 
         try
@@ -245,7 +264,7 @@ public sealed class GameVersionInstaller : IGameVersionInstaller
         var current = url;
         for (var hop = 0; hop < 8; hop++)
         {
-            var response = await _auth.HttpClient.GetAsync(current, HttpCompletionOption.ResponseHeadersRead, cancellationToken)
+            var response = await _httpClient.GetAsync(current, HttpCompletionOption.ResponseHeadersRead, cancellationToken)
                 .ConfigureAwait(false);
             if ((int)response.StatusCode is < 300 or >= 400)
             {

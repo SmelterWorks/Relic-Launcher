@@ -19,13 +19,13 @@ public partial class SettingsViewModel : PageViewModelBase
     private readonly IStoragePickerService _storagePicker;
     private readonly IRuntimePlatform _platform;
     private readonly IAccountAuthService _accountAuth;
-    private readonly IAccountBrowserLoginService _browserLogin;
     private readonly IDebugLogBuffer _debugLogBuffer;
     private readonly ILogger<SettingsViewModel> _logger;
     private Action<LauncherSettings>? _onChanged;
     private bool _isBinding;
     private CancellationTokenSource? _saveCts;
     private CancellationTokenSource? _savedIndicatorCts;
+    private string? _preLoginToken;
 
     [ObservableProperty]
     private string _installsRoot = string.Empty;
@@ -41,6 +41,12 @@ public partial class SettingsViewModel : PageViewModelBase
 
     [ObservableProperty]
     private string _accountPassword = string.Empty;
+
+    [ObservableProperty]
+    private string _accountTotpCode = string.Empty;
+
+    [ObservableProperty]
+    private bool _requiresTotp;
 
     [ObservableProperty]
     private string _accountStatus = "Not signed in";
@@ -109,7 +115,6 @@ public partial class SettingsViewModel : PageViewModelBase
         IStoragePickerService storagePicker,
         IRuntimePlatform platform,
         IAccountAuthService accountAuth,
-        IAccountBrowserLoginService browserLogin,
         IFileExplorerService fileExplorer,
         IDebugLogBuffer debugLogBuffer,
         ILogger<SettingsViewModel> logger)
@@ -120,7 +125,6 @@ public partial class SettingsViewModel : PageViewModelBase
         _storagePicker = storagePicker;
         _platform = platform;
         _accountAuth = accountAuth;
-        _browserLogin = browserLogin;
         _debugLogBuffer = debugLogBuffer;
         _logger = logger;
         Themes = _themeService.AvailableThemes;
@@ -150,6 +154,10 @@ public partial class SettingsViewModel : PageViewModelBase
     public bool IsSaveStatusVisible => !string.IsNullOrWhiteSpace(SaveStatusMessage);
 
     public bool HasAccountError => !string.IsNullOrWhiteSpace(AccountError);
+
+    public string SignInButtonText => RequiresTotp ? "Confirm code" : "Sign in";
+
+    partial void OnRequiresTotpChanged(bool value) => OnPropertyChanged(nameof(SignInButtonText));
 
     partial void OnSelectedLogoModeOptionChanged(LogoModeOption? value)
     {
@@ -269,10 +277,17 @@ public partial class SettingsViewModel : PageViewModelBase
         IsSigningIn = true;
         StatusMessage = string.Empty;
         AccountError = string.Empty;
-        AccountStatus = "Opening account browser...";
+        AccountStatus = RequiresTotp ? "Checking access code..." : "Signing in...";
         try
         {
-            var result = await _browserLogin.SignInAsync(AccountEmail).ConfigureAwait(true);
+            var result = await _accountAuth.LoginAsync(new AccountCredentials
+            {
+                Email = AccountEmail,
+                Password = AccountPassword,
+                TotpCode = AccountTotpCode,
+                PreLoginToken = _preLoginToken,
+            }).ConfigureAwait(true);
+
             if (!result.IsSuccess)
             {
                 var error = result.Error ?? "Sign-in failed.";
@@ -280,17 +295,35 @@ public partial class SettingsViewModel : PageViewModelBase
                 StatusMessage = error;
                 IsSignedIn = false;
                 AccountStatus = "Not signed in";
-                _logger.LogWarning("Settings browser sign-in failed: {Error}", error);
+                _logger.LogWarning("Settings game sign-in failed: {Error}", error);
                 return;
             }
 
+            if (result.Value!.RequiresTotp)
+            {
+                RequiresTotp = true;
+                _preLoginToken = result.Value.PreLoginToken;
+                IsSignedIn = false;
+                AccountStatus = "Enter your 6-digit access code.";
+                AccountError = string.IsNullOrWhiteSpace(AccountTotpCode)
+                    ? string.Empty
+                    : "Wrong access code. Try again.";
+                StatusMessage = AccountStatus;
+                return;
+            }
+
+            RequiresTotp = false;
+            _preLoginToken = null;
+            AccountTotpCode = string.Empty;
             IsSignedIn = true;
-            AccountStatus = $"Signed in as {result.Value!.Email}";
             AccountEmail = result.Value.Email ?? AccountEmail;
             AccountPassword = string.Empty;
             AccountError = string.Empty;
-            StatusMessage = "Signed in successfully.";
-            _logger.LogInformation("Settings browser sign-in succeeded for {Email}", AccountEmail);
+            AccountStatus = string.IsNullOrWhiteSpace(result.Value.PlayerName)
+                ? $"Signed in as {result.Value.Email}"
+                : $"Signed in as {result.Value.PlayerName}";
+            StatusMessage = "Signed in. Relic will pass this session to the game on Play.";
+            _logger.LogInformation("Settings game sign-in succeeded for {Email}", AccountEmail);
         }
         finally
         {
@@ -341,8 +374,11 @@ public partial class SettingsViewModel : PageViewModelBase
     {
         await _accountAuth.LogoutAsync().ConfigureAwait(true);
         IsSignedIn = false;
-        AccountStatus = "Not signed in";
+        RequiresTotp = false;
+        _preLoginToken = null;
+        AccountTotpCode = string.Empty;
         AccountPassword = string.Empty;
+        AccountStatus = "Not signed in";
         AccountError = string.Empty;
         StatusMessage = "Signed out.";
     }
@@ -418,7 +454,9 @@ public partial class SettingsViewModel : PageViewModelBase
 
         IsSignedIn = true;
         AccountEmail = status.Value.Email ?? AccountEmail;
-        AccountStatus = $"Signed in as {status.Value.Email}";
+        AccountStatus = string.IsNullOrWhiteSpace(status.Value.PlayerName)
+            ? $"Signed in as {status.Value.Email}"
+            : $"Signed in as {status.Value.PlayerName}";
     }
 
     private void ScheduleAutoSave()

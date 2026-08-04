@@ -31,7 +31,7 @@ public class ModDbClientResilienceTests
   public async Task SearchAsync_ServesExpiredDiskCache_WhenNetworkFails()
   {
     using var temp = new TempAppPaths();
-    await WriteExpiredCatalogCacheAsync(temp).ConfigureAwait(false);
+    await WriteExpiredCatalogCacheAsync(temp);
 
     var handler = new StubHandler(_ => throw new HttpRequestException("offline"));
     var client = CreateClient(temp, handler);
@@ -61,7 +61,7 @@ public class ModDbClientResilienceTests
   public async Task GetModAsync_ServesStaleDetails_WhenNetworkFails()
   {
     using var temp = new TempAppPaths();
-    await WriteDetailsCacheAsync(temp, "carrycapacity", expired: true).ConfigureAwait(false);
+    await WriteDetailsCacheAsync(temp, "carrycapacity", expired: true);
 
     var handler = new StubHandler(_ => throw new HttpRequestException("offline"));
     var client = CreateClient(temp, handler);

@@ -616,9 +616,8 @@ public sealed partial class VintageStoryNewsService : IVintageStoryNewsService
     }
 
     internal static bool LooksLikeBlogPage(string html)
-        => html.Length > 200 &&
-           (html.Contains("ipsType_pageTitle", StringComparison.OrdinalIgnoreCase) ||
-            html.Contains("blog.html", StringComparison.OrdinalIgnoreCase));
+        => html.Contains("ipsType_pageTitle", StringComparison.OrdinalIgnoreCase) ||
+           (html.Length > 200 && html.Contains("blog.html", StringComparison.OrdinalIgnoreCase));
 
     private static string? TryExtractPublishedLabel(string html, int titleIndex)
     {

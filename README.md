@@ -2,7 +2,7 @@
 
 **Unofficial** desktop launcher for [Vintage Story](https://www.vintagestory.at/). Relic Launcher and SmelterWorks is not affiliated with Anego Studios.
 
-Built with C# / .NET 10 and Avalonia 12. Targets the same desktop platforms Vintage Story supports: Windows 10+ x64, Linux x64, and macOS 13+ (x64 and arm64).
+Built with C# / .NET 10 and Avalonia 12.1. Targets the same desktop platforms Vintage Story supports: Windows 10+ x64, Linux x64 (X11 and native Wayland), and macOS 13+ (x64 and arm64).
 
 ## Features
 

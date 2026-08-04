@@ -8,12 +8,15 @@ namespace RelicLauncher.Themes.Tests;
 public class BuiltInThemeCatalogTests
 {
     [Fact]
-    public void Catalog_ContainsRelicDefaultAndHighContrast()
+    public void Catalog_ContainsBuiltInThemes()
     {
         var catalog = new BuiltInThemeCatalog();
-        catalog.GetThemes().Should().HaveCount(2);
+        catalog.GetThemes().Should().HaveCount(5);
         catalog.FindById(BuiltInThemeCatalog.RelicDefaultId).Should().NotBeNull();
         catalog.FindById(BuiltInThemeCatalog.HighContrastId).Should().NotBeNull();
+        catalog.FindById(BuiltInThemeCatalog.TemporalRiftId).Should().NotBeNull();
+        catalog.FindById(BuiltInThemeCatalog.MossHearthId).Should().NotBeNull();
+        catalog.FindById(BuiltInThemeCatalog.CopperDungeonId).Should().NotBeNull();
     }
 
     [Theory]
@@ -52,5 +55,8 @@ public class BuiltInThemeCatalogTests
         themes.Should().OnlyContain(t => t.IsBuiltIn);
         themes.Select(t => t.ResourceUri).Should().Contain(BuiltInThemeCatalog.RelicDefaultUri);
         themes.Select(t => t.ResourceUri).Should().Contain(BuiltInThemeCatalog.HighContrastUri);
+        themes.Select(t => t.ResourceUri).Should().Contain(BuiltInThemeCatalog.TemporalRiftUri);
+        themes.Select(t => t.ResourceUri).Should().Contain(BuiltInThemeCatalog.MossHearthUri);
+        themes.Select(t => t.ResourceUri).Should().Contain(BuiltInThemeCatalog.CopperDungeonUri);
     }
 }
