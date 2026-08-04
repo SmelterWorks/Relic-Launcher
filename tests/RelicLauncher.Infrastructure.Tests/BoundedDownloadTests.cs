@@ -26,29 +26,23 @@ public class BoundedDownloadTests
             return response;
         });
 
-        var service = new ModLibraryService(NullLogger<ModLibraryService>.Instance, new HttpClient(handler));
-        var dataRoot = Path.Combine(Path.GetTempPath(), "RelicLauncherTests", Guid.NewGuid().ToString("N"));
+        using var temp = new TempAppPaths();
+        var service = new ModLibraryService(
+            new FixedPathProvider(temp.Paths),
+            NullLogger<ModLibraryService>.Instance,
+            new HttpClient(handler));
+        var dataRoot = Path.Combine(temp.Paths.RootDirectory, "data");
         Directory.CreateDirectory(dataRoot);
-        try
+        var result = await service.InstallAsync(dataRoot, new ModReleaseInfo
         {
-            var result = await service.InstallAsync(dataRoot, new ModReleaseInfo
-            {
-                FileId = 1,
-                ModVersion = "1.0.0",
-                FileName = "big.zip",
-                DownloadUrl = "https://example.test/big.zip",
-            });
+            FileId = 1,
+            ModVersion = "1.0.0",
+            FileName = "big.zip",
+            DownloadUrl = "https://example.test/big.zip",
+        });
 
-            result.IsSuccess.Should().BeFalse();
-            result.Error.Should().Contain("maximum");
-        }
-        finally
-        {
-            if (Directory.Exists(dataRoot))
-            {
-                Directory.Delete(dataRoot, recursive: true);
-            }
-        }
+        result.IsSuccess.Should().BeFalse();
+        result.Error.Should().Contain("maximum");
     }
 
     [Fact]

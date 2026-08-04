@@ -68,6 +68,9 @@ public partial class SettingsViewModel : PageViewModelBase
     private bool _confirmBeforeExit;
 
     [ObservableProperty]
+    private bool _warnOnBlockedMods = true;
+
+    [ObservableProperty]
     private HomeBackgroundLogoMode _homeBackgroundLogoMode = HomeBackgroundLogoMode.Square;
 
     [ObservableProperty]
@@ -184,6 +187,8 @@ public partial class SettingsViewModel : PageViewModelBase
 
     partial void OnConfirmBeforeExitChanged(bool value) => ScheduleAutoSave();
 
+    partial void OnWarnOnBlockedModsChanged(bool value) => ScheduleAutoSave();
+
     partial void OnHomeBackgroundCustomLogoPathChanged(string value) => ScheduleAutoSave();
 
     partial void OnHomeBackgroundLogoOpacityChanged(double value) => ScheduleAutoSave();
@@ -215,6 +220,7 @@ public partial class SettingsViewModel : PageViewModelBase
         DataPath = settings.DataPath ?? platform.DefaultDataPath;
         SelectedVersion = settings.SelectedVersion ?? string.Empty;
         ConfirmBeforeExit = settings.ConfirmBeforeExit;
+        WarnOnBlockedMods = settings.WarnOnBlockedMods;
         HomeBackgroundLogoMode = settings.HomeBackgroundLogoMode;
         SelectedLogoModeOption = LogoModeOptions.FirstOrDefault(o => o.Mode == settings.HomeBackgroundLogoMode)
             ?? LogoModeOptions.FirstOrDefault(o => o.Mode == HomeBackgroundLogoMode.Square);
@@ -353,6 +359,7 @@ public partial class SettingsViewModel : PageViewModelBase
         DataPath = platform.DefaultDataPath;
         SelectedVersion = string.Empty;
         ConfirmBeforeExit = false;
+        WarnOnBlockedMods = true;
         HomeBackgroundLogoMode = HomeBackgroundLogoMode.Square;
         SelectedLogoModeOption = LogoModeOptions.FirstOrDefault(o => o.Mode == HomeBackgroundLogoMode.Square);
         HomeBackgroundCustomLogoPath = string.Empty;
@@ -543,6 +550,7 @@ public partial class SettingsViewModel : PageViewModelBase
                 : Path.Combine(InstallsRoot.Trim(), "versions", SelectedVersion.Trim()),
             SelectedThemeId = SelectedTheme?.Id ?? LauncherSettings.DefaultThemeId,
             ConfirmBeforeExit = ConfirmBeforeExit,
+            WarnOnBlockedMods = WarnOnBlockedMods,
             HomeBackgroundLogoMode = SelectedLogoModeOption?.Mode ?? HomeBackgroundLogoMode.Square,
             HomeBackgroundCustomLogoPath = string.IsNullOrWhiteSpace(HomeBackgroundCustomLogoPath)
                 ? null

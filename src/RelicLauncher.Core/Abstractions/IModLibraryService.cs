@@ -16,4 +16,8 @@ public interface IModLibraryService
     Task<Result> UninstallAsync(LocalModInfo mod, CancellationToken cancellationToken = default);
 
     Task<Result<LocalModInfo>> SetEnabledAsync(LocalModInfo mod, bool enabled, CancellationToken cancellationToken = default);
+
+    Task<Result<int>> CleanDuplicateModsAsync(string dataPath, CancellationToken cancellationToken = default);
+
+    Task<Result<LocalModInfo>> ImportLocalAsync(string dataPath, string sourcePath, CancellationToken cancellationToken = default);
 }

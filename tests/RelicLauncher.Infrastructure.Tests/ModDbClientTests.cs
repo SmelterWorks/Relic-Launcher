@@ -69,6 +69,7 @@ public class ModDbClientTests
               "statuscode": 200,
               "mod": {
                 "modid": 6,
+                "urlalias": "carrycapacity",
                 "name": "Carry Capacity",
                 "logofile": "https://cdn.example/logo.png",
                 "text": "<p>Hello</p><p>world</p>",
@@ -95,7 +96,8 @@ public class ModDbClientTests
         var details = ModDbClient.ParseDetails(json);
 
         details.Should().NotBeNull();
-        details!.LogoUrl.Should().Be("https://cdn.example/logo.png");
+        details!.UrlAlias.Should().Be("carrycapacity");
+        details.LogoUrl.Should().Be("https://cdn.example/logo.png");
         details.DescriptionText.Should().Contain("Hello");
         details.DescriptionText.Should().Contain("world");
         details.DescriptionText.Should().NotContain("<");
@@ -105,5 +107,26 @@ public class ModDbClientTests
         details.Releases.Should().ContainSingle();
         details.Releases[0].FileId.Should().Be(42);
         details.Releases[0].DownloadUrl.Should().Contain("fileid=42");
+    }
+
+    [Fact]
+    public void ParseTags_ReadsTagCatalog()
+    {
+        var json = """
+            {
+              "statuscode": "200",
+              "tags": [
+                { "tagid": "467", "name": "Absolute Cinema", "color": "#92C96AFF" },
+                { "tagid": 285, "name": "Accessibility", "color": "#92C96AFF" }
+              ]
+            }
+            """;
+
+        var tags = ModDbClient.ParseTags(json);
+
+        tags.Should().HaveCount(2);
+        tags.Select(t => t.Name).Should().Contain(["Absolute Cinema", "Accessibility"]);
+        tags.Should().Contain(t => t.TagId == "467");
+        tags.Should().Contain(t => t.TagId == "285");
     }
 }

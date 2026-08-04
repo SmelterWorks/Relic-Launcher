@@ -12,6 +12,7 @@ public static class VintageStoryEndpoints
     public const string NewsBlogUrl = "https://www.vintagestory.at/blog.html/";
     public const string GameLoginUrl = "https://auth3.vintagestory.at/v2/gamelogin";
     public const string ClientValidateUrl = "https://auth3.vintagestory.at/clientvalidate";
+    public const string ModBlocklistUrl = "https://cdn.vintagestory.at/api/blockedmods.json";
 
     public static string BuildModDownloadUrl(int fileId)
         => $"{ModDbDownloadBaseUrl}?fileid={fileId}";

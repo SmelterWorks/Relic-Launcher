@@ -42,6 +42,8 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IGameVersionInstaller, GameVersionInstaller>();
         services.AddSingleton<IGameLaunchService, GameLaunchService>();
         services.AddSingleton<IModDbClient, ModDbClient>();
+        services.AddSingleton<IModReleaseResolver, ModReleaseResolver>();
+        services.AddSingleton<IModBlocklistService, ModBlocklistService>();
         services.AddSingleton<IModLibraryService, ModLibraryService>();
         services.AddSingleton<ITransferTracker, TransferTracker>();
         services.AddSingleton<IRemoteImageCache, DiskRemoteImageCache>();

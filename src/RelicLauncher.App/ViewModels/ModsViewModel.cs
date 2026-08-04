@@ -8,6 +8,7 @@ using RelicLauncher.App.Services;
 using RelicLauncher.Core.Abstractions;
 using RelicLauncher.Core.Constants;
 using RelicLauncher.Core.Models;
+using RelicLauncher.Core.Mods;
 
 namespace RelicLauncher.App.ViewModels;
 
@@ -16,16 +17,21 @@ public partial class ModsViewModel : PageViewModelBase
     private const int DefaultPageSize = RelicDefaults.ModBrowsePageSize;
     private readonly IModDbClient _modDb;
     private readonly IModLibraryService _modLibrary;
+    private readonly IModReleaseResolver _releaseResolver;
+    private readonly IModBlocklistService _blocklist;
     private readonly IRuntimePlatform _platform;
     private readonly ITransferTracker _transfers;
     private readonly IRemoteImageCache _images;
     private readonly IUrlLauncher _urlLauncher;
     private readonly IConfirmDialogService _confirmDialog;
+    private readonly IStoragePickerService _storagePicker;
     private readonly ILogger<ModsViewModel> _logger;
     private LauncherSettings _settings = new();
     private CancellationTokenSource? _searchCts;
     private int _activeInstalls;
     private bool _ready;
+    private readonly HashSet<string> _selectedTagIds = new(StringComparer.OrdinalIgnoreCase);
+    private IReadOnlyList<ModTagInfo> _allTags = [];
 
     [ObservableProperty]
     private string _searchText = string.Empty;
@@ -76,6 +82,12 @@ public partial class ModsViewModel : PageViewModelBase
     private bool _hasInstalledMods;
 
     [ObservableProperty]
+    private bool _hasDuplicateMods;
+
+    [ObservableProperty]
+    private string _duplicateModsMessage = string.Empty;
+
+    [ObservableProperty]
     private string _emptyBrowseMessage = "Search ModDB or browse popular mods.";
 
     [ObservableProperty]
@@ -105,10 +117,21 @@ public partial class ModsViewModel : PageViewModelBase
     [ObservableProperty]
     private bool _isViewerLoading;
 
+    [ObservableProperty]
+    private bool _hasSelectedTags;
+
+    [ObservableProperty]
+    private string _selectedTagsLabel = string.Empty;
+
+    [ObservableProperty]
+    private string _blocklistWarning = string.Empty;
+
     public ObservableCollection<ModRowViewModel> BrowseResults { get; } = [];
     public ObservableCollection<LocalModInfo> InstalledMods { get; } = [];
     public ObservableCollection<ModImageItemViewModel> ScreenshotItems { get; } = [];
     public ObservableCollection<TransferJobRowViewModel> ActiveTransfers { get; } = [];
+    public ObservableCollection<ModTagChipViewModel> TagChips { get; } = [];
+    public ObservableCollection<string> DetailTagNames { get; } = [];
     public IReadOnlyList<ModSortOption> SortOptions { get; } =
     [
         new ModSortOption { Id = "downloads", Label = "Most downloads" },
@@ -131,20 +154,26 @@ public partial class ModsViewModel : PageViewModelBase
     public ModsViewModel(
         IModDbClient modDb,
         IModLibraryService modLibrary,
+        IModReleaseResolver releaseResolver,
+        IModBlocklistService blocklist,
         IRuntimePlatform platform,
         ITransferTracker transfers,
         IRemoteImageCache images,
         IUrlLauncher urlLauncher,
         IConfirmDialogService confirmDialog,
+        IStoragePickerService storagePicker,
         ILogger<ModsViewModel> logger)
     {
         _modDb = modDb;
         _modLibrary = modLibrary;
+        _releaseResolver = releaseResolver;
+        _blocklist = blocklist;
         _platform = platform;
         _transfers = transfers;
         _images = images;
         _urlLauncher = urlLauncher;
         _confirmDialog = confirmDialog;
+        _storagePicker = storagePicker;
         _logger = logger;
         SelectedSortOption = SortOptions[0];
         SelectedSideFilter = SideFilterOptions[0];
@@ -159,6 +188,7 @@ public partial class ModsViewModel : PageViewModelBase
         if (refresh)
         {
             _ = RefreshInstalledAsync();
+            _ = LoadTagsAsync();
             _ = SearchAsync();
             _ = _modDb.PrefetchCatalogAsync();
         }
@@ -250,6 +280,8 @@ public partial class ModsViewModel : PageViewModelBase
                 OrderBy = orderBy,
                 OrderDirection = orderDirection,
                 Side = SelectedSideFilter?.Id,
+                TagIds = _selectedTagIds.ToList(),
+                TagNames = TagChips.Where(t => t.IsSelected).Select(t => t.Name).ToList(),
                 Page = Page,
                 PageSize = DefaultPageSize,
                 PreferCache = true,
@@ -337,6 +369,8 @@ public partial class ModsViewModel : PageViewModelBase
         {
             StatusMessage = result.Error ?? "Could not list installed mods.";
             HasInstalledMods = false;
+            HasDuplicateMods = false;
+            DuplicateModsMessage = string.Empty;
             return;
         }
 
@@ -347,6 +381,20 @@ public partial class ModsViewModel : PageViewModelBase
 
         HasInstalledMods = InstalledMods.Count > 0;
         EmptyInstalledMessage = HasInstalledMods ? string.Empty : "No mods installed in the data folder yet.";
+        UpdateDuplicateState();
+    }
+
+    private void UpdateDuplicateState()
+    {
+        var duplicateGroups = InstalledMods
+            .Where(m => !string.IsNullOrWhiteSpace(m.ModId))
+            .GroupBy(m => m.ModId!, StringComparer.OrdinalIgnoreCase)
+            .Where(g => g.Count() > 1)
+            .ToList();
+        HasDuplicateMods = duplicateGroups.Count > 0;
+        DuplicateModsMessage = HasDuplicateMods
+            ? $"{duplicateGroups.Count} mod id(s) have multiple installs. Clean duplicates to keep one zip per mod."
+            : string.Empty;
     }
 
     [RelayCommand]
@@ -378,9 +426,70 @@ public partial class ModsViewModel : PageViewModelBase
         }
 
         SelectedDetails = result.Value!;
-        SelectedRelease = SelectedDetails.Releases.FirstOrDefault();
+        SelectedRelease = await SelectDefaultReleaseAsync(SelectedDetails).ConfigureAwait(true);
         DetailStatus = string.Empty;
+        RebuildDetailTags(SelectedDetails);
+        await RefreshBlocklistWarningAsync(SelectedDetails, SelectedRelease).ConfigureAwait(true);
         _ = LoadDetailMediaAsync(SelectedDetails);
+    }
+
+    private void RebuildDetailTags(ModDetails details)
+    {
+        DetailTagNames.Clear();
+        foreach (var tag in details.Tags)
+        {
+            DetailTagNames.Add(tag);
+        }
+    }
+
+    private async Task RefreshBlocklistWarningAsync(ModDetails? details, ModReleaseInfo? release)
+    {
+        BlocklistWarning = string.Empty;
+        if (!_settings.WarnOnBlockedMods || details is null)
+        {
+            return;
+        }
+
+        var modId = ResolveModIdentifier(details);
+        var match = await _blocklist.FindMatchAsync(modId, release?.ModVersion).ConfigureAwait(true);
+        if (!match.IsSuccess || match.Value is null)
+        {
+            return;
+        }
+
+        BlocklistWarning = string.IsNullOrWhiteSpace(match.Value.Reason)
+            ? $"Blocked by Vintage Story list: {match.Value.Id}"
+            : $"Blocked by Vintage Story list: {match.Value.Id}. {match.Value.Reason}";
+    }
+
+    private async Task<ModReleaseInfo?> SelectDefaultReleaseAsync(ModDetails details)
+    {
+        var gameVersion = _settings.SelectedVersion;
+        if (string.IsNullOrWhiteSpace(gameVersion))
+        {
+            return details.Releases.FirstOrDefault();
+        }
+
+        var identifier = ResolveModIdentifier(details);
+        var resolved = await _releaseResolver.ResolveAsync(identifier, gameVersion).ConfigureAwait(true);
+        if (resolved.IsSuccess)
+        {
+            var match = details.Releases.FirstOrDefault(r => r.FileId == resolved.Value!.FileId);
+            return match ?? resolved.Value;
+        }
+
+        return ModReleaseSelector.SelectBest(details.Releases, gameVersion)
+               ?? details.Releases.FirstOrDefault();
+    }
+
+    private static string ResolveModIdentifier(ModDetails details)
+    {
+        if (!string.IsNullOrWhiteSpace(details.UrlAlias))
+        {
+            return details.UrlAlias;
+        }
+
+        return details.ModId.ToString(System.Globalization.CultureInfo.InvariantCulture);
     }
 
     private async Task LoadDetailMediaAsync(ModDetails details)
@@ -497,22 +606,62 @@ public partial class ModsViewModel : PageViewModelBase
             return;
         }
 
-        var jobId = $"mod-{SelectedDetails.ModId}-{release.FileId}-{Guid.NewGuid():N}";
-        var session = _transfers.Begin(jobId, $"Mod {SelectedDetails.Name}", TransferJobKind.Mod);
+        if (!await ConfirmBlockedInstallAsync(SelectedDetails, release).ConfigureAwait(true))
+        {
+            return;
+        }
+
+        await RunModInstallAsync(SelectedDetails, release).ConfigureAwait(true);
+    }
+
+    private async Task<bool> ConfirmBlockedInstallAsync(ModDetails details, ModReleaseInfo release)
+    {
+        if (!_settings.WarnOnBlockedMods)
+        {
+            return true;
+        }
+
+        var modId = ResolveModIdentifier(details);
+        var match = await _blocklist.FindMatchAsync(modId, release.ModVersion).ConfigureAwait(true);
+        if (!match.IsSuccess || match.Value is null)
+        {
+            return true;
+        }
+
+        var reason = string.IsNullOrWhiteSpace(match.Value.Reason)
+            ? match.Value.Id
+            : $"{match.Value.Id}: {match.Value.Reason}";
+        var proceed = await _confirmDialog.ConfirmAsync(
+            "Blocked mod warning",
+            $"This release is on the official Vintage Story blocked-mods list ({reason}). Install anyway?",
+            "Install anyway",
+            "Cancel").ConfigureAwait(true);
+        if (!proceed)
+        {
+            DetailStatus = "Install canceled.";
+        }
+
+        return proceed;
+    }
+
+    private async Task RunModInstallAsync(ModDetails details, ModReleaseInfo release)
+    {
+        var jobId = $"mod-{details.ModId}-{release.FileId}-{Guid.NewGuid():N}";
+        var session = _transfers.Begin(jobId, $"Mod {details.Name}", TransferJobKind.Mod);
         try
         {
             await session.StartAsync().ConfigureAwait(true);
             IsInstalling = true;
             _activeInstalls++;
             InstallProgress = 0;
-            InstallProgressLabel = $"Downloading {SelectedDetails.Name}...";
+            InstallProgressLabel = $"Downloading {details.Name}...";
             DetailStatus = InstallProgressLabel;
 
             var progress = new Progress<double>(value =>
             {
                 InstallProgress = value;
                 session.Report(value);
-                InstallProgressLabel = $"Downloading {SelectedDetails.Name}... {value:P0}";
+                InstallProgressLabel = $"Downloading {details.Name}... {value:P0}";
                 DetailStatus = InstallProgressLabel;
             });
 
@@ -588,6 +737,192 @@ public partial class ModsViewModel : PageViewModelBase
         }
 
         await RefreshInstalledAsync().ConfigureAwait(true);
+    }
+
+    [RelayCommand]
+    private async Task CleanDuplicatesAsync()
+    {
+        var confirmed = await _confirmDialog.ConfirmAsync(
+            "Clean duplicate mods",
+            "Keep the newest enabled release for each mod id and delete the rest from your Mods folder?",
+            "Clean",
+            "Cancel").ConfigureAwait(true);
+        if (!confirmed)
+        {
+            return;
+        }
+
+        var result = await _modLibrary.CleanDuplicateModsAsync(ResolveDataPath()).ConfigureAwait(true);
+        if (!result.IsSuccess)
+        {
+            StatusMessage = result.Error ?? "Could not clean duplicate mods.";
+            return;
+        }
+
+        StatusMessage = result.Value == 0
+            ? "No duplicate mods found."
+            : $"Removed {result.Value} duplicate mod file(s).";
+        await RefreshInstalledAsync().ConfigureAwait(true);
+    }
+
+    [RelayCommand]
+    private async Task ImportLocalFolderAsync()
+    {
+        var path = await _storagePicker.PickFolderAsync("Select mod folder (contains modinfo.json)").ConfigureAwait(true);
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return;
+        }
+
+        await ImportLocalPathAsync(path).ConfigureAwait(true);
+    }
+
+    [RelayCommand]
+    private async Task ImportLocalZipAsync()
+    {
+        var path = await _storagePicker.PickZipFileAsync("Select mod zip").ConfigureAwait(true);
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return;
+        }
+
+        await ImportLocalPathAsync(path).ConfigureAwait(true);
+    }
+
+    private async Task ImportLocalPathAsync(string path)
+    {
+        var result = await _modLibrary.ImportLocalAsync(ResolveDataPath(), path).ConfigureAwait(true);
+        if (!result.IsSuccess)
+        {
+            StatusMessage = result.Error ?? "Could not import local mod.";
+            return;
+        }
+
+        StatusMessage = $"Imported {result.Value!.FileName}";
+        await RefreshInstalledAsync().ConfigureAwait(true);
+    }
+
+    private async Task LoadTagsAsync()
+    {
+        var result = await _modDb.GetTagsAsync().ConfigureAwait(true);
+        if (!result.IsSuccess)
+        {
+            _logger.LogDebug("ModDB tags unavailable: {Error}", result.Error);
+            return;
+        }
+
+        _allTags = result.Value!;
+        RebuildTagChips();
+    }
+
+    private void RebuildTagChips()
+    {
+        TagChips.Clear();
+        foreach (var tag in _allTags.Take(80))
+        {
+            TagChips.Add(new ModTagChipViewModel(
+                tag,
+                _selectedTagIds.Contains(tag.TagId),
+                OnTagChipToggled));
+        }
+
+        UpdateSelectedTagsLabel();
+    }
+
+    private void OnTagChipToggled(ModTagChipViewModel chip)
+    {
+        if (_selectedTagIds.Contains(chip.TagId))
+        {
+            _selectedTagIds.Remove(chip.TagId);
+            chip.IsSelected = false;
+        }
+        else
+        {
+            _selectedTagIds.Add(chip.TagId);
+            chip.IsSelected = true;
+        }
+
+        UpdateSelectedTagsLabel();
+        if (_ready)
+        {
+            _ = SearchAsync();
+        }
+    }
+
+    [RelayCommand]
+    private void ToggleDetailTag(string? tagName)
+    {
+        if (string.IsNullOrWhiteSpace(tagName))
+        {
+            return;
+        }
+
+        var match = _allTags.FirstOrDefault(t =>
+            string.Equals(t.Name, tagName, StringComparison.OrdinalIgnoreCase));
+        if (match is null)
+        {
+            return;
+        }
+
+        var chip = TagChips.FirstOrDefault(c =>
+            string.Equals(c.TagId, match.TagId, StringComparison.OrdinalIgnoreCase));
+        if (chip is not null)
+        {
+            OnTagChipToggled(chip);
+            return;
+        }
+
+        if (_selectedTagIds.Contains(match.TagId))
+        {
+            _selectedTagIds.Remove(match.TagId);
+        }
+        else
+        {
+            _selectedTagIds.Add(match.TagId);
+        }
+
+        RebuildTagChips();
+        if (_ready)
+        {
+            _ = SearchAsync();
+        }
+    }
+
+    [RelayCommand]
+    private void ClearSelectedTags()
+    {
+        if (_selectedTagIds.Count == 0)
+        {
+            return;
+        }
+
+        _selectedTagIds.Clear();
+        foreach (var chip in TagChips)
+        {
+            chip.IsSelected = false;
+        }
+
+        UpdateSelectedTagsLabel();
+        if (_ready)
+        {
+            _ = SearchAsync();
+        }
+    }
+
+    private void UpdateSelectedTagsLabel()
+    {
+        HasSelectedTags = _selectedTagIds.Count > 0;
+        SelectedTagsLabel = HasSelectedTags
+            ? $"{_selectedTagIds.Count} tag filter(s)"
+            : string.Empty;
+    }
+
+    partial void OnSelectedReleaseChanged(ModReleaseInfo? value)
+    {
+        if (_ready && SelectedDetails is not null)
+        {
+            _ = RefreshBlocklistWarningAsync(SelectedDetails, value);
+        }
     }
 
     [RelayCommand]

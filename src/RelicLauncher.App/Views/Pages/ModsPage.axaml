@@ -51,6 +51,49 @@
                   VerticalAlignment="Center" />
       </StackPanel>
 
+      <StackPanel Spacing="4">
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <TextBlock Text="Tags"
+                     Classes="muted"
+                     VerticalAlignment="Center" />
+          <TextBlock Text="{Binding SelectedTagsLabel}"
+                     Classes="muted"
+                     VerticalAlignment="Center"
+                     IsVisible="{Binding HasSelectedTags}" />
+          <Button Classes="ghost"
+                  Content="Clear tags"
+                  Command="{Binding ClearSelectedTagsCommand}"
+                  IsVisible="{Binding HasSelectedTags}"
+                  VerticalAlignment="Center" />
+        </StackPanel>
+        <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" MaxHeight="72">
+          <ItemsControl ItemsSource="{Binding TagChips}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <WrapPanel />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:ModTagChipViewModel">
+                <Button Classes="ghost"
+                        Margin="0,0,6,6"
+                        Padding="8,2"
+                        Command="{Binding ToggleCommand}"
+                        Background="{DynamicResource Theme.Bg1}">
+                  <Panel>
+                    <TextBlock Text="{Binding Name}"
+                               FontWeight="SemiBold"
+                               IsVisible="{Binding IsSelected}" />
+                    <TextBlock Text="{Binding Name}"
+                               IsVisible="{Binding !IsSelected}" />
+                  </Panel>
+                </Button>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </ScrollViewer>
+      </StackPanel>
+
       <TextBlock Text="{Binding StatusMessage}"
                  Classes="muted"
                  TextWrapping="Wrap"
@@ -110,6 +153,11 @@
                             <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextWrapping="Wrap" />
                             <TextBlock Text="{Binding Author}" Classes="muted" />
                             <TextBlock Text="{Binding DownloadsLabel}" Classes="muted" FontSize="12" />
+                            <TextBlock Text="{Binding TagsLabel}"
+                                       Classes="muted"
+                                       FontSize="12"
+                                       TextWrapping="Wrap"
+                                       IsVisible="{Binding HasTags}" />
                             <TextBlock Text="{Binding SummaryText}" Classes="muted" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" />
                           </StackPanel>
                         </Grid>
@@ -129,10 +177,30 @@
 
           <TabItem Header="Installed">
             <Grid RowDefinitions="Auto,*">
-              <TextBlock Text="{Binding EmptyInstalledMessage}"
-                         Classes="muted"
-                         Margin="0,0,0,8"
-                         IsVisible="{Binding !HasInstalledMods}" />
+              <StackPanel Spacing="8" Margin="0,0,0,8">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <Button Classes="ghost"
+                          Content="Add folder"
+                          Command="{Binding ImportLocalFolderCommand}"
+                          AutomationProperties.Name="Import local mod folder" />
+                  <Button Classes="ghost"
+                          Content="Add zip"
+                          Command="{Binding ImportLocalZipCommand}"
+                          AutomationProperties.Name="Import local mod zip" />
+                  <Button Classes="ghost"
+                          Content="Clean duplicates"
+                          Command="{Binding CleanDuplicatesCommand}"
+                          IsVisible="{Binding HasDuplicateMods}"
+                          AutomationProperties.Name="Clean duplicate mods" />
+                </StackPanel>
+                <TextBlock Text="{Binding DuplicateModsMessage}"
+                           Classes="muted"
+                           TextWrapping="Wrap"
+                           IsVisible="{Binding HasDuplicateMods}" />
+                <TextBlock Text="{Binding EmptyInstalledMessage}"
+                           Classes="muted"
+                           IsVisible="{Binding !HasInstalledMods}" />
+              </StackPanel>
               <ScrollViewer Grid.Row="1">
                 <ItemsControl ItemsSource="{Binding InstalledMods}">
                   <ItemsControl.ItemTemplate>
@@ -195,19 +263,17 @@
                   Padding="16,8,16,16"
                   IsVisible="{Binding SelectedDetails, Converter={x:Static ObjectConverters.IsNotNull}}">
             <StackPanel Spacing="8">
+              <TextBlock Text="{Binding BlocklistWarning}"
+                         Foreground="{DynamicResource Theme.Danger}"
+                         TextWrapping="Wrap"
+                         IsVisible="{Binding BlocklistWarning, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
               <ComboBox ItemsSource="{Binding SelectedDetails.Releases}"
                         SelectedItem="{Binding SelectedRelease}"
                         PlaceholderText="Select release"
                         HorizontalAlignment="Stretch">
                 <ComboBox.ItemTemplate>
                   <DataTemplate x:DataType="models:ModReleaseInfo">
-                    <TextBlock>
-                      <TextBlock.Text>
-                        <MultiBinding StringFormat="{}{0}">
-                          <Binding Path="ModVersion" />
-                        </MultiBinding>
-                      </TextBlock.Text>
-                    </TextBlock>
+                    <TextBlock Text="{Binding DisplayLabel}" TextWrapping="NoWrap" />
                   </DataTemplate>
                 </ComboBox.ItemTemplate>
               </ComboBox>
@@ -248,7 +314,7 @@
                   </MultiBinding>
                 </TextBlock.Text>
               </TextBlock>
-              <ItemsControl ItemsSource="{Binding SelectedDetails.Tags}">
+              <ItemsControl ItemsSource="{Binding DetailTagNames}">
                 <ItemsControl.ItemsPanel>
                   <ItemsPanelTemplate>
                     <WrapPanel />
@@ -256,9 +322,14 @@
                 </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
                   <DataTemplate>
-                    <Border Margin="0,0,6,6" Padding="8,2" Background="{DynamicResource Theme.Bg1}" CornerRadius="4">
+                    <Button Classes="ghost"
+                            Margin="0,0,6,6"
+                            Padding="8,2"
+                            Background="{DynamicResource Theme.Bg1}"
+                            Command="{Binding $parent[UserControl].((vm:ModsViewModel)DataContext).ToggleDetailTagCommand}"
+                            CommandParameter="{Binding}">
                       <TextBlock Text="{Binding}" FontSize="12" />
-                    </Border>
+                    </Button>
                   </DataTemplate>
                 </ItemsControl.ItemTemplate>
               </ItemsControl>

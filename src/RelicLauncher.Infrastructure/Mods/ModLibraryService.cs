@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.IO.Compression;
 using System.Net;
 using System.Net.Http.Headers;
@@ -8,6 +9,7 @@ using RelicLauncher.Core.Constants;
 using RelicLauncher.Core.Models;
 using RelicLauncher.Core.Paths;
 using RelicLauncher.Core.Results;
+using RelicLauncher.Core.Versions;
 using RelicLauncher.Infrastructure.IO;
 
 namespace RelicLauncher.Infrastructure.Mods;
@@ -15,16 +17,19 @@ namespace RelicLauncher.Infrastructure.Mods;
 public sealed class ModLibraryService : IModLibraryService
 {
     private const string DisabledSuffix = RelicDefaults.DisabledModSuffix;
+    private const string IndexFileName = "index.json";
     private readonly HttpClient _httpClient;
+    private readonly IAppPathProvider _pathProvider;
     private readonly ILogger<ModLibraryService> _logger;
 
-    public ModLibraryService(ILogger<ModLibraryService> logger)
-        : this(logger, CreateDefaultClient())
+    public ModLibraryService(IAppPathProvider pathProvider, ILogger<ModLibraryService> logger)
+        : this(pathProvider, logger, CreateDefaultClient())
     {
     }
 
-    internal ModLibraryService(ILogger<ModLibraryService> logger, HttpClient httpClient)
+    internal ModLibraryService(IAppPathProvider pathProvider, ILogger<ModLibraryService> logger, HttpClient httpClient)
     {
+        _pathProvider = pathProvider;
         _logger = logger;
         _httpClient = httpClient;
         if (!_httpClient.DefaultRequestHeaders.UserAgent.Any())
@@ -43,6 +48,12 @@ public sealed class ModLibraryService : IModLibraryService
 
             foreach (var path in Directory.EnumerateFileSystemEntries(modsDir))
             {
+                var name = Path.GetFileName(path);
+                if (string.IsNullOrWhiteSpace(name) || name.StartsWith('.'))
+                {
+                    continue;
+                }
+
                 var info = ReadLocalMod(path);
                 if (info is not null)
                 {
@@ -64,6 +75,11 @@ public sealed class ModLibraryService : IModLibraryService
         IProgress<double>? progress = null,
         CancellationToken cancellationToken = default)
     {
+        if (release.FileId <= 0)
+        {
+            return Result<LocalModInfo>.Failure("Release has no file id.");
+        }
+
         if (string.IsNullOrWhiteSpace(release.DownloadUrl))
         {
             return Result<LocalModInfo>.Failure("Release has no download URL.");
@@ -78,43 +94,27 @@ public sealed class ModLibraryService : IModLibraryService
                 : Path.GetFileName(release.FileName);
             var destination = Path.Combine(modsDir, fileName);
 
-            using var response = await _httpClient.GetAsync(
-                release.DownloadUrl,
-                HttpCompletionOption.ResponseHeadersRead,
-                cancellationToken).ConfigureAwait(false);
-            if (!response.IsSuccessStatusCode)
+            var cachePath = await EnsureCachedAsync(release, progress, cancellationToken).ConfigureAwait(false);
+            if (!cachePath.IsSuccess)
             {
-                return Result<LocalModInfo>.Failure($"Download failed with status {(int)response.StatusCode}.");
+                return Result<LocalModInfo>.Failure(cachePath.Error ?? "Mod download failed.");
             }
 
-            var total = response.Content.Headers.ContentLength;
-            using var input = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
-            using var output = new FileStream(destination, FileMode.Create, FileAccess.Write, FileShare.None, 81920, useAsync: true);
-            var copy = await BoundedStreamCopy.CopyAsync(
-                input,
-                output,
-                total,
-                RelicDefaults.MaxModDownloadBytes,
-                progress,
-                cancellationToken).ConfigureAwait(false);
-            if (!copy.IsSuccess)
-            {
-                try
-                {
-                    File.Delete(destination);
-                }
-                catch
-                {
-                    // Best effort cleanup.
-                }
-
-                return Result<LocalModInfo>.Failure(copy.Error ?? "Download exceeded size limit.");
-            }
+            File.Copy(cachePath.Value!, destination, overwrite: true);
 
             var info = ReadLocalMod(destination);
-            return info is null
+            if (info is null)
+            {
+                return Result<LocalModInfo>.Failure("Installed file could not be read.");
+            }
+
+            UpdateIndex(release.FileId, fileName, info.ModId);
+            await RemoveOtherReleasesAsync(dataPath, info).ConfigureAwait(false);
+
+            var refreshed = ReadLocalMod(destination);
+            return refreshed is null
                 ? Result<LocalModInfo>.Failure("Installed file could not be read.")
-                : Result<LocalModInfo>.Success(info);
+                : Result<LocalModInfo>.Success(refreshed);
         }
         catch (Exception ex) when (ex is HttpRequestException or IOException or TaskCanceledException)
         {
@@ -196,6 +196,153 @@ public sealed class ModLibraryService : IModLibraryService
         }
     }
 
+    public async Task<Result<int>> CleanDuplicateModsAsync(string dataPath, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var listed = await ListInstalledAsync(dataPath, cancellationToken).ConfigureAwait(false);
+            if (!listed.IsSuccess)
+            {
+                return Result<int>.Failure(listed.Error ?? "Could not list installed mods.");
+            }
+
+            var removed = 0;
+            var groups = listed.Value!
+                .Where(m => !string.IsNullOrWhiteSpace(m.ModId))
+                .GroupBy(m => m.ModId!, StringComparer.OrdinalIgnoreCase)
+                .Where(g => g.Count() > 1);
+
+            foreach (var group in groups)
+            {
+                var keep = group
+                    .OrderByDescending(m => m.IsEnabled)
+                    .ThenByDescending(m => m.Version ?? string.Empty, Comparer<string>.Create(GameVersionComparer.Compare))
+                    .ThenBy(m => m.FileName, StringComparer.OrdinalIgnoreCase)
+                    .First();
+
+                foreach (var duplicate in group.Where(m =>
+                             !string.Equals(m.Path, keep.Path, StringComparison.OrdinalIgnoreCase)))
+                {
+                    var result = await UninstallAsync(duplicate, cancellationToken).ConfigureAwait(false);
+                    if (result.IsSuccess)
+                    {
+                        removed++;
+                    }
+                }
+            }
+
+            return Result<int>.Success(removed);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return Result<int>.Failure(ex.Message);
+        }
+    }
+
+    public async Task<Result<LocalModInfo>> ImportLocalAsync(
+        string dataPath,
+        string sourcePath,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(sourcePath))
+        {
+            return Result<LocalModInfo>.Failure("Source path is required.");
+        }
+
+        try
+        {
+            var modsDir = GameInstallLayout.GetModsDirectory(dataPath);
+            Directory.CreateDirectory(modsDir);
+
+            var destinationResult = Directory.Exists(sourcePath)
+                ? ImportFolder(sourcePath, modsDir)
+                : File.Exists(sourcePath)
+                    ? ImportZip(sourcePath, modsDir)
+                    : Result<string>.Failure("Source path does not exist.");
+            if (!destinationResult.IsSuccess)
+            {
+                return Result<LocalModInfo>.Failure(destinationResult.Error ?? "Import failed.");
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+            var info = ReadLocalMod(destinationResult.Value!);
+            if (info is null)
+            {
+                return Result<LocalModInfo>.Failure("Imported path could not be read as a mod.");
+            }
+
+            await RemoveOtherReleasesAsync(dataPath, info).ConfigureAwait(false);
+            var refreshed = ReadLocalMod(destinationResult.Value!);
+            return refreshed is null
+                ? Result<LocalModInfo>.Failure("Imported path could not be read as a mod.")
+                : Result<LocalModInfo>.Success(refreshed);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or OperationCanceledException)
+        {
+            _logger.LogWarning(ex, "Local mod import failed from {Path}", sourcePath);
+            return Result<LocalModInfo>.Failure(ex.Message);
+        }
+    }
+
+    private static Result<string> ImportFolder(string sourcePath, string modsDir)
+    {
+        var modInfoPath = Path.Combine(sourcePath, "modinfo.json");
+        if (!File.Exists(modInfoPath))
+        {
+            return Result<string>.Failure("Folder must contain modinfo.json at its root.");
+        }
+
+        var folderName = Path.GetFileName(
+            Path.GetFullPath(sourcePath).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+        if (string.IsNullOrWhiteSpace(folderName))
+        {
+            return Result<string>.Failure("Could not determine folder name.");
+        }
+
+        var destination = Path.Combine(modsDir, folderName);
+        if (Directory.Exists(destination) || File.Exists(destination))
+        {
+            return Result<string>.Failure($"A mod named {folderName} already exists in Mods.");
+        }
+
+        CopyDirectory(sourcePath, destination);
+        return Result<string>.Success(destination);
+    }
+
+    private static Result<string> ImportZip(string sourcePath, string modsDir)
+    {
+        if (!sourcePath.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
+        {
+            return Result<string>.Failure("Only .zip archives or mod folders are supported.");
+        }
+
+        var fileName = Path.GetFileName(sourcePath);
+        var destination = Path.Combine(modsDir, fileName);
+        File.Copy(sourcePath, destination, overwrite: true);
+        return Result<string>.Success(destination);
+    }
+
+    private static void CopyDirectory(string sourceDir, string destinationDir)
+    {
+        Directory.CreateDirectory(destinationDir);
+        foreach (var file in Directory.EnumerateFiles(sourceDir))
+        {
+            var dest = Path.Combine(destinationDir, Path.GetFileName(file));
+            File.Copy(file, dest, overwrite: true);
+        }
+
+        foreach (var directory in Directory.EnumerateDirectories(sourceDir))
+        {
+            var name = Path.GetFileName(directory);
+            if (string.IsNullOrWhiteSpace(name) || name is "." or "..")
+            {
+                continue;
+            }
+
+            CopyDirectory(directory, Path.Combine(destinationDir, name));
+        }
+    }
+
     internal static LocalModInfo? ReadLocalMod(string path)
     {
         var name = Path.GetFileName(path);
@@ -224,7 +371,6 @@ public sealed class ModLibraryService : IModLibraryService
         }
         catch (JsonException)
         {
-            // Keep filename-based metadata.
         }
 
         return new LocalModInfo
@@ -238,6 +384,160 @@ public sealed class ModLibraryService : IModLibraryService
             IsDirectory = isDir,
         };
     }
+
+    private async Task<Result<string>> EnsureCachedAsync(
+        ModReleaseInfo release,
+        IProgress<double>? progress,
+        CancellationToken cancellationToken)
+    {
+        var cacheDir = GetFileCacheDirectory();
+        Directory.CreateDirectory(cacheDir);
+        var cachePath = Path.Combine(cacheDir, $"{release.FileId}.zip");
+        if (File.Exists(cachePath) && new FileInfo(cachePath).Length > 0)
+        {
+            progress?.Report(1);
+            return Result<string>.Success(cachePath);
+        }
+
+        var download = await DownloadToCacheAsync(release, cachePath, progress, cancellationToken)
+            .ConfigureAwait(false);
+        return download.IsSuccess
+            ? Result<string>.Success(cachePath)
+            : Result<string>.Failure(download.Error ?? "Mod download failed.");
+    }
+
+    private async Task<Result> DownloadToCacheAsync(
+        ModReleaseInfo release,
+        string cachePath,
+        IProgress<double>? progress,
+        CancellationToken cancellationToken)
+    {
+        var tempPath = cachePath + ".partial";
+        try
+        {
+            using var response = await _httpClient.GetAsync(
+                release.DownloadUrl,
+                HttpCompletionOption.ResponseHeadersRead,
+                cancellationToken).ConfigureAwait(false);
+            if (!response.IsSuccessStatusCode)
+            {
+                return Result.Failure($"Download failed with status {(int)response.StatusCode}.");
+            }
+
+            var total = response.Content.Headers.ContentLength;
+            using var input = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+            using var output = new FileStream(tempPath, FileMode.Create, FileAccess.Write, FileShare.None, 81920, useAsync: true);
+            var copy = await BoundedStreamCopy.CopyAsync(
+                input,
+                output,
+                total,
+                RelicDefaults.MaxModDownloadBytes,
+                progress,
+                cancellationToken).ConfigureAwait(false);
+            if (!copy.IsSuccess)
+            {
+                return Result.Failure(copy.Error ?? "Download exceeded size limit.");
+            }
+
+            File.Move(tempPath, cachePath, overwrite: true);
+            return Result.Success();
+        }
+        finally
+        {
+            try
+            {
+                if (File.Exists(tempPath))
+                {
+                    File.Delete(tempPath);
+                }
+            }
+            catch (IOException)
+            {
+            }
+        }
+    }
+
+    private async Task RemoveOtherReleasesAsync(string dataPath, LocalModInfo installed)
+    {
+        if (string.IsNullOrWhiteSpace(installed.ModId))
+        {
+            return;
+        }
+
+        var listed = await ListInstalledAsync(dataPath).ConfigureAwait(false);
+        if (!listed.IsSuccess)
+        {
+            return;
+        }
+
+        foreach (var other in listed.Value!)
+        {
+            if (string.Equals(other.Path, installed.Path, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            if (!string.Equals(other.ModId, installed.ModId, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            var removed = await UninstallAsync(other).ConfigureAwait(false);
+            if (!removed.IsSuccess)
+            {
+                _logger.LogWarning(
+                    "Could not remove duplicate mod {File} for modid {ModId}: {Error}",
+                    other.FileName,
+                    installed.ModId,
+                    removed.Error);
+            }
+        }
+    }
+
+    private void UpdateIndex(int fileId, string fileName, string? modId)
+    {
+        try
+        {
+            var cacheDir = GetFileCacheDirectory();
+            Directory.CreateDirectory(cacheDir);
+            var indexPath = Path.Combine(cacheDir, IndexFileName);
+            var map = LoadIndex(indexPath);
+            map[fileId.ToString(CultureInfo.InvariantCulture)] = new ModFileIndexEntry
+            {
+                FileId = fileId,
+                FileName = fileName,
+                ModId = modId,
+            };
+            var json = JsonSerializer.Serialize(map, IndexJsonOptions);
+            File.WriteAllText(indexPath, json);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException)
+        {
+            _logger.LogDebug(ex, "Could not update mod file index for {FileId}", fileId);
+        }
+    }
+
+    private static Dictionary<string, ModFileIndexEntry> LoadIndex(string indexPath)
+    {
+        if (!File.Exists(indexPath))
+        {
+            return new Dictionary<string, ModFileIndexEntry>(StringComparer.Ordinal);
+        }
+
+        try
+        {
+            var json = File.ReadAllText(indexPath);
+            return JsonSerializer.Deserialize<Dictionary<string, ModFileIndexEntry>>(json, IndexJsonOptions)
+                   ?? new Dictionary<string, ModFileIndexEntry>(StringComparer.Ordinal);
+        }
+        catch (JsonException)
+        {
+            return new Dictionary<string, ModFileIndexEntry>(StringComparer.Ordinal);
+        }
+    }
+
+    private string GetFileCacheDirectory()
+        => Path.Combine(_pathProvider.GetPaths().CacheDirectory, "mods", "files");
 
     private static string? TryReadModInfoJson(string path, bool isDirectory)
     {
@@ -276,4 +576,17 @@ public sealed class ModLibraryService : IModLibraryService
         {
             Timeout = TimeSpan.FromSeconds(60),
         };
+
+    private static readonly JsonSerializerOptions IndexJsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        WriteIndented = true,
+    };
+
+    private sealed class ModFileIndexEntry
+    {
+        public int FileId { get; set; }
+        public string? FileName { get; set; }
+        public string? ModId { get; set; }
+    }
 }

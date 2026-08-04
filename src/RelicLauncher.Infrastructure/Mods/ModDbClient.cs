@@ -53,6 +53,76 @@ public sealed class ModDbClient : IModDbClient
         await EnsureCatalogAsync(forceRefresh: false, cancellationToken).ConfigureAwait(false);
     }
 
+    public async Task<Result<IReadOnlyList<ModTagInfo>>> GetTagsAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var cached = await TryReadTagsCacheAsync(cancellationToken).ConfigureAwait(false);
+            if (cached is not null && DateTimeOffset.UtcNow - cached.CachedAt < CatalogTtl)
+            {
+                return Result<IReadOnlyList<ModTagInfo>>.Success(cached.Tags);
+            }
+
+            var url = _endpoints.ModDbApiBaseUrl.TrimEnd('/') + "/tags";
+            using var response = await _httpClient.GetAsync(url, cancellationToken).ConfigureAwait(false);
+            if (!response.IsSuccessStatusCode)
+            {
+                if (cached?.Tags is { Count: > 0 })
+                {
+                    return Result<IReadOnlyList<ModTagInfo>>.Success(cached.Tags);
+                }
+
+                return Result<IReadOnlyList<ModTagInfo>>.Failure(
+                    $"Could not load ModDB tags ({(int)response.StatusCode}).");
+            }
+
+            var json = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+            var tags = ParseTags(json);
+            await TryWriteTagsCacheAsync(tags, cancellationToken).ConfigureAwait(false);
+            return Result<IReadOnlyList<ModTagInfo>>.Success(tags);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException or IOException)
+        {
+            _logger.LogWarning(ex, "ModDB tags fetch failed");
+            return Result<IReadOnlyList<ModTagInfo>>.Failure(ex.Message);
+        }
+    }
+
+    public static IReadOnlyList<ModTagInfo> ParseTags(string json)
+    {
+        using var doc = JsonDocument.Parse(json);
+        if (!doc.RootElement.TryGetProperty("tags", out var tagsEl) || tagsEl.ValueKind != JsonValueKind.Array)
+        {
+            return [];
+        }
+
+        var list = new List<ModTagInfo>();
+        foreach (var tag in tagsEl.EnumerateArray())
+        {
+            var id = tag.TryGetProperty("tagid", out var idEl)
+                ? idEl.ValueKind == JsonValueKind.Number
+                    ? idEl.GetInt32().ToString(CultureInfo.InvariantCulture)
+                    : idEl.GetString()
+                : null;
+            var name = tag.TryGetProperty("name", out var nameEl) ? nameEl.GetString() : null;
+            if (string.IsNullOrWhiteSpace(id) || string.IsNullOrWhiteSpace(name))
+            {
+                continue;
+            }
+
+            list.Add(new ModTagInfo
+            {
+                TagId = id,
+                Name = name,
+                Color = tag.TryGetProperty("color", out var color) ? color.GetString() : null,
+            });
+        }
+
+        return list
+            .OrderBy(t => t.Name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
     public async Task<Result<ModSearchResult>> SearchAsync(ModSearchQuery query, CancellationToken cancellationToken = default)
     {
         try
@@ -86,7 +156,9 @@ public sealed class ModDbClient : IModDbClient
 
     private async Task<Result<SearchSource>> ResolveSearchSourceAsync(ModSearchQuery query, CancellationToken cancellationToken)
     {
-        if (!string.IsNullOrWhiteSpace(query.GameVersion) || !string.IsNullOrWhiteSpace(query.Text))
+        if (!string.IsNullOrWhiteSpace(query.GameVersion) ||
+            !string.IsNullOrWhiteSpace(query.Text) ||
+            query.TagIds.Count > 0)
         {
             var remote = await FetchRemoteSearchAsync(query, cancellationToken).ConfigureAwait(false);
             if (remote.IsSuccess)
@@ -324,6 +396,13 @@ public sealed class ModDbClient : IModDbClient
                  string.Equals(m.Side, "both", StringComparison.OrdinalIgnoreCase)));
         }
 
+        if (query.TagNames is { Count: > 0 })
+        {
+            filtered = filtered.Where(m =>
+                query.TagNames.All(required =>
+                    m.Tags.Any(t => string.Equals(t, required, StringComparison.OrdinalIgnoreCase))));
+        }
+
         var orderBy = query.OrderBy ?? "downloads";
         var desc = !string.Equals(query.OrderDirection, "asc", StringComparison.OrdinalIgnoreCase);
         filtered = orderBy.ToLowerInvariant() switch
@@ -397,6 +476,7 @@ public sealed class ModDbClient : IModDbClient
         {
             ModId = mod.TryGetProperty("modid", out var id) ? id.GetInt32() : 0,
             AssetId = mod.TryGetProperty("assetid", out var asset) ? asset.GetInt32() : 0,
+            UrlAlias = mod.TryGetProperty("urlalias", out var alias) ? alias.GetString() : null,
             Name = mod.TryGetProperty("name", out var nameEl) ? nameEl.GetString() ?? "Unknown" : "Unknown",
             Author = mod.TryGetProperty("author", out var author) ? author.GetString() : null,
             Summary = mod.TryGetProperty("summary", out var summary) ? summary.GetString() : null,
@@ -641,15 +721,64 @@ public sealed class ModDbClient : IModDbClient
             parts.Add("gv=" + Uri.EscapeDataString(query.GameVersion.Trim()));
         }
 
+        foreach (var tagId in query.TagIds.Where(id => !string.IsNullOrWhiteSpace(id)))
+        {
+            parts.Add("tagids[]=" + Uri.EscapeDataString(tagId.Trim()));
+        }
+
         return parts.Count == 0 ? "mods" : "mods?" + string.Join('&', parts);
     }
 
     private string CatalogCachePath => Path.Combine(_pathProvider.GetPaths().CacheDirectory, "mods", "catalog.json");
 
+    private string TagsCachePath => Path.Combine(_pathProvider.GetPaths().CacheDirectory, "mods", "tags.json");
+
     private string DetailsCachePath(string key)
     {
         var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(key.ToLowerInvariant())))[..20].ToLowerInvariant();
         return Path.Combine(_pathProvider.GetPaths().CacheDirectory, "mods", "details", hash + ".json");
+    }
+
+    private async Task<TagsCacheSnapshot?> TryReadTagsCacheAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            if (!File.Exists(TagsCachePath))
+            {
+                return null;
+            }
+
+            var json = await File.ReadAllTextAsync(TagsCachePath, cancellationToken).ConfigureAwait(false);
+            var entry = JsonSerializer.Deserialize<TagsCacheEntry>(json, CacheJsonOptions);
+            if (entry?.Tags is null)
+            {
+                return null;
+            }
+
+            return new TagsCacheSnapshot(entry.CachedAt, entry.Tags);
+        }
+        catch (Exception ex) when (ex is IOException or JsonException)
+        {
+            return null;
+        }
+    }
+
+    private async Task TryWriteTagsCacheAsync(IReadOnlyList<ModTagInfo> tags, CancellationToken cancellationToken)
+    {
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(TagsCachePath)!);
+            var payload = JsonSerializer.Serialize(new TagsCacheEntry
+            {
+                CachedAt = DateTimeOffset.UtcNow,
+                Tags = tags.ToList(),
+            }, CacheJsonOptions);
+            await File.WriteAllTextAsync(TagsCachePath, payload, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            _logger.LogDebug(ex, "Could not write ModDB tags cache");
+        }
     }
 
     private static readonly JsonSerializerOptions CacheJsonOptions = new()
@@ -712,6 +841,8 @@ public sealed class ModDbClient : IModDbClient
 
     private sealed record DetailsCacheSnapshot(DateTimeOffset CachedAt, ModDetails Mod);
 
+    private sealed record TagsCacheSnapshot(DateTimeOffset CachedAt, IReadOnlyList<ModTagInfo> Tags);
+
     private async Task WriteCatalogCacheAsync(IReadOnlyList<ModSummary> mods, CancellationToken cancellationToken)
     {
         try
@@ -761,6 +892,12 @@ public sealed class ModDbClient : IModDbClient
     {
         public DateTimeOffset CachedAt { get; init; }
         public ModDetails? Mod { get; init; }
+    }
+
+    private sealed class TagsCacheEntry
+    {
+        public DateTimeOffset CachedAt { get; set; }
+        public List<ModTagInfo>? Tags { get; set; }
     }
 
     private string ApiUrl(string relative)

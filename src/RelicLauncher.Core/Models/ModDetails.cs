@@ -4,6 +4,7 @@ public sealed class ModDetails
 {
     public required int ModId { get; init; }
     public int AssetId { get; init; }
+    public string? UrlAlias { get; init; }
     public required string Name { get; init; }
     public string? Author { get; init; }
     public string? Summary { get; init; }

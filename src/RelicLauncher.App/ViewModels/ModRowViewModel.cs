@@ -23,6 +23,9 @@ public sealed partial class ModRowViewModel : ViewModelBase
         DownloadsLabel = $"{summary.Downloads:N0} downloads";
         LogoUrl = summary.LogoUrl;
         Logo = ModIconAssets.Default;
+        TagsLabel = summary.Tags.Count == 0
+            ? string.Empty
+            : string.Join(", ", summary.Tags.Take(4));
     }
 
     public ModSummary Summary { get; }
@@ -30,7 +33,9 @@ public sealed partial class ModRowViewModel : ViewModelBase
     public string Author { get; }
     public string SummaryText { get; }
     public string DownloadsLabel { get; }
+    public string TagsLabel { get; }
     public string? LogoUrl { get; }
+    public bool HasTags => !string.IsNullOrWhiteSpace(TagsLabel);
 
     [ObservableProperty]
     private Bitmap? _logo;

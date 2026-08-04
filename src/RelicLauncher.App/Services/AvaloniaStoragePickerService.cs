@@ -46,6 +46,30 @@ public sealed class AvaloniaStoragePickerService(MainWindowHolder windowHolder) 
         return files.Count > 0 ? files[0].TryGetLocalPath() : null;
     }
 
+    public async Task<string?> PickZipFileAsync(string? title = null)
+    {
+        var storage = GetStorageProvider();
+        if (storage is null)
+        {
+            return null;
+        }
+
+        var files = await storage.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = title ?? "Select mod zip",
+            AllowMultiple = false,
+            FileTypeFilter =
+            [
+                new FilePickerFileType("Mod zip")
+                {
+                    Patterns = ["*.zip"],
+                },
+            ],
+        }).ConfigureAwait(true);
+
+        return files.Count > 0 ? files[0].TryGetLocalPath() : null;
+    }
+
     private IStorageProvider? GetStorageProvider()
         => windowHolder.Window?.StorageProvider;
 }

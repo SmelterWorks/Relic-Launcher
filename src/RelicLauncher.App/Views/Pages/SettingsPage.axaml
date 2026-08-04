@@ -191,6 +191,8 @@
 
             <CheckBox Content="Ask before closing Relic"
                       IsChecked="{Binding ConfirmBeforeExit}" />
+            <CheckBox Content="Warn before installing mods on the official blocklist"
+                      IsChecked="{Binding WarnOnBlockedMods}" />
           </StackPanel>
         </controls:SettingsSection.SectionContent>
       </controls:SettingsSection>
