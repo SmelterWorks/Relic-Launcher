@@ -237,6 +237,11 @@
               <TextBox Text="{Binding NewsBlogUrl}"
                        PlaceholderText="https://www.vintagestory.at/blog.html/" />
             </StackPanel>
+            <StackPanel Spacing="4">
+              <TextBlock Text="Wiki" Classes="settings-field-label" />
+              <TextBox Text="{Binding WikiBaseUrl}"
+                       PlaceholderText="https://wiki.vintagestory.at/" />
+            </StackPanel>
             <Button Classes="ghost"
                     Content="Reset URLs to defaults"
                     Command="{Binding ResetEndpointUrlsCommand}"

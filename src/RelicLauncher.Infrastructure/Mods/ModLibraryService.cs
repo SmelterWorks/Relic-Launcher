@@ -356,6 +356,7 @@ public sealed class ModLibraryService : IModLibraryService
         string? modId = null;
         string? displayName = null;
         string? version = null;
+        string? iconPath = null;
 
         try
         {
@@ -364,9 +365,10 @@ public sealed class ModLibraryService : IModLibraryService
             {
                 using var doc = JsonDocument.Parse(modInfoJson);
                 var root = doc.RootElement;
-                modId = root.TryGetProperty("modid", out var id) ? id.GetString() : null;
-                displayName = root.TryGetProperty("name", out var n) ? n.GetString() : null;
-                version = root.TryGetProperty("version", out var v) ? v.GetString() : null;
+                modId = ReadStringProperty(root, "modid") ?? ReadStringProperty(root, "modId");
+                displayName = ReadStringProperty(root, "name");
+                version = ReadStringProperty(root, "version");
+                iconPath = ReadStringProperty(root, "iconPath") ?? ReadStringProperty(root, "iconpath");
             }
         }
         catch (JsonException)
@@ -380,10 +382,97 @@ public sealed class ModLibraryService : IModLibraryService
             ModId = modId,
             Name = displayName ?? StripDisabled(name),
             Version = version,
+            IconPath = iconPath,
             IsEnabled = enabled,
             IsDirectory = isDir,
         };
     }
+
+    public byte[]? TryReadModIcon(LocalModInfo mod)
+    {
+        if (mod is null || string.IsNullOrWhiteSpace(mod.Path))
+        {
+            return null;
+        }
+
+        var candidates = BuildIconCandidatePaths(mod.IconPath);
+        try
+        {
+            if (mod.IsDirectory || Directory.Exists(mod.Path))
+            {
+                return ReadIconFromDirectory(mod.Path, candidates);
+            }
+
+            return ReadIconFromZip(mod.Path, candidates);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException)
+        {
+            _logger.LogDebug(ex, "Could not read mod icon from {Path}", mod.Path);
+            return null;
+        }
+    }
+
+    private static IReadOnlyList<string> BuildIconCandidatePaths(string? iconPath)
+    {
+        var list = new List<string>();
+        if (!string.IsNullOrWhiteSpace(iconPath))
+        {
+            var normalized = iconPath.Replace('\\', '/').Trim().TrimStart('/');
+            if (!string.IsNullOrWhiteSpace(normalized))
+            {
+                list.Add(normalized);
+            }
+        }
+
+        list.Add("modicon.png");
+        return list;
+    }
+
+    private static byte[]? ReadIconFromDirectory(string directory, IReadOnlyList<string> candidates)
+    {
+        foreach (var relative in candidates)
+        {
+            var full = Path.Combine(directory, relative.Replace('/', Path.DirectorySeparatorChar));
+            if (File.Exists(full))
+            {
+                return File.ReadAllBytes(full);
+            }
+        }
+
+        return null;
+    }
+
+    private static byte[]? ReadIconFromZip(string zipPath, IReadOnlyList<string> candidates)
+    {
+        if (!File.Exists(zipPath))
+        {
+            return null;
+        }
+
+        using var archive = ZipFile.OpenRead(zipPath);
+        foreach (var relative in candidates)
+        {
+            var entry = archive.Entries.FirstOrDefault(e =>
+                string.Equals(e.FullName.Replace('\\', '/'), relative, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(Path.GetFileName(e.FullName), Path.GetFileName(relative), StringComparison.OrdinalIgnoreCase));
+            if (entry is null || entry.Length <= 0)
+            {
+                continue;
+            }
+
+            using var stream = entry.Open();
+            using var memory = new MemoryStream();
+            stream.CopyTo(memory);
+            return memory.ToArray();
+        }
+
+        return null;
+    }
+
+    private static string? ReadStringProperty(JsonElement root, string name)
+        => root.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String
+            ? value.GetString()
+            : null;
 
     private async Task<Result<string>> EnsureCachedAsync(
         ModReleaseInfo release,

@@ -11,6 +11,7 @@ public interface IEndpointProvider
     string VersionCatalogUrl { get; }
     string LatestStableUrl { get; }
     string NewsBlogUrl { get; }
+    string WikiBaseUrl { get; }
 
     string BuildModDownloadUrl(int fileId);
 

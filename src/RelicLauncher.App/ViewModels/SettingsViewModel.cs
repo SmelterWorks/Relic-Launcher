@@ -101,6 +101,9 @@ public partial class SettingsViewModel : PageViewModelBase
     private string _newsBlogUrl = VintageStoryEndpoints.NewsBlogUrl;
 
     [ObservableProperty]
+    private string _wikiBaseUrl = VintageStoryEndpoints.WikiBaseUrl;
+
+    [ObservableProperty]
     private string _saveStatusMessage = string.Empty;
 
     [ObservableProperty]
@@ -207,6 +210,8 @@ public partial class SettingsViewModel : PageViewModelBase
 
     partial void OnNewsBlogUrlChanged(string value) => ScheduleAutoSave();
 
+    partial void OnWikiBaseUrlChanged(string value) => ScheduleAutoSave();
+
     partial void OnSaveStatusMessageChanged(string value) => OnPropertyChanged(nameof(IsSaveStatusVisible));
 
     partial void OnAccountErrorChanged(string value) => OnPropertyChanged(nameof(HasAccountError));
@@ -248,6 +253,7 @@ public partial class SettingsViewModel : PageViewModelBase
         VersionCatalogUrl = endpoints.VersionCatalogUrl;
         LatestStableUrl = endpoints.LatestStableUrl;
         NewsBlogUrl = endpoints.NewsBlogUrl;
+        WikiBaseUrl = endpoints.WikiBaseUrl;
     }
 
     [RelayCommand]
@@ -565,6 +571,7 @@ public partial class SettingsViewModel : PageViewModelBase
                 VersionCatalogUrl = TrimOrDefault(VersionCatalogUrl, VintageStoryEndpoints.VersionCatalogUrl),
                 LatestStableUrl = TrimOrDefault(LatestStableUrl, VintageStoryEndpoints.LatestStableUrl),
                 NewsBlogUrl = TrimOrDefault(NewsBlogUrl, VintageStoryEndpoints.NewsBlogUrl),
+                WikiBaseUrl = TrimOrDefault(WikiBaseUrl, VintageStoryEndpoints.WikiBaseUrl),
             },
         };
 

@@ -53,6 +53,7 @@ public class JsonLauncherSettingsStoreTests
                 ModDbApiBaseUrl = "https://mods.example/api/",
                 VersionCatalogUrl = "https://api.example/versions.json",
                 NewsBlogUrl = "https://news.example/blog/",
+                WikiBaseUrl = "https://wiki.example/",
             },
         };
 
@@ -65,6 +66,7 @@ public class JsonLauncherSettingsStoreTests
         load.Value.Endpoints.ModDbApiBaseUrl.Should().Be("https://mods.example/api/");
         load.Value.Endpoints.VersionCatalogUrl.Should().Be("https://api.example/versions.json");
         load.Value.Endpoints.NewsBlogUrl.Should().Be("https://news.example/blog/");
+        load.Value.Endpoints.WikiBaseUrl.Should().Be("https://wiki.example/");
     }
 
     [Fact]

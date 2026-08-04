@@ -7,6 +7,7 @@ public sealed class LocalModInfo
     public string? ModId { get; init; }
     public string? Name { get; init; }
     public string? Version { get; init; }
+    public string? IconPath { get; init; }
     public bool IsEnabled { get; init; } = true;
     public bool IsDirectory { get; init; }
 }

@@ -20,4 +20,6 @@ public interface IModLibraryService
     Task<Result<int>> CleanDuplicateModsAsync(string dataPath, CancellationToken cancellationToken = default);
 
     Task<Result<LocalModInfo>> ImportLocalAsync(string dataPath, string sourcePath, CancellationToken cancellationToken = default);
+
+    byte[]? TryReadModIcon(LocalModInfo mod);
 }

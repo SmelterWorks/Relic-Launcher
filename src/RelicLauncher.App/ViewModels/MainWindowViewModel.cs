@@ -23,7 +23,7 @@ public partial class MainWindowViewModel : ViewModelBase
     private string _activeNav = "home";
 
     [ObservableProperty]
-    private double _shellOpacity = 0;
+    private double _shellOpacity = 1;
 
     public string AppVersion => BuildMetadata.Version;
 
@@ -44,6 +44,7 @@ public partial class MainWindowViewModel : ViewModelBase
     public bool IsHomeActive => string.Equals(ActiveNav, "home", StringComparison.Ordinal);
     public bool IsVersionsActive => string.Equals(ActiveNav, "versions", StringComparison.Ordinal);
     public bool IsModsActive => string.Equals(ActiveNav, "mods", StringComparison.Ordinal);
+    public bool IsWikiActive => string.Equals(ActiveNav, "wiki", StringComparison.Ordinal);
     public bool IsSettingsActive => string.Equals(ActiveNav, "settings", StringComparison.Ordinal);
     public bool IsAboutActive => string.Equals(ActiveNav, "about", StringComparison.Ordinal);
 
@@ -103,6 +104,17 @@ public partial class MainWindowViewModel : ViewModelBase
     });
 
     [RelayCommand]
+    private void NavigateWiki() => Navigate("wiki", () =>
+    {
+        var page = _services.GetRequiredService<WikiViewModel>();
+        page.Bind(Settings);
+        return page;
+    }, existing =>
+    {
+        ((WikiViewModel)existing).Bind(Settings, refresh: false);
+    });
+
+    [RelayCommand]
     private void NavigateSettings() => Navigate("settings", () =>
     {
         var page = _services.GetRequiredService<SettingsViewModel>();
@@ -150,6 +162,10 @@ public partial class MainWindowViewModel : ViewModelBase
         {
             mods.Bind(settings, refresh: false);
         }
+        else if (CurrentPage is WikiViewModel wiki)
+        {
+            wiki.Bind(settings, refresh: false);
+        }
         else if (CurrentPage is SettingsViewModel settingsPage)
         {
             settingsPage.Bind(settings, OnSettingsChanged);
@@ -167,6 +183,7 @@ public partial class MainWindowViewModel : ViewModelBase
         OnPropertyChanged(nameof(IsHomeActive));
         OnPropertyChanged(nameof(IsVersionsActive));
         OnPropertyChanged(nameof(IsModsActive));
+        OnPropertyChanged(nameof(IsWikiActive));
         OnPropertyChanged(nameof(IsSettingsActive));
         OnPropertyChanged(nameof(IsAboutActive));
     }

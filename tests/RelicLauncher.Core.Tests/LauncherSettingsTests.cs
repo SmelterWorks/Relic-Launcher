@@ -24,5 +24,6 @@ public class LauncherSettingsTests
         settings.Endpoints.ModDbApiBaseUrl.Should().Be(VintageStoryEndpoints.ModDbApiBaseUrl);
         settings.Endpoints.VersionCatalogUrl.Should().Be(VintageStoryEndpoints.VersionCatalogUrl);
         settings.Endpoints.NewsBlogUrl.Should().Be(VintageStoryEndpoints.NewsBlogUrl);
+        settings.Endpoints.WikiBaseUrl.Should().Be(VintageStoryEndpoints.WikiBaseUrl);
     }
 }

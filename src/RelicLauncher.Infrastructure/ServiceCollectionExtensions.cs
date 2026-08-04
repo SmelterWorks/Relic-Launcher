@@ -18,6 +18,7 @@ using RelicLauncher.Infrastructure.Settings;
 using RelicLauncher.Infrastructure.Stubs;
 using RelicLauncher.Infrastructure.Transfers;
 using RelicLauncher.Infrastructure.Versions;
+using RelicLauncher.Infrastructure.Wiki;
 using Serilog;
 
 namespace RelicLauncher.Infrastructure;
@@ -49,6 +50,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IRemoteImageCache, DiskRemoteImageCache>();
         services.AddSingleton<NewsCacheStore>();
         services.AddSingleton<IVintageStoryNewsService, VintageStoryNewsService>();
+        services.AddSingleton<IWikiReachabilityProbe, WikiReachabilityProbe>();
         services.AddSingleton<IFileExplorerService, FileExplorerService>();
         services.AddSingleton<IUrlLauncher, UrlLauncher>();
         services.AddSingleton<AppLifetime>();

@@ -216,7 +216,7 @@ public partial class HomeViewModel : PageViewModelBase
 
         CanPlay = true;
         _logger.LogDebug("Play ready for {Version} at {Path}", version, info.InstallPath);
-        StatusMessage = $"Ready to play {version}.";
+        StatusMessage = string.Empty;
     }
 
     private async Task LoadNewsAsync()

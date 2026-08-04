@@ -5,36 +5,32 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
-        d:DesignWidth="1100" d:DesignHeight="700"
+        d:DesignWidth="1024" d:DesignHeight="768"
         x:Class="RelicLauncher.App.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
-        Width="1100" Height="700"
+        Width="1024" Height="768"
         MinWidth="900" MinHeight="560"
         WindowStartupLocation="CenterScreen"
         Title="Relic Launcher"
         Icon="/Assets/Icons/icon.ico"
-        Opacity="{Binding ShellOpacity}"
         AutomationProperties.Name="Relic Launcher">
 
   <Window.KeyBindings>
     <KeyBinding Gesture="Ctrl+1" Command="{Binding NavigateHomeCommand}" />
     <KeyBinding Gesture="Ctrl+2" Command="{Binding NavigateVersionsCommand}" />
     <KeyBinding Gesture="Ctrl+3" Command="{Binding NavigateModsCommand}" />
-    <KeyBinding Gesture="Ctrl+4" Command="{Binding NavigateSettingsCommand}" />
-    <KeyBinding Gesture="Ctrl+5" Command="{Binding NavigateAboutCommand}" />
+    <KeyBinding Gesture="Ctrl+4" Command="{Binding NavigateWikiCommand}" />
+    <KeyBinding Gesture="Ctrl+5" Command="{Binding NavigateSettingsCommand}" />
+    <KeyBinding Gesture="Ctrl+6" Command="{Binding NavigateAboutCommand}" />
   </Window.KeyBindings>
 
-  <Window.Styles>
-    <Style Selector="Window">
-      <Setter Property="Transitions">
-        <Transitions>
-          <DoubleTransition Property="Opacity" Duration="0:0:0.45" />
-        </Transitions>
-      </Setter>
-    </Style>
-  </Window.Styles>
-
-  <Grid ColumnDefinitions="220,*">
+  <Grid ColumnDefinitions="240,*"
+        Opacity="{Binding ShellOpacity}">
+    <Grid.Transitions>
+      <Transitions>
+        <DoubleTransition Property="Opacity" Duration="0:0:0.45" />
+      </Transitions>
+    </Grid.Transitions>
     <Border Grid.Column="0"
             Background="{DynamicResource Theme.Bg1}"
             BorderBrush="{DynamicResource Theme.Border}"
@@ -55,55 +51,64 @@
                    Margin="0,12,0,4"
                    AutomationProperties.Name="{Binding AppVersion, StringFormat=Version {0} Unofficial Launcher}" />
 
-        <StackPanel Spacing="6">
+        <StackPanel Spacing="8">
           <Button Classes="nav"
                   Classes.active="{Binding IsHomeActive}"
                   Command="{Binding NavigateHomeCommand}"
                   AutomationProperties.Name="Home">
-            <StackPanel Orientation="Horizontal" Spacing="10">
-              <i:Icon Value="mdi-home" Width="18" Height="18" />
-              <TextBlock Text="Home" VerticalAlignment="Center" />
+            <StackPanel Orientation="Horizontal" Spacing="12">
+              <i:Icon Value="mdi-home" Width="22" Height="22" />
+              <TextBlock Text="Home" VerticalAlignment="Center" FontSize="16" />
             </StackPanel>
           </Button>
           <Button Classes="nav"
                   Classes.active="{Binding IsVersionsActive}"
                   Command="{Binding NavigateVersionsCommand}"
                   AutomationProperties.Name="Versions">
-            <StackPanel Orientation="Horizontal" Spacing="10">
-              <i:Icon Value="mdi-package-variant" Width="18" Height="18" />
-              <TextBlock Text="Versions" VerticalAlignment="Center" />
+            <StackPanel Orientation="Horizontal" Spacing="12">
+              <i:Icon Value="mdi-package-variant" Width="22" Height="22" />
+              <TextBlock Text="Versions" VerticalAlignment="Center" FontSize="16" />
             </StackPanel>
           </Button>
-          <Button Classes="nav"
-                  Classes.active="{Binding IsModsActive}"
-                  Command="{Binding NavigateModsCommand}"
-                  AutomationProperties.Name="Mods">
-            <StackPanel Orientation="Horizontal" Spacing="10">
-              <i:Icon Value="mdi-puzzle" Width="18" Height="18" />
-              <TextBlock Text="Mods" VerticalAlignment="Center" />
-            </StackPanel>
-          </Button>
-          <Button Classes="nav"
-                  Classes.active="{Binding IsSettingsActive}"
-                  Command="{Binding NavigateSettingsCommand}"
-                  AutomationProperties.Name="Settings">
-            <StackPanel Orientation="Horizontal" Spacing="10">
-              <i:Icon Value="mdi-cog" Width="18" Height="18" />
-              <TextBlock Text="Settings" VerticalAlignment="Center" />
-            </StackPanel>
-          </Button>
-          <Button Classes="nav"
-                  Classes.active="{Binding IsAboutActive}"
-                  Command="{Binding NavigateAboutCommand}"
-                  AutomationProperties.Name="About">
-            <StackPanel Orientation="Horizontal" Spacing="10">
-              <i:Icon Value="mdi-information" Width="18" Height="18" />
-              <TextBlock Text="About" VerticalAlignment="Center" />
-            </StackPanel>
-          </Button>
-        </StackPanel>
-      </DockPanel>
-    </Border>
+        <Button Classes="nav"
+                Classes.active="{Binding IsModsActive}"
+                Command="{Binding NavigateModsCommand}"
+                AutomationProperties.Name="Mods">
+          <StackPanel Orientation="Horizontal" Spacing="12">
+            <i:Icon Value="mdi-puzzle" Width="22" Height="22" />
+            <TextBlock Text="Mods" VerticalAlignment="Center" FontSize="16" />
+          </StackPanel>
+        </Button>
+        <Button Classes="nav"
+                Classes.active="{Binding IsWikiActive}"
+                Command="{Binding NavigateWikiCommand}"
+                AutomationProperties.Name="Wiki">
+          <StackPanel Orientation="Horizontal" Spacing="12">
+            <i:Icon Value="mdi-book-open-page-variant" Width="22" Height="22" />
+            <TextBlock Text="Wiki" VerticalAlignment="Center" FontSize="16" />
+          </StackPanel>
+        </Button>
+        <Button Classes="nav"
+                Classes.active="{Binding IsSettingsActive}"
+                Command="{Binding NavigateSettingsCommand}"
+                AutomationProperties.Name="Settings">
+          <StackPanel Orientation="Horizontal" Spacing="12">
+            <i:Icon Value="mdi-cog" Width="22" Height="22" />
+            <TextBlock Text="Settings" VerticalAlignment="Center" FontSize="16" />
+          </StackPanel>
+        </Button>
+        <Button Classes="nav"
+                Classes.active="{Binding IsAboutActive}"
+                Command="{Binding NavigateAboutCommand}"
+                AutomationProperties.Name="About">
+          <StackPanel Orientation="Horizontal" Spacing="12">
+            <i:Icon Value="mdi-information" Width="22" Height="22" />
+            <TextBlock Text="About" VerticalAlignment="Center" FontSize="16" />
+          </StackPanel>
+        </Button>
+      </StackPanel>
+    </DockPanel>
+  </Border>
 
     <ContentControl Grid.Column="1"
                     Content="{Binding CurrentPage}"

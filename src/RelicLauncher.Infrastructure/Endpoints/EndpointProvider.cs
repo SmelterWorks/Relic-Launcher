@@ -44,6 +44,11 @@ public sealed class EndpointProvider : IEndpointProvider
         get { lock (_gate) { return NormalizeAbsolute(_endpoints.NewsBlogUrl, VintageStoryEndpoints.NewsBlogUrl); } }
     }
 
+    public string WikiBaseUrl
+    {
+        get { lock (_gate) { return NormalizeBase(_endpoints.WikiBaseUrl, VintageStoryEndpoints.WikiBaseUrl); } }
+    }
+
     public string BuildModDownloadUrl(int fileId)
         => $"{ModDbDownloadBaseUrl}?fileid={fileId}";
 

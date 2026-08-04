@@ -13,6 +13,7 @@ Built with C# / .NET 10 and Avalonia 12.1. Targets the same desktop platforms Vi
 - Optional warning when a mod is on the official blocked-mods list
 - One-click play with mods, saves, and worlds kept in one shared folder
 - Game news, custom themes, and support for Windows, Linux, and macOS
+- In-app Vintage Story wiki browser (domain locked, URL configurable in Settings)
 
 ## Upcoming
 
@@ -20,7 +21,6 @@ Built with C# / .NET 10 and Avalonia 12.1. Targets the same desktop platforms Vi
 - Launcher sandboxing (the app itself, not the game)
 - Packaging: Flatpak
 - Server Hosting
-- Wiki browser
 - Custom fonts support
 
 > [!NOTE]
@@ -30,6 +30,7 @@ Built with C# / .NET 10 and Avalonia 12.1. Targets the same desktop platforms Vi
 
 - .NET 10 SDK to build from source
 - Release and nightly downloads are **self-contained** (no separate .NET Desktop Runtime install)
+- Wiki page uses the platform webview: [WebView2](https://developer.microsoft.com/microsoft-edge/webview2/) on Windows, WPE WebKit (`wpewebkit`) on Linux, WKWebView on macOS. If the embed is missing, use **Open in browser**.
 
 ## Build and run
 

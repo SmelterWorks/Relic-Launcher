@@ -1,0 +1,103 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:RelicLauncher.App.ViewModels"
+             xmlns:i="https://github.com/projektanker/icons.avalonia"
+             x:Class="RelicLauncher.App.Views.Pages.WikiPage"
+             x:DataType="vm:WikiViewModel">
+  <DockPanel>
+    <StackPanel DockPanel.Dock="Top" Spacing="10" Margin="0,0,0,12">
+      <TextBlock Text="Wiki"
+                 Classes="brand"
+                 FontSize="24"
+                 AutomationProperties.Name="Wiki" />
+      <TextBlock Text="Official Vintage Story wiki."
+                 Classes="muted"
+                 TextWrapping="Wrap" />
+
+      <StackPanel Orientation="Horizontal" Spacing="8">
+        <Button Classes="ghost"
+                Command="{Binding NavigateBackCommand}"
+                ToolTip.Tip="Back"
+                AutomationProperties.Name="Wiki back">
+          <i:Icon Value="mdi-arrow-left" Width="18" Height="18" />
+        </Button>
+        <Button Classes="ghost"
+                Command="{Binding NavigateForwardCommand}"
+                ToolTip.Tip="Forward"
+                AutomationProperties.Name="Wiki forward">
+          <i:Icon Value="mdi-arrow-right" Width="18" Height="18" />
+        </Button>
+        <Button Classes="ghost"
+                Command="{Binding ReloadCommand}"
+                ToolTip.Tip="Reload"
+                AutomationProperties.Name="Wiki reload">
+          <i:Icon Value="mdi-refresh" Width="18" Height="18" />
+        </Button>
+        <Button Classes="ghost"
+                Content="Home"
+                Command="{Binding GoHomeCommand}"
+                AutomationProperties.Name="Wiki home" />
+        <Button Classes="ghost"
+                Content="Open in browser"
+                Command="{Binding OpenInBrowserCommand}"
+                AutomationProperties.Name="Open wiki in browser" />
+      </StackPanel>
+
+      <TextBox Text="{Binding CurrentUrl}"
+               IsReadOnly="True"
+               PlaceholderText="Wiki URL"
+               AutomationProperties.Name="Current wiki URL" />
+
+      <TextBlock Text="{Binding StatusMessage}"
+                 Classes="muted"
+                 TextWrapping="Wrap"
+                 IsVisible="{Binding StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                 AutomationProperties.LiveSetting="Polite" />
+    </StackPanel>
+
+    <Grid>
+      <NativeWebView x:Name="WikiWebView"
+                     AutomationProperties.Name="Wiki browser" />
+
+      <Border Background="{DynamicResource Theme.Bg0}"
+              Opacity="0.85"
+              IsVisible="{Binding IsLoading}"
+              HorizontalAlignment="Stretch"
+              VerticalAlignment="Stretch">
+        <TextBlock Text="Loading wiki..."
+                   Classes="muted"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center"
+                   FontSize="16" />
+      </Border>
+
+      <Border Background="{DynamicResource Theme.Bg0}"
+              IsVisible="{Binding HasError}"
+              Padding="24"
+              HorizontalAlignment="Stretch"
+              VerticalAlignment="Stretch">
+        <StackPanel Spacing="14"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    MaxWidth="520">
+          <TextBlock Text="{Binding ErrorMessage}"
+                     TextWrapping="Wrap"
+                     TextAlignment="Center"
+                     FontSize="15" />
+          <StackPanel Orientation="Horizontal"
+                      Spacing="8"
+                      HorizontalAlignment="Center">
+            <Button Classes="primary"
+                    Content="Retry"
+                    Command="{Binding RetryCommand}"
+                    AutomationProperties.Name="Retry wiki" />
+            <Button Classes="ghost"
+                    Content="Open in browser"
+                    Command="{Binding OpenInBrowserCommand}"
+                    AutomationProperties.Name="Open wiki in browser from error" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+    </Grid>
+  </DockPanel>
+</UserControl>

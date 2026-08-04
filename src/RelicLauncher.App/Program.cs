@@ -55,15 +55,39 @@ internal static class Program
     {
         IconProvider.Current.Register<MaterialDesignIconProvider>();
 
-        // Prefer native Wayland when available. UsePlatformDetect() stays on X11/XWayland
-        // unless UseWayland() is called explicitly (Avalonia 12.1+).
+        // Stay on X11 unless RELIC_USE_WAYLAND=1 on a real Wayland session.
+        // Auto-enabling Avalonia.Wayland from WAYLAND_DISPLAY alone breaks X11
+        // sessions and some XWayland setups (window never maps).
         var builder = AppBuilder.Configure<App>()
             .UsePlatformDetect();
 
-        if (OperatingSystem.IsLinux()
-            && Environment.GetEnvironmentVariable("WAYLAND_DISPLAY") is not null)
+        if (OperatingSystem.IsLinux())
         {
-            builder = builder.UseWayland();
+            // Glx on Virtio/QEMU can init then draw nothing. Software first is
+            // slower but maps a visible window. Override with RELIC_USE_GLX=1.
+            var preferGlx = string.Equals(
+                Environment.GetEnvironmentVariable("RELIC_USE_GLX"),
+                "1",
+                StringComparison.Ordinal);
+            builder = builder.With(new X11PlatformOptions
+            {
+                RenderingMode = preferGlx
+                    ?
+                    [
+                        X11RenderingMode.Glx,
+                        X11RenderingMode.Software,
+                    ]
+                    :
+                    [
+                        X11RenderingMode.Software,
+                        X11RenderingMode.Glx,
+                    ],
+            });
+
+            if (WantsNativeWayland())
+            {
+                builder = builder.UseWaylandWithFallback();
+            }
         }
 
         return builder
@@ -71,6 +95,27 @@ internal static class Program
             .WithDeveloperTools()
 #endif
             .LogToTrace();
+    }
+
+    private static bool WantsNativeWayland()
+    {
+        if (!string.Equals(
+                Environment.GetEnvironmentVariable("RELIC_USE_WAYLAND"),
+                "1",
+                StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        if (!string.Equals(
+                Environment.GetEnvironmentVariable("XDG_SESSION_TYPE"),
+                "wayland",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        return !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("WAYLAND_DISPLAY"));
     }
 
     internal static ServiceProvider BuildServices()
@@ -100,6 +145,7 @@ internal static class Program
         services.AddTransient<HomeViewModel>();
         services.AddTransient<VersionsViewModel>();
         services.AddTransient<ModsViewModel>();
+        services.AddTransient<WikiViewModel>();
         services.AddTransient<SettingsViewModel>();
         services.AddTransient<AboutViewModel>();
 

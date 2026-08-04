@@ -11,6 +11,7 @@ public sealed class EndpointSettings
     public string VersionCatalogUrl { get; set; } = VintageStoryEndpoints.VersionCatalogUrl;
     public string LatestStableUrl { get; set; } = VintageStoryEndpoints.LatestStableUrl;
     public string NewsBlogUrl { get; set; } = VintageStoryEndpoints.NewsBlogUrl;
+    public string WikiBaseUrl { get; set; } = VintageStoryEndpoints.WikiBaseUrl;
 
     public static EndpointSettings CreateDefaults() => new();
 
@@ -24,5 +25,6 @@ public sealed class EndpointSettings
             VersionCatalogUrl = VersionCatalogUrl,
             LatestStableUrl = LatestStableUrl,
             NewsBlogUrl = NewsBlogUrl,
+            WikiBaseUrl = WikiBaseUrl,
         };
 }
