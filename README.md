@@ -4,6 +4,8 @@
 
 Built with C# / .NET 10 and Avalonia 12.1. Targets the same desktop platforms Vintage Story supports: Windows 10+ x64, Linux x64 (X11 and native Wayland), and macOS 13+ (x64 and arm64).
 
+![Relic Launcher home (relic-default theme)](assets/screenshots/home-relic-default.png)
+
 ## Features
 
 - Sign in with your Vintage Story account
