@@ -9,8 +9,10 @@ Form POST:
 - URL: `https://account.vintagestory.at/attemptlogin`
 - Fields: `email`, `password`, `loginredir` (empty string OK)
 - Game account is separate from forum account
+- Relic posts with redirects disabled and treats HTTP 3xx away from `attemptlogin` as success
+- Failures are logged with status, location, cookie names, and a short body preview
 
-Relic stores session cookies via `ISecretStore` (encrypted under Relic `secrets/`). Never persist passwords.
+Relic stores session cookies via `ISecretStore` (encrypted under Relic `secrets/`). Never persist passwords. Persist failures after a remote success are surfaced as sign-in errors.
 
 ## Version catalog (public)
 
