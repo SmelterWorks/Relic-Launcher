@@ -1,4 +1,4 @@
-﻿using System.Runtime.InteropServices;
+using System.Runtime.InteropServices;
 using Avalonia;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -67,6 +67,7 @@ internal static class Program
         services.AddSingleton<IThemeService, AvaloniaThemeService>();
         services.AddSingleton<MainWindowHolder>();
         services.AddSingleton<IStoragePickerService, AvaloniaStoragePickerService>();
+        services.AddSingleton<IRemoteNewsImageLoader, RemoteNewsImageLoader>();
         services.AddSingleton<MainWindowViewModel>();
         services.AddTransient<HomeViewModel>();
         services.AddTransient<PlaceholderPageViewModel>();

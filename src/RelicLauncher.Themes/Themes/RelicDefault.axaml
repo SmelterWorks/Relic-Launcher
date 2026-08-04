@@ -15,7 +15,7 @@
   <Color x:Key="Theme.TextMutedColor">#FFA89880</Color>
   <Color x:Key="Theme.DangerColor">#FFA04838</Color>
   <Color x:Key="Theme.BorderColor">#FF3D3228</Color>
-  <Color x:Key="Theme.FogColor">#66201810</Color>
+  <Color x:Key="Theme.FogColor">#44201810</Color>
 
   <SolidColorBrush x:Key="Theme.Bg0" Color="{StaticResource Theme.Bg0Color}" />
   <SolidColorBrush x:Key="Theme.Bg1" Color="{StaticResource Theme.Bg1Color}" />

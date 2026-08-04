@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
@@ -13,6 +14,8 @@ public partial class HomeViewModel : PageViewModelBase
     private readonly IGameLocator _gameLocator;
     private readonly IProcessRunner _processRunner;
     private readonly IVintageStoryNewsService _newsService;
+    private readonly IRemoteNewsImageLoader _imageLoader;
+    private readonly IUrlLauncher _urlLauncher;
     private readonly ILogger<HomeViewModel> _logger;
     private LauncherSettings _settings = new();
     private string? _resolvedExecutable;
@@ -30,10 +33,10 @@ public partial class HomeViewModel : PageViewModelBase
     private bool _showBackgroundLogo;
 
     [ObservableProperty]
-    private string? _backgroundLogoSource;
+    private Bitmap? _backgroundLogo;
 
     [ObservableProperty]
-    private double _backgroundLogoOpacity = 0.12;
+    private double _backgroundLogoOpacity = 0.2;
 
     [ObservableProperty]
     private bool _isShowingArticle;
@@ -47,20 +50,22 @@ public partial class HomeViewModel : PageViewModelBase
     [ObservableProperty]
     private string _selectedArticlePublished = string.Empty;
 
-    [ObservableProperty]
-    private string _selectedArticleBody = string.Empty;
-
     public ObservableCollection<NewsArticleViewModel> NewsArticles { get; } = [];
+    public ObservableCollection<NewsContentBlockViewModel> SelectedArticleBlocks { get; } = [];
 
     public HomeViewModel(
         IGameLocator gameLocator,
         IProcessRunner processRunner,
         IVintageStoryNewsService newsService,
+        IRemoteNewsImageLoader imageLoader,
+        IUrlLauncher urlLauncher,
         ILogger<HomeViewModel> logger)
     {
         _gameLocator = gameLocator;
         _processRunner = processRunner;
         _newsService = newsService;
+        _imageLoader = imageLoader;
+        _urlLauncher = urlLauncher;
         _logger = logger;
         StatusMessage = "Set a Vintage Story install path in Settings to enable Play.";
     }
@@ -100,19 +105,27 @@ public partial class HomeViewModel : PageViewModelBase
 
     private async Task LoadNewsAsync()
     {
-        IsLoadingNews = true;
-        NewsStatusMessage = string.Empty;
-        NewsArticles.Clear();
+        var hadArticles = NewsArticles.Count > 0;
+        if (!hadArticles)
+        {
+            IsLoadingNews = true;
+        }
 
         var result = await _newsService.FetchLatestAsync(8).ConfigureAwait(true);
         IsLoadingNews = false;
 
         if (!result.IsSuccess)
         {
-            NewsStatusMessage = result.Error ?? "Could not load Vintage Story news.";
+            if (!hadArticles)
+            {
+                NewsStatusMessage = result.Error ?? "Could not load Vintage Story news.";
+            }
+
             return;
         }
 
+        NewsStatusMessage = string.Empty;
+        NewsArticles.Clear();
         foreach (var article in result.Value!)
         {
             NewsArticles.Add(new NewsArticleViewModel(article, ShowArticleAsync));
@@ -130,21 +143,43 @@ public partial class HomeViewModel : PageViewModelBase
         IsLoadingArticle = true;
         SelectedArticleTitle = article.Title;
         SelectedArticlePublished = article.PublishedLabel;
-        SelectedArticleBody = string.Empty;
+        SelectedArticleBlocks.Clear();
 
         var result = await _newsService.FetchArticleAsync(article.Url).ConfigureAwait(true);
         IsLoadingArticle = false;
 
         if (!result.IsSuccess)
         {
-            SelectedArticleBody = result.Error ?? "Could not load article.";
+            SelectedArticleBlocks.Clear();
+            SelectedArticleBlocks.Add(new NewsContentBlockViewModel(
+                new NewsContentBlock
+                {
+                    Kind = NewsContentBlockKind.Text,
+                    Text = result.Error ?? "Could not load article.",
+                },
+                _imageLoader,
+                _urlLauncher));
             return;
         }
 
         var detail = result.Value!;
         SelectedArticleTitle = detail.Title;
         SelectedArticlePublished = detail.PublishedLabel ?? article.PublishedLabel;
-        SelectedArticleBody = detail.Body;
+
+        foreach (var block in detail.Blocks)
+        {
+            var blockVm = new NewsContentBlockViewModel(block, _imageLoader, _urlLauncher);
+            SelectedArticleBlocks.Add(blockVm);
+            _ = blockVm.LoadImageAsync();
+        }
+
+        if (SelectedArticleBlocks.Count == 0 && !string.IsNullOrWhiteSpace(detail.Body))
+        {
+            SelectedArticleBlocks.Add(new NewsContentBlockViewModel(
+                new NewsContentBlock { Kind = NewsContentBlockKind.Text, Text = detail.Body },
+                _imageLoader,
+                _urlLauncher));
+        }
     }
 
     [RelayCommand]
@@ -173,7 +208,7 @@ public partial class HomeViewModel : PageViewModelBase
     {
         var logo = HomeBackgroundLogoResolver.Resolve(settings);
         ShowBackgroundLogo = logo.ShowLogo;
-        BackgroundLogoSource = logo.Source;
+        BackgroundLogo = logo.ShowLogo ? HomeBackgroundLogoImageLoader.Load(logo.Source) : null;
         BackgroundLogoOpacity = logo.Opacity;
     }
 }

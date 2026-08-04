@@ -6,4 +6,5 @@ public sealed class NewsArticleDetail
     public required string Url { get; init; }
     public string? PublishedLabel { get; init; }
     public required string Body { get; init; }
+    public IReadOnlyList<NewsContentBlock> Blocks { get; init; } = [];
 }

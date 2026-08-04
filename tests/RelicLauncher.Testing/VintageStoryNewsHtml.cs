@@ -53,4 +53,15 @@ public static class VintageStoryNewsHtml
         </script>
         </html>
         """;
+
+    public const string ArticleWithSectionMedia = """
+        <span class='ipsType_break ipsContained'>Media post</span>
+        <section class="ipsType_richText ipsContained ipsType_normal">
+        <p>Hello survivors</p>
+        <a class="ipsAttachLink ipsAttachLink_image" href="//media.vintagestory.at/monthly_2026_07/image.png">
+        <img src="//media.vintagestory.at/monthly_2026_07/image.thumb.png" alt="Screenshot" />
+        </a>
+        <iframe src="https://www.youtube.com/embed/dQw4w9WgXcQ"></iframe>
+        </section>
+        """;
 }

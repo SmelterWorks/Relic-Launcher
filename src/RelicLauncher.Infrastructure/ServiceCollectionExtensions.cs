@@ -22,6 +22,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IGameLocator, GameLocatorStub>();
         services.AddSingleton<IProcessRunner, SafeProcessRunner>();
         services.AddSingleton<IUpdateCheckService, UpdateCheckServiceStub>();
+        services.AddSingleton<NewsCacheStore>();
         services.AddSingleton<IVintageStoryNewsService, VintageStoryNewsService>();
         services.AddSingleton<IFileExplorerService, FileExplorerService>();
         services.AddSingleton<IUrlLauncher, UrlLauncher>();

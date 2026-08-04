@@ -9,5 +9,5 @@ public sealed class LauncherSettings
     public bool ConfirmBeforeExit { get; set; }
     public HomeBackgroundLogoMode HomeBackgroundLogoMode { get; set; } = HomeBackgroundLogoMode.Square;
     public string? HomeBackgroundCustomLogoPath { get; set; }
-    public double HomeBackgroundLogoOpacity { get; set; } = 0.12;
+    public double HomeBackgroundLogoOpacity { get; set; } = 0.2;
 }

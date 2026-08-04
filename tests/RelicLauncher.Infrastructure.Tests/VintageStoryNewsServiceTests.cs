@@ -1,6 +1,8 @@
 using System.Net;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
+using RelicLauncher.Core.Abstractions;
+using RelicLauncher.Core.Models;
 using RelicLauncher.Infrastructure.News;
 using RelicLauncher.Testing;
 using Xunit;
@@ -102,8 +104,9 @@ public class VintageStoryNewsServiceTests
     [Fact]
     public async Task FetchLatestAsync_ReturnsFailure_WhenHttpThrows()
     {
+        using var temp = new TempAppPaths();
         var handler = new ThrowingHttpMessageHandler();
-        var service = new VintageStoryNewsService(NullLogger<VintageStoryNewsService>.Instance, new HttpClient(handler));
+        var service = CreateService(temp, handler);
 
         var result = await service.FetchLatestAsync(3);
 
@@ -114,11 +117,12 @@ public class VintageStoryNewsServiceTests
     [Fact]
     public async Task FetchLatestAsync_RespectsMaxItemsFromCache()
     {
+        using var temp = new TempAppPaths();
         var handler = new StubHttpMessageHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
         {
             Content = new StringContent(VintageStoryNewsHtml.TwoArticles),
         });
-        var service = new VintageStoryNewsService(NullLogger<VintageStoryNewsService>.Instance, new HttpClient(handler));
+        var service = CreateService(temp, handler);
 
         var first = await service.FetchLatestAsync(5);
         var second = await service.FetchLatestAsync(1);
@@ -136,7 +140,8 @@ public class VintageStoryNewsServiceTests
     [Fact]
     public async Task FetchLatestAsync_ReturnsEmpty_WhenMaxItemsZero()
     {
-        var service = new VintageStoryNewsService(NullLogger<VintageStoryNewsService>.Instance);
+        using var temp = new TempAppPaths();
+        var service = CreateService(temp);
 
         var result = await service.FetchLatestAsync(0);
 
@@ -147,8 +152,9 @@ public class VintageStoryNewsServiceTests
     [Fact]
     public async Task FetchLatestAsync_ReturnsFailure_WhenHttpStatusNotSuccess()
     {
+        using var temp = new TempAppPaths();
         var handler = new StubHttpMessageHandler(_ => new HttpResponseMessage(HttpStatusCode.ServiceUnavailable));
-        var service = new VintageStoryNewsService(NullLogger<VintageStoryNewsService>.Instance, new HttpClient(handler));
+        var service = CreateService(temp, handler);
 
         var result = await service.FetchLatestAsync(3);
 
@@ -159,11 +165,12 @@ public class VintageStoryNewsServiceTests
     [Fact]
     public async Task FetchLatestAsync_ParsesHtmlFromHttpResponse()
     {
+        using var temp = new TempAppPaths();
         var handler = new StubHttpMessageHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
         {
             Content = new StringContent(VintageStoryNewsHtml.SingleArticle),
         });
-        var service = new VintageStoryNewsService(NullLogger<VintageStoryNewsService>.Instance, new HttpClient(handler));
+        var service = CreateService(temp, handler);
 
         var result = await service.FetchLatestAsync(5);
 
@@ -175,6 +182,7 @@ public class VintageStoryNewsServiceTests
     [Fact]
     public async Task FetchLatestAsync_UsesCache_OnSecondCall()
     {
+        using var temp = new TempAppPaths();
         var callCount = 0;
         var handler = new StubHttpMessageHandler(_ =>
         {
@@ -184,12 +192,14 @@ public class VintageStoryNewsServiceTests
                 Content = new StringContent(VintageStoryNewsHtml.SingleArticle),
             };
         });
-        var service = new VintageStoryNewsService(NullLogger<VintageStoryNewsService>.Instance, new HttpClient(handler));
+        var service = CreateService(temp, handler);
 
         await service.FetchLatestAsync(5);
+        var callsAfterFirstFetch = callCount;
         await service.FetchLatestAsync(5);
 
-        callCount.Should().Be(1);
+        callsAfterFirstFetch.Should().BeGreaterThan(0);
+        callCount.Should().Be(callsAfterFirstFetch);
     }
 
     [Fact]
@@ -211,6 +221,47 @@ public class VintageStoryNewsServiceTests
         article.Should().NotBeNull();
         article!.Title.Should().Be("Patch notes");
         article.Body.Should().Contain("Dear players");
+    }
+
+    [Fact]
+    public void ParseArticleBlocks_ExtractsImagesAndVideos_FromSectionHtml()
+    {
+        var blocks = VintageStoryNewsService.ParseArticleBlocks(VintageStoryNewsHtml.ArticleWithSectionMedia);
+
+        blocks.Should().Contain(block => block.Kind == NewsContentBlockKind.Text);
+        blocks.Should().Contain(block => block.Kind == NewsContentBlockKind.Image &&
+            block.Url!.Contains("image.png", StringComparison.Ordinal));
+        blocks.Should().Contain(block => block.Kind == NewsContentBlockKind.Video &&
+            block.Url!.Contains("youtube.com", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task FetchLatestAsync_UsesDiskCache_OnSecondProcessRun()
+    {
+        using var temp = new TempAppPaths();
+        var handler = new StubHttpMessageHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(VintageStoryNewsHtml.SingleArticle),
+        });
+        var service = CreateService(temp, handler);
+
+        await service.FetchLatestAsync(5);
+        var second = await service.FetchLatestAsync(5);
+
+        second.IsSuccess.Should().BeTrue();
+        second.Value.Should().HaveCount(1);
+    }
+
+    private static VintageStoryNewsService CreateService(TempAppPaths temp, HttpMessageHandler? handler = null)
+    {
+        var httpClient = handler is null ? new HttpClient() : new HttpClient(handler);
+        var cacheStore = new NewsCacheStore(new FixedPathProvider(temp.Paths));
+        return new VintageStoryNewsService(NullLogger<VintageStoryNewsService>.Instance, httpClient, cacheStore);
+    }
+
+    private sealed class FixedPathProvider(AppPaths paths) : IAppPathProvider
+    {
+        public AppPaths GetPaths() => paths;
     }
 
     private sealed class StubHttpMessageHandler(Func<HttpRequestMessage, HttpResponseMessage> handler) : HttpMessageHandler

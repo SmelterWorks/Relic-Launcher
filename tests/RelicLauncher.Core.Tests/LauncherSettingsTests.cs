@@ -14,7 +14,7 @@ public class LauncherSettingsTests
 
         settings.SelectedThemeId.Should().Be(LauncherSettings.DefaultThemeId);
         settings.HomeBackgroundLogoMode.Should().Be(HomeBackgroundLogoMode.Square);
-        settings.HomeBackgroundLogoOpacity.Should().Be(0.12);
+        settings.HomeBackgroundLogoOpacity.Should().Be(0.2);
         settings.ConfirmBeforeExit.Should().BeFalse();
         settings.GameInstallPath.Should().BeNull();
     }
