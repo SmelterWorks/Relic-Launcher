@@ -1,0 +1,109 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:RelicLauncher.App.ViewModels"
+             xmlns:i="https://github.com/projektanker/icons.avalonia"
+             x:Class="RelicLauncher.App.Views.Pages.HomePage"
+             x:DataType="vm:HomeViewModel">
+
+  <Grid>
+    <Panel>
+      <Border Background="{DynamicResource Theme.HeroBackground}" />
+      <Image Source="{Binding BackgroundLogoSource}"
+             IsVisible="{Binding ShowBackgroundLogo}"
+             Opacity="{Binding BackgroundLogoOpacity}"
+             Stretch="Uniform"
+             HorizontalAlignment="Center"
+             VerticalAlignment="Center"
+             MaxWidth="560"
+             MaxHeight="560"
+             IsHitTestVisible="False" />
+      <Border Background="{DynamicResource Theme.Fog}" IsHitTestVisible="False" />
+    </Panel>
+
+    <Grid RowDefinitions="Auto,*" Margin="28,24,28,24">
+      <StackPanel Grid.Row="0" Spacing="10" Margin="0,0,0,20">
+        <TextBlock Text="Launch" Classes="brand" FontSize="28" />
+        <StackPanel Orientation="Horizontal" Spacing="12">
+          <Button Classes="primary"
+                  Content="Play"
+                  Command="{Binding PlayCommand}"
+                  IsEnabled="{Binding CanPlay}"
+                  MinWidth="120" />
+        </StackPanel>
+        <TextBlock Text="{Binding StatusMessage}"
+                   Classes="muted"
+                   TextWrapping="Wrap" />
+      </StackPanel>
+
+      <Grid Grid.Row="1">
+        <ScrollViewer IsVisible="{Binding !IsShowingArticle}">
+          <StackPanel Spacing="12">
+            <StackPanel Orientation="Horizontal" Spacing="12">
+              <TextBlock Text="Vintage Story news" Classes="brand" FontSize="24" />
+              <TextBlock Text="Loading..."
+                         Classes="muted"
+                         IsVisible="{Binding IsLoadingNews}"
+                         VerticalAlignment="Center" />
+            </StackPanel>
+
+            <TextBlock Text="{Binding NewsStatusMessage}"
+                       Classes="muted"
+                       TextWrapping="Wrap"
+                       IsVisible="{Binding NewsStatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+
+            <ItemsControl ItemsSource="{Binding NewsArticles}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:NewsArticleViewModel">
+                  <Button Classes="ghost"
+                          HorizontalAlignment="Stretch"
+                          HorizontalContentAlignment="Stretch"
+                          Margin="0,0,0,8"
+                          Command="{Binding OpenCommand}">
+                    <StackPanel Spacing="4">
+                      <TextBlock Text="{Binding Title}"
+                                 TextWrapping="Wrap"
+                                 FontSize="16"
+                                 FontWeight="SemiBold" />
+                      <TextBlock Text="{Binding PublishedLabel}"
+                                 Classes="muted"
+                                 TextWrapping="Wrap"
+                                 IsVisible="{Binding PublishedLabel, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                    </StackPanel>
+                  </Button>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </ScrollViewer>
+
+        <ScrollViewer IsVisible="{Binding IsShowingArticle}">
+          <StackPanel Spacing="14">
+            <Button Classes="ghost"
+                    HorizontalAlignment="Left"
+                    Content="Back to news"
+                    Command="{Binding CloseArticleCommand}" />
+
+            <TextBlock Text="{Binding SelectedArticleTitle}"
+                       Classes="brand"
+                       FontSize="24"
+                       TextWrapping="Wrap" />
+
+            <TextBlock Text="{Binding SelectedArticlePublished}"
+                       Classes="muted"
+                       TextWrapping="Wrap"
+                       IsVisible="{Binding SelectedArticlePublished, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+
+            <TextBlock Text="Loading article..."
+                       Classes="muted"
+                       IsVisible="{Binding IsLoadingArticle}" />
+
+            <TextBlock Text="{Binding SelectedArticleBody}"
+                       TextWrapping="Wrap"
+                       LineHeight="24"
+                       IsVisible="{Binding !IsLoadingArticle}" />
+          </StackPanel>
+        </ScrollViewer>
+      </Grid>
+    </Grid>
+  </Grid>
+</UserControl>

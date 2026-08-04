@@ -1,0 +1,6 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>RelicLauncher.Core</RootNamespace>
+    <Description>Domain models and contracts for Relic Launcher. No UI or IO.</Description>
+  </PropertyGroup>
+</Project>

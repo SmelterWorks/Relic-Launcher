@@ -1,0 +1,21 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:RelicLauncher.App.ViewModels"
+             xmlns:controls="using:RelicLauncher.App.Views.Controls"
+             x:Class="RelicLauncher.App.Views.Pages.AboutPage"
+             x:DataType="vm:AboutViewModel">
+  <StackPanel Spacing="14" MaxWidth="640">
+    <controls:PageHeader Title="{Binding Title}" />
+    <TextBlock Text="{Binding Version, StringFormat=Version {0}}" Classes="muted" />
+    <TextBlock Text="{Binding CommitSha, StringFormat=Commit {0}}" Classes="muted" />
+    <TextBlock Text="{Binding BuildTimeUtc, StringFormat=Built {0} UTC}" Classes="muted" />
+    <TextBlock Text="{Binding Disclaimer}" TextWrapping="Wrap" FontSize="15" />
+
+    <controls:FolderPathRow DataContext="{Binding LogsFolder}" Margin="0,8,0,0" />
+
+    <TextBlock Text="{Binding StatusMessage}"
+               Classes="muted"
+               IsVisible="{Binding StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+    <TextBlock Text="License: 0BSD" Classes="muted" />
+  </StackPanel>
+</UserControl>

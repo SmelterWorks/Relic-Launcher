@@ -1,0 +1,22 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>RelicLauncher.Infrastructure.Tests</RootNamespace>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" />
+    <PackageReference Include="FluentAssertions" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\RelicLauncher.Core\RelicLauncher.Core.csproj" />
+    <ProjectReference Include="..\..\src\RelicLauncher.Infrastructure\RelicLauncher.Infrastructure.csproj" />
+    <ProjectReference Include="..\RelicLauncher.Testing\RelicLauncher.Testing.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,61 @@
+name: Bug report
+description: Something broke or behaved wrong
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Fill in the fields below. Attach a log excerpt when you can.
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - Windows 10/11 x64
+        - Linux x64
+        - macOS x64
+        - macOS arm64
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Relic Launcher version
+      placeholder: 0.1.0 or nightly-YYYYMMDD
+    validations:
+      required: true
+  - type: input
+    id: rid
+    attributes:
+      label: Publish RID used (if known)
+      placeholder: win-x64, linux-x64, osx-x64, osx-arm64
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open Relic Launcher
+        2. Set install path to ...
+        3. Click Play
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected result
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual result
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Log excerpt
+      description: From the RelicLauncher logs folder. Redact personal paths if needed.
+      render: text

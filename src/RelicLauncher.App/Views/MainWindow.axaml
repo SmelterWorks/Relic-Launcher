@@ -1,0 +1,59 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:RelicLauncher.App.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        d:DesignWidth="1100" d:DesignHeight="700"
+        x:Class="RelicLauncher.App.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Width="1100" Height="700"
+        MinWidth="900" MinHeight="560"
+        WindowStartupLocation="CenterScreen"
+        Title="Relic Launcher"
+        Opacity="{Binding ShellOpacity}">
+
+  <Window.Styles>
+    <Style Selector="Window">
+      <Setter Property="Transitions">
+        <Transitions>
+          <DoubleTransition Property="Opacity" Duration="0:0:0.45" />
+        </Transitions>
+      </Setter>
+    </Style>
+  </Window.Styles>
+
+  <Grid ColumnDefinitions="220,*">
+    <Border Grid.Column="0"
+            Background="{DynamicResource Theme.Bg1}"
+            BorderBrush="{DynamicResource Theme.Border}"
+            BorderThickness="0,0,1,0"
+            Padding="16,12">
+      <DockPanel LastChildFill="True">
+        <StackPanel DockPanel.Dock="Top" Spacing="2" Margin="0,0,0,18">
+          <TextBlock Text="Relic" Classes="brand" FontSize="28" />
+          <TextBlock Text="Launcher" Classes="muted" FontSize="14" />
+        </StackPanel>
+
+        <TextBlock DockPanel.Dock="Bottom"
+                   Text="{Binding AppVersion, StringFormat=v{0}}"
+                   Classes="muted"
+                   FontSize="11"
+                   HorizontalAlignment="Center"
+                   Margin="0,12,0,4" />
+
+        <StackPanel Spacing="6">
+          <Button Classes="nav" Classes.active="{Binding IsHomeActive}" Content="Home" Command="{Binding NavigateHomeCommand}" />
+          <Button Classes="nav" Classes.active="{Binding IsVersionsActive}" Content="Versions" Command="{Binding NavigateVersionsCommand}" />
+          <Button Classes="nav" Classes.active="{Binding IsModsActive}" Content="Mods" Command="{Binding NavigateModsCommand}" />
+          <Button Classes="nav" Classes.active="{Binding IsSettingsActive}" Content="Settings" Command="{Binding NavigateSettingsCommand}" />
+          <Button Classes="nav" Classes.active="{Binding IsAboutActive}" Content="About" Command="{Binding NavigateAboutCommand}" />
+        </StackPanel>
+      </DockPanel>
+    </Border>
+
+    <ContentControl Grid.Column="1"
+                    Content="{Binding CurrentPage}"
+                    Padding="{Binding ContentPadding}" />
+  </Grid>
+</Window>

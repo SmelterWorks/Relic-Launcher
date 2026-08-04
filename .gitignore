@@ -1,0 +1,43 @@
+## .NET
+bin/
+obj/
+out/
+artifacts/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+.vs/
+.idea/
+*.DotSettings.user
+
+## Build
+[Bb]uild/
+[Ll]og/
+[Ll]ogs/
+*.log
+TestResults/
+coverage/
+*.coverage
+*.coveragexml
+StrykerOutput/
+
+## OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+## Secrets / local
+.env
+.env.*
+*.pfx
+*.snk
+
+## NuGet / tooling local caches (if present in tree)
+.nuget/
+.dotnet-cli/
+
+## Publish
+publish/
+*.nupkg
+*.snupkg

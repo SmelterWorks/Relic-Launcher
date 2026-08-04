@@ -1,0 +1,16 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="using:RelicLauncher.App.Views.Controls"
+             x:Class="RelicLauncher.App.Views.Controls.PageHeader"
+             x:Name="PageHeaderRoot"
+             x:DataType="controls:PageHeader">
+  <StackPanel Spacing="4">
+    <TextBlock Text="{Binding #PageHeaderRoot.Title}"
+               Classes="brand"
+               FontSize="32" />
+    <TextBlock Text="{Binding #PageHeaderRoot.Subtitle}"
+               Classes="muted"
+               TextWrapping="Wrap"
+               IsVisible="{Binding #PageHeaderRoot.Subtitle, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+  </StackPanel>
+</UserControl>

@@ -1,0 +1,130 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  CI: true
+
+jobs:
+  build-test:
+    name: build-test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Restore
+        run: dotnet restore RelicLauncher.sln
+
+      - name: Format check
+        if: matrix.os == 'ubuntu-latest'
+        run: dotnet format RelicLauncher.sln --verify-no-changes --severity error
+
+      - name: Build
+        run: dotnet build RelicLauncher.sln -c Release --no-restore
+
+      - name: Test
+        run: dotnet test RelicLauncher.sln -c Release --no-build --verbosity normal
+
+  mutation-test:
+    name: mutation-test
+    needs: build-test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Restore
+        run: dotnet restore RelicLauncher.sln
+
+      - name: Build
+        run: dotnet build RelicLauncher.sln -c Release --no-restore
+
+      - name: Restore dotnet tools
+        run: dotnet tool restore
+
+      - name: Mutation test Core
+        run: dotnet stryker --config-file stryker.core.json --output StrykerOutput/core
+
+      - name: Mutation test Infrastructure
+        run: dotnet stryker --config-file stryker.infrastructure.json --output StrykerOutput/infrastructure
+
+      - name: Upload mutation reports
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: stryker-reports
+          path: StrykerOutput
+          retention-days: 14
+          if-no-files-found: warn
+
+  publish-dry:
+    name: publish-dry (${{ matrix.rid }})
+    needs: build-test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            rid: win-x64
+          - os: ubuntu-latest
+            rid: linux-x64
+          - os: macos-latest
+            rid: osx-arm64
+          - os: macos-latest
+            rid: osx-x64
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Publish
+        shell: bash
+        env:
+          RID: ${{ matrix.rid }}
+        run: |
+          set -euo pipefail
+          dotnet publish src/RelicLauncher.App/RelicLauncher.App.csproj \
+            -c Release \
+            -r "$RID" \
+            --self-contained false \
+            -o "artifacts/${RID}"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: relic-launcher-${{ matrix.rid }}
+          path: artifacts/${{ matrix.rid }}
+          retention-days: 7
+          if-no-files-found: error

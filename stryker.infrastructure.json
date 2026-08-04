@@ -1,0 +1,26 @@
+{
+  "stryker-config": {
+    "solution": "RelicLauncher.Mutation.sln",
+    "project": "src/RelicLauncher.Infrastructure/RelicLauncher.Infrastructure.csproj",
+    "test-projects": [
+      "tests/RelicLauncher.Infrastructure.Tests/RelicLauncher.Infrastructure.Tests.csproj"
+    ],
+    "reporters": [
+      "progress",
+      "html",
+      "json"
+    ],
+    "thresholds": {
+      "high": 70,
+      "low": 50,
+      "break": 40
+    },
+    "verbosity": "info",
+    "mutate": [
+      "!**/Logging/**",
+      "!**/Hosting/**",
+      "!**/Paths/FileExplorerService.cs",
+      "!**/Paths/UrlLauncher.cs"
+    ]
+  }
+}

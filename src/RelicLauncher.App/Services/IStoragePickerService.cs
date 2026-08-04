@@ -1,0 +1,8 @@
+namespace RelicLauncher.App.Services;
+
+public interface IStoragePickerService
+{
+    Task<string?> PickFolderAsync(string? title = null);
+
+    Task<string?> PickImageFileAsync(string? title = null);
+}

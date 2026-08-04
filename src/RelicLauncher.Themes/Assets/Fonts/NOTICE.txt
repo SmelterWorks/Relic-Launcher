@@ -1,0 +1,6 @@
+# Font attribution
+#
+# Source Serif 4 Regular
+# Copyright 2014-2021 Adobe (http://www.adobe.com/)
+# SIL Open Font License 1.1
+# https://github.com/adobe-fonts/source-serif

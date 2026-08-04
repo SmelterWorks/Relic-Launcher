@@ -1,0 +1,99 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:RelicLauncher.App.ViewModels"
+             xmlns:controls="using:RelicLauncher.App.Views.Controls"
+             xmlns:i="https://github.com/projektanker/icons.avalonia"
+             x:Class="RelicLauncher.App.Views.Pages.SettingsPage"
+             x:DataType="vm:SettingsViewModel">
+  <ScrollViewer>
+    <StackPanel Spacing="16" MaxWidth="640">
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+        <controls:PageHeader Grid.Column="0"
+                             Title="Settings"
+                             Subtitle="Install path, theme, home background, and log locations." />
+        <TextBlock Grid.Column="1"
+                   Text="{Binding SaveStatusMessage}"
+                   Classes="muted"
+                   VerticalAlignment="Top"
+                   Margin="0,4,0,0"
+                   IsVisible="{Binding IsSaveStatusVisible}" />
+      </Grid>
+
+      <TextBlock Text="Game install path" Margin="0,12,0,0" />
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+        <TextBox Grid.Column="0"
+                 Text="{Binding GameInstallPath}"
+                 PlaceholderText="/path/to/Vintagestory" />
+        <Button Grid.Column="1"
+                Classes="ghost"
+                Width="40"
+                Height="40"
+                Padding="0"
+                ToolTip.Tip="Select install folder"
+                Command="{Binding BrowseGameInstallPathCommand}">
+          <i:Icon Value="mdi-folder" Width="18" Height="18" />
+        </Button>
+      </Grid>
+
+      <TextBlock Text="Theme" Margin="0,8,0,0" />
+      <ComboBox ItemsSource="{Binding Themes}"
+                SelectedItem="{Binding SelectedTheme}"
+                MinWidth="280">
+        <ComboBox.ItemTemplate>
+          <DataTemplate>
+            <TextBlock Text="{Binding DisplayName}" />
+          </DataTemplate>
+        </ComboBox.ItemTemplate>
+      </ComboBox>
+
+      <TextBlock Text="Home background logo" Margin="0,8,0,0" />
+      <ComboBox ItemsSource="{Binding LogoModeOptions}"
+                SelectedItem="{Binding SelectedLogoModeOption}"
+                MinWidth="280">
+        <ComboBox.ItemTemplate>
+          <DataTemplate x:DataType="vm:LogoModeOption">
+            <TextBlock Text="{Binding Label}" />
+          </DataTemplate>
+        </ComboBox.ItemTemplate>
+      </ComboBox>
+
+      <StackPanel IsVisible="{Binding IsCustomLogoMode}" Spacing="8" Margin="0,8,0,0">
+        <TextBlock Text="Custom logo file path" />
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+          <TextBox Grid.Column="0"
+                   Text="{Binding HomeBackgroundCustomLogoPath}"
+                   PlaceholderText="/path/to/logo.png" />
+          <Button Grid.Column="1"
+                  Classes="ghost"
+                  Width="40"
+                  Height="40"
+                  Padding="0"
+                  ToolTip.Tip="Select image file"
+                  Command="{Binding BrowseCustomLogoPathCommand}">
+            <i:Icon Value="mdi-file-image" Width="18" Height="18" />
+          </Button>
+        </Grid>
+      </StackPanel>
+
+      <StackPanel Spacing="6" Margin="0,8,0,0">
+        <TextBlock Text="Logo opacity" />
+        <Slider Minimum="0.02"
+                Maximum="0.35"
+                Value="{Binding HomeBackgroundLogoOpacity}"
+                TickFrequency="0.01"
+                IsSnapToTickEnabled="True" />
+      </StackPanel>
+
+      <CheckBox Content="Confirm before exit"
+                IsChecked="{Binding ConfirmBeforeExit}"
+                Margin="0,8,0,0" />
+
+      <controls:FolderPathRow DataContext="{Binding LogsFolder}" Margin="0,12,0,0" />
+      <controls:FolderPathRow DataContext="{Binding ThemesFolder}" Margin="0,8,0,0" />
+
+      <TextBlock Text="{Binding StatusMessage}"
+                 Classes="muted"
+                 IsVisible="{Binding StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

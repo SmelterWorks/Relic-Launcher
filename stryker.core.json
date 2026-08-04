@@ -1,0 +1,20 @@
+{
+  "stryker-config": {
+    "solution": "RelicLauncher.Mutation.sln",
+    "project": "src/RelicLauncher.Core/RelicLauncher.Core.csproj",
+    "test-projects": [
+      "tests/RelicLauncher.Core.Tests/RelicLauncher.Core.Tests.csproj"
+    ],
+    "reporters": [
+      "progress",
+      "html",
+      "json"
+    ],
+    "thresholds": {
+      "high": 75,
+      "low": 55,
+      "break": 50
+    },
+    "verbosity": "info"
+  }
+}

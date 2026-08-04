@@ -1,0 +1,28 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:RelicLauncher.App.ViewModels"
+             xmlns:i="https://github.com/projektanker/icons.avalonia"
+             x:Class="RelicLauncher.App.Views.Controls.FolderPathRow"
+             x:DataType="vm:FolderPathRowViewModel">
+  <StackPanel Spacing="4">
+    <TextBlock Text="{Binding Label}" Classes="muted" />
+    <StackPanel Orientation="Horizontal" Spacing="8">
+      <TextBlock Text="{Binding Path}"
+                 Classes="muted"
+                 TextWrapping="Wrap"
+                 VerticalAlignment="Center" />
+      <Button Classes="ghost"
+              Width="36"
+              Height="36"
+              Padding="0"
+              ToolTip.Tip="Open folder"
+              Command="{Binding OpenFolderCommand}">
+        <i:Icon Value="mdi-folder-open" Width="18" Height="18" />
+      </Button>
+    </StackPanel>
+    <TextBlock Text="{Binding StatusMessage}"
+               Classes="muted"
+               TextWrapping="Wrap"
+               IsVisible="{Binding StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+  </StackPanel>
+</UserControl>

@@ -1,0 +1,38 @@
+<Project>
+  <PropertyGroup>
+    <GitCommitSha>unknown</GitCommitSha>
+    <BuildTimeUtc>$([System.DateTime]::UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ"))</BuildTimeUtc>
+  </PropertyGroup>
+
+  <Target Name="SetBuildMetadata" BeforeTargets="CoreGenerateAssemblyInfo" Condition="'$(MSBuildProjectName)' == 'RelicLauncher.Core'">
+    <Exec Command="git rev-parse --short HEAD 2&gt;nul"
+          ConsoleToMSBuild="true"
+          IgnoreExitCode="true"
+          StandardOutputImportance="low"
+          Condition="'$(OS)' == 'Windows_NT'">
+      <Output TaskParameter="ConsoleOutput" PropertyName="GitCommitShaRaw" />
+    </Exec>
+    <Exec Command="git rev-parse --short HEAD 2>/dev/null"
+          ConsoleToMSBuild="true"
+          IgnoreExitCode="true"
+          StandardOutputImportance="low"
+          Condition="'$(OS)' != 'Windows_NT'">
+      <Output TaskParameter="ConsoleOutput" PropertyName="GitCommitShaRaw" />
+    </Exec>
+    <PropertyGroup>
+      <GitCommitShaRaw>$([System.String]::Copy('$(GitCommitShaRaw)').Trim())</GitCommitShaRaw>
+      <GitCommitSha Condition="$([System.Text.RegularExpressions.Regex]::IsMatch('$(GitCommitShaRaw)', '^[0-9a-fA-F]{7,40}$'))">$(GitCommitShaRaw)</GitCommitSha>
+      <InformationalVersion>$(VersionPrefix)$(VersionSuffix)+$(GitCommitSha)</InformationalVersion>
+    </PropertyGroup>
+    <ItemGroup>
+      <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+        <_Parameter1>CommitSha</_Parameter1>
+        <_Parameter2>$(GitCommitSha)</_Parameter2>
+      </AssemblyAttribute>
+      <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+        <_Parameter1>BuildTimeUtc</_Parameter1>
+        <_Parameter2>$(BuildTimeUtc)</_Parameter2>
+      </AssemblyAttribute>
+    </ItemGroup>
+  </Target>
+</Project>
