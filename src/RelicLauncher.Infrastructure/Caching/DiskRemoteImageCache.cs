@@ -4,6 +4,7 @@ using System.Security.Cryptography;
 using System.Text;
 using Microsoft.Extensions.Logging;
 using RelicLauncher.Core.Abstractions;
+using RelicLauncher.Core.Constants;
 
 namespace RelicLauncher.Infrastructure.Caching;
 
@@ -12,6 +13,8 @@ public sealed class DiskRemoteImageCache : IRemoteImageCache, IDisposable
     private readonly HttpClient _httpClient;
     private readonly string _cacheDir;
     private readonly ConcurrentDictionary<string, byte[]> _memory = new(StringComparer.OrdinalIgnoreCase);
+    private readonly LinkedList<string> _lru = new();
+    private readonly Lock _lruGate = new();
     private readonly ILogger<DiskRemoteImageCache> _logger;
 
     public DiskRemoteImageCache(IAppPathProvider pathProvider, ILogger<DiskRemoteImageCache> logger)
@@ -39,29 +42,19 @@ public sealed class DiskRemoteImageCache : IRemoteImageCache, IDisposable
 
         if (_memory.TryGetValue(normalized, out var cached))
         {
+            Touch(normalized);
             return cached;
         }
 
-        var path = GetPath(normalized);
         try
         {
-            if (File.Exists(path))
+            var fromDisk = await TryReadDiskAsync(normalized, cancellationToken).ConfigureAwait(false);
+            if (fromDisk is not null)
             {
-                var disk = await File.ReadAllBytesAsync(path, cancellationToken).ConfigureAwait(false);
-                _memory[normalized] = disk;
-                return disk;
+                return fromDisk;
             }
 
-            using var response = await _httpClient.GetAsync(normalized, cancellationToken).ConfigureAwait(false);
-            if (!response.IsSuccessStatusCode)
-            {
-                return null;
-            }
-
-            var bytes = await response.Content.ReadAsByteArrayAsync(cancellationToken).ConfigureAwait(false);
-            await File.WriteAllBytesAsync(path, bytes, cancellationToken).ConfigureAwait(false);
-            _memory[normalized] = bytes;
-            return bytes;
+            return await FetchAndStoreAsync(normalized, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex) when (ex is HttpRequestException or IOException or TaskCanceledException)
         {
@@ -71,6 +64,95 @@ public sealed class DiskRemoteImageCache : IRemoteImageCache, IDisposable
     }
 
     public void Dispose() => _httpClient.Dispose();
+
+    private async Task<byte[]?> TryReadDiskAsync(string normalized, CancellationToken cancellationToken)
+    {
+        var path = GetPath(normalized);
+        if (!File.Exists(path))
+        {
+            return null;
+        }
+
+        var disk = await File.ReadAllBytesAsync(path, cancellationToken).ConfigureAwait(false);
+        if (disk.Length > RelicDefaults.MaxRemoteImageBytes)
+        {
+            return null;
+        }
+
+        Remember(normalized, disk);
+        return disk;
+    }
+
+    private async Task<byte[]?> FetchAndStoreAsync(string normalized, CancellationToken cancellationToken)
+    {
+        using var response = await _httpClient.GetAsync(normalized, HttpCompletionOption.ResponseHeadersRead, cancellationToken)
+            .ConfigureAwait(false);
+        if (!response.IsSuccessStatusCode)
+        {
+            return null;
+        }
+
+        var length = response.Content.Headers.ContentLength;
+        if (length is > 0 && length.Value > RelicDefaults.MaxRemoteImageBytes)
+        {
+            return null;
+        }
+
+        using var input = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+        using var buffer = new MemoryStream();
+        var chunk = new byte[81920];
+        long total = 0;
+        int read;
+        while ((read = await input.ReadAsync(chunk.AsMemory(0, chunk.Length), cancellationToken).ConfigureAwait(false)) > 0)
+        {
+            total += read;
+            if (total > RelicDefaults.MaxRemoteImageBytes)
+            {
+                return null;
+            }
+
+            await buffer.WriteAsync(chunk.AsMemory(0, read), cancellationToken).ConfigureAwait(false);
+        }
+
+        var bytes = buffer.ToArray();
+        await File.WriteAllBytesAsync(GetPath(normalized), bytes, cancellationToken).ConfigureAwait(false);
+        Remember(normalized, bytes);
+        return bytes;
+    }
+
+    private void Remember(string key, byte[] bytes)
+    {
+        _memory[key] = bytes;
+        Touch(key);
+        EvictIfNeeded();
+    }
+
+    private void Touch(string key)
+    {
+        lock (_lruGate)
+        {
+            _lru.Remove(key);
+            _lru.AddFirst(key);
+        }
+    }
+
+    private void EvictIfNeeded()
+    {
+        lock (_lruGate)
+        {
+            while (_lru.Count > RelicDefaults.RemoteImageMemoryCacheEntries)
+            {
+                var last = _lru.Last;
+                if (last is null)
+                {
+                    break;
+                }
+
+                _lru.RemoveLast();
+                _memory.TryRemove(last.Value, out _);
+            }
+        }
+    }
 
     private string GetPath(string url)
     {

@@ -20,6 +20,7 @@ public partial class SettingsViewModel : PageViewModelBase
     private readonly IRuntimePlatform _platform;
     private readonly IAccountAuthService _accountAuth;
     private readonly IDebugLogBuffer _debugLogBuffer;
+    private readonly IConfirmDialogService _confirmDialog;
     private readonly ILogger<SettingsViewModel> _logger;
     private Action<LauncherSettings>? _onChanged;
     private bool _isBinding;
@@ -117,6 +118,7 @@ public partial class SettingsViewModel : PageViewModelBase
         IAccountAuthService accountAuth,
         IFileExplorerService fileExplorer,
         IDebugLogBuffer debugLogBuffer,
+        IConfirmDialogService confirmDialog,
         ILogger<SettingsViewModel> logger)
     {
         _settingsStore = settingsStore;
@@ -126,6 +128,7 @@ public partial class SettingsViewModel : PageViewModelBase
         _platform = platform;
         _accountAuth = accountAuth;
         _debugLogBuffer = debugLogBuffer;
+        _confirmDialog = confirmDialog;
         _logger = logger;
         Themes = _themeService.AvailableThemes;
         LogoModeOptions =
@@ -334,6 +337,16 @@ public partial class SettingsViewModel : PageViewModelBase
     [RelayCommand]
     private async Task ResetSettingsAsync()
     {
+        var confirmed = await _confirmDialog.ConfirmAsync(
+            "Reset settings",
+            "Restore all launcher settings to defaults? Your account session is kept.",
+            "Reset",
+            "Cancel").ConfigureAwait(true);
+        if (!confirmed)
+        {
+            return;
+        }
+
         _isBinding = true;
         var platform = _platform.GetPlatformInfo();
         InstallsRoot = platform.DefaultInstallsRoot;

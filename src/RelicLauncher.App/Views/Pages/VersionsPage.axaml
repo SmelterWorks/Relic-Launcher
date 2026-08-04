@@ -16,10 +16,11 @@
                  MinWidth="140"
                  Height="40"
                  VerticalContentAlignment="Center"
-                 VerticalAlignment="Center" />
-        <Button Classes="ghost" Content="Refresh" Command="{Binding RefreshCommand}" IsEnabled="{Binding !IsLoading}" />
-        <CheckBox Content="Stable" IsChecked="{Binding ShowStable}" />
-        <CheckBox Content="Unstable" IsChecked="{Binding ShowUnstable}" />
+                 VerticalAlignment="Center"
+                 AutomationProperties.Name="Search versions" />
+        <Button Classes="ghost" Content="Refresh" Command="{Binding RefreshCommand}" IsEnabled="{Binding !IsLoading}" AutomationProperties.Name="Refresh versions" />
+        <CheckBox Content="Stable" IsChecked="{Binding ShowStable}" AutomationProperties.Name="Show stable versions" />
+        <CheckBox Content="Unstable" IsChecked="{Binding ShowUnstable}" AutomationProperties.Name="Show unstable versions" />
         <TextBlock Text="{Binding LatestStable, StringFormat=Latest stable: {0}}"
                    Classes="muted"
                    VerticalAlignment="Center"
@@ -47,6 +48,7 @@
       <TextBlock Text="{Binding StatusMessage}"
                  Classes="muted"
                  TextWrapping="Wrap"
+                 AutomationProperties.LiveSetting="Polite"
                  IsVisible="{Binding StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
       <TextBlock Text="Loading..." Classes="muted" IsVisible="{Binding IsLoading}" />
       <TextBlock Text="{Binding EmptyMessage}"

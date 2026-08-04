@@ -26,27 +26,30 @@
           <Button Classes="primary"
                   Content="Play"
                   Command="{Binding PlayCommand}"
-                  IsEnabled="{Binding CanPlay}"
-                  MinWidth="120" />
+                  MinWidth="120"
+                  AutomationProperties.Name="Play Vintage Story" />
           <ComboBox ItemsSource="{Binding InstalledVersions}"
                     SelectedItem="{Binding SelectedInstalledVersion}"
                     MinWidth="140"
                     PlaceholderText="Version"
                     IsEnabled="{Binding HasInstalledVersions}"
-                    VerticalAlignment="Center" />
+                    VerticalAlignment="Center"
+                    AutomationProperties.Name="Installed version" />
           <Button Classes="ghost"
                   Content="Sign in"
                   Command="{Binding GoToSignInCommand}"
                   IsVisible="{Binding ShowSignInPrompt}"
                   VerticalAlignment="Center"
-                  MinWidth="100" />
+                  MinWidth="100"
+                  AutomationProperties.Name="Sign in" />
         </StackPanel>
         <TextBlock Text="{Binding ActiveVersionLabel}"
                    Classes="muted"
                    TextWrapping="Wrap" />
         <TextBlock Text="{Binding StatusMessage}"
                    Classes="muted"
-                   TextWrapping="Wrap" />
+                   TextWrapping="Wrap"
+                   AutomationProperties.LiveSetting="Polite" />
       </StackPanel>
 
       <Grid Grid.Row="1">
@@ -58,11 +61,18 @@
                          Classes="muted"
                          IsVisible="{Binding IsLoadingNews}"
                          VerticalAlignment="Center" />
+              <Button Classes="ghost"
+                      Content="Retry"
+                      Command="{Binding RetryNewsCommand}"
+                      IsVisible="{Binding NewsStatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                      VerticalAlignment="Center"
+                      AutomationProperties.Name="Retry loading news" />
             </StackPanel>
 
             <TextBlock Text="{Binding NewsStatusMessage}"
                        Classes="muted"
                        TextWrapping="Wrap"
+                       AutomationProperties.LiveSetting="Polite"
                        IsVisible="{Binding NewsStatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
 
             <ItemsControl ItemsSource="{Binding NewsArticles}">

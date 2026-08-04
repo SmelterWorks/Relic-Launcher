@@ -94,12 +94,12 @@ internal static class Program
         services.AddSingleton<IThemeService, AvaloniaThemeService>();
         services.AddSingleton<MainWindowHolder>();
         services.AddSingleton<IStoragePickerService, AvaloniaStoragePickerService>();
+        services.AddSingleton<IConfirmDialogService, AvaloniaConfirmDialogService>();
         services.AddSingleton<IRemoteNewsImageLoader, RemoteNewsImageLoader>();
         services.AddSingleton<MainWindowViewModel>();
         services.AddTransient<HomeViewModel>();
         services.AddTransient<VersionsViewModel>();
         services.AddTransient<ModsViewModel>();
-        services.AddTransient<PlaceholderPageViewModel>();
         services.AddTransient<SettingsViewModel>();
         services.AddTransient<AboutViewModel>();
 

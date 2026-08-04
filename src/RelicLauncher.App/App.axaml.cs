@@ -27,20 +27,20 @@ public partial class App : Application
         AvaloniaXamlLoader.Load(this);
     }
 
-    public override void OnFrameworkInitializationCompleted()
+    public override async void OnFrameworkInitializationCompleted()
     {
         Dispatcher.UIThread.UnhandledException += OnDispatcherUnhandledException;
         _services = Program.BuildServices();
 
         var logger = _services.GetRequiredService<ILogger<App>>();
-        var settings = LoadSettings(_services, logger);
+        var settings = await LoadSettingsAsync(_services, logger).ConfigureAwait(true);
         ApplyStartupTheme(_services, settings, logger);
         ConfigureDesktopLifetime(_services, settings, logger);
 
         base.OnFrameworkInitializationCompleted();
     }
 
-    private static LauncherSettings LoadSettings(ServiceProvider services, ILogger<App> logger)
+    private static async Task<LauncherSettings> LoadSettingsAsync(ServiceProvider services, ILogger<App> logger)
     {
         var settingsStore = services.GetRequiredService<ILauncherSettingsStore>();
         var paths = services.GetRequiredService<IAppPathProvider>().GetPaths();
@@ -48,7 +48,7 @@ public partial class App : Application
         Directory.CreateDirectory(paths.LogsDirectory);
         Directory.CreateDirectory(paths.ThemesDirectory);
 
-        var settingsResult = settingsStore.LoadAsync().GetAwaiter().GetResult();
+        var settingsResult = await settingsStore.LoadAsync().ConfigureAwait(true);
         if (!settingsResult.IsSuccess)
         {
             logger.LogWarning("Settings load failed: {Error}. Using defaults.", settingsResult.Error);

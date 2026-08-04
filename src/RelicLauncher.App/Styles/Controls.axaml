@@ -78,18 +78,60 @@
     <Setter Property="Foreground" Value="{DynamicResource Theme.Accent}" />
   </Style>
 
+  <Style Selector="Button:focus-visible /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="BorderBrush" Value="{DynamicResource Theme.Accent}" />
+    <Setter Property="BorderThickness" Value="2" />
+  </Style>
+
   <Style Selector="TextBox">
     <Setter Property="Background" Value="{DynamicResource Theme.Bg2}" />
     <Setter Property="Foreground" Value="{DynamicResource Theme.Text}" />
     <Setter Property="BorderBrush" Value="{DynamicResource Theme.Border}" />
     <Setter Property="CaretBrush" Value="{DynamicResource Theme.Accent}" />
+    <Setter Property="SelectionBrush" Value="{DynamicResource Theme.AccentMuted}" />
     <Setter Property="VerticalContentAlignment" Value="Center" />
+  </Style>
+
+  <Style Selector="TextBox:focus">
+    <Setter Property="BorderBrush" Value="{DynamicResource Theme.Accent}" />
   </Style>
 
   <Style Selector="ComboBox">
     <Setter Property="Background" Value="{DynamicResource Theme.Bg2}" />
     <Setter Property="Foreground" Value="{DynamicResource Theme.Text}" />
     <Setter Property="BorderBrush" Value="{DynamicResource Theme.Border}" />
+  </Style>
+
+  <Style Selector="ComboBox:focus">
+    <Setter Property="BorderBrush" Value="{DynamicResource Theme.Accent}" />
+  </Style>
+
+  <Style Selector="CheckBox">
+    <Setter Property="Foreground" Value="{DynamicResource Theme.Text}" />
+  </Style>
+
+  <Style Selector="ProgressBar">
+    <Setter Property="Foreground" Value="{DynamicResource Theme.Accent}" />
+    <Setter Property="Background" Value="{DynamicResource Theme.Bg2}" />
+  </Style>
+
+  <Style Selector="TabControl">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Padding" Value="0" />
+  </Style>
+
+  <Style Selector="TabItem">
+    <Setter Property="Foreground" Value="{DynamicResource Theme.TextMuted}" />
+    <Setter Property="FontSize" Value="14" />
+    <Setter Property="Padding" Value="14,8" />
+  </Style>
+
+  <Style Selector="TabItem:selected">
+    <Setter Property="Foreground" Value="{DynamicResource Theme.Accent}" />
+  </Style>
+
+  <Style Selector="ScrollBar">
+    <Setter Property="AllowAutoHide" Value="False" />
   </Style>
 
   <Style Selector="Button.settings-section-header">

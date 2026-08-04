@@ -16,7 +16,7 @@ public class AccountAuthServiceTests
     public async Task LoginAsync_PersistsSession_WhenAuthServerReturnsValid()
     {
         using var temp = new TempAppPaths();
-        var secrets = new FileSecretStore(new FixedPathProvider(temp.Paths));
+        var secrets = new PlatformSecretStore(new FixedPathProvider(temp.Paths));
         var handler = new StubHandler(request =>
         {
             if (request.RequestUri!.AbsolutePath.Contains("latestunstable", StringComparison.OrdinalIgnoreCase))
@@ -58,7 +58,7 @@ public class AccountAuthServiceTests
     public async Task LoginAsync_Fails_WhenPasswordInvalid()
     {
         using var temp = new TempAppPaths();
-        var secrets = new FileSecretStore(new FixedPathProvider(temp.Paths));
+        var secrets = new PlatformSecretStore(new FixedPathProvider(temp.Paths));
         var handler = new StubHandler(request =>
         {
             if (request.RequestUri!.AbsolutePath.Contains("latestunstable", StringComparison.OrdinalIgnoreCase))
@@ -90,7 +90,7 @@ public class AccountAuthServiceTests
     public async Task LoginAsync_SignalsTotp_WhenRequired()
     {
         using var temp = new TempAppPaths();
-        var secrets = new FileSecretStore(new FixedPathProvider(temp.Paths));
+        var secrets = new PlatformSecretStore(new FixedPathProvider(temp.Paths));
         var handler = new StubHandler(request =>
         {
             if (request.RequestUri!.AbsolutePath.Contains("latestunstable", StringComparison.OrdinalIgnoreCase))

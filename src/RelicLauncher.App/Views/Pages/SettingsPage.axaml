@@ -35,17 +35,20 @@
             <StackPanel Spacing="8" IsVisible="{Binding !IsSignedIn}">
               <TextBox Text="{Binding AccountEmail}"
                        PlaceholderText="Email"
-                       IsEnabled="{Binding !IsSigningIn}" />
+                       IsEnabled="{Binding !IsSigningIn}"
+                       AutomationProperties.Name="Account email" />
               <TextBox Text="{Binding AccountPassword}"
                        PasswordChar="*"
                        PlaceholderText="Password"
-                       IsEnabled="{Binding !IsSigningIn}" />
+                       IsEnabled="{Binding !IsSigningIn}"
+                       AutomationProperties.Name="Account password" />
               <StackPanel Spacing="4" IsVisible="{Binding RequiresTotp}">
                 <TextBlock Text="Access code (2FA)" Classes="settings-field-label" />
                 <TextBox Text="{Binding AccountTotpCode}"
                          PlaceholderText="6-digit code"
                          MaxLength="8"
-                         IsEnabled="{Binding !IsSigningIn}" />
+                         IsEnabled="{Binding !IsSigningIn}"
+                         AutomationProperties.Name="Two-factor access code" />
               </StackPanel>
               <StackPanel Orientation="Horizontal" Spacing="8">
                 <Button Classes="primary"

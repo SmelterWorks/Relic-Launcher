@@ -8,6 +8,7 @@ using RelicLauncher.Core.Constants;
 using RelicLauncher.Core.Models;
 using RelicLauncher.Core.Paths;
 using RelicLauncher.Core.Results;
+using RelicLauncher.Infrastructure.IO;
 
 namespace RelicLauncher.Infrastructure.Mods;
 
@@ -89,24 +90,26 @@ public sealed class ModLibraryService : IModLibraryService
             var total = response.Content.Headers.ContentLength;
             using var input = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
             using var output = new FileStream(destination, FileMode.Create, FileAccess.Write, FileShare.None, 81920, useAsync: true);
-            var buffer = new byte[81920];
-            long readTotal = 0;
-            int read;
-            while ((read = await input.ReadAsync(buffer.AsMemory(0, buffer.Length), cancellationToken).ConfigureAwait(false)) > 0)
+            var copy = await BoundedStreamCopy.CopyAsync(
+                input,
+                output,
+                total,
+                RelicDefaults.MaxModDownloadBytes,
+                progress,
+                cancellationToken).ConfigureAwait(false);
+            if (!copy.IsSuccess)
             {
-                await output.WriteAsync(buffer.AsMemory(0, read), cancellationToken).ConfigureAwait(false);
-                readTotal += read;
-                if (total is > 0)
+                try
                 {
-                    progress?.Report(Math.Clamp(readTotal / (double)total.Value, 0, 0.99));
+                    File.Delete(destination);
                 }
-                else
+                catch
                 {
-                    progress?.Report(0.5);
+                    // Best effort cleanup.
                 }
-            }
 
-            progress?.Report(1.0);
+                return Result<LocalModInfo>.Failure(copy.Error ?? "Download exceeded size limit.");
+            }
 
             var info = ReadLocalMod(destination);
             return info is null

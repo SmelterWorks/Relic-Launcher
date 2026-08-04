@@ -1,5 +1,5 @@
-using Avalonia.Platform;
 using Avalonia.Media.Imaging;
+using Avalonia.Platform;
 
 namespace RelicLauncher.App.Services;
 

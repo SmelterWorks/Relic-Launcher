@@ -3,6 +3,7 @@ using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
+using RelicLauncher.App.Services;
 using RelicLauncher.Core.Abstractions;
 using RelicLauncher.Core.Constants;
 using RelicLauncher.Core.Models;
@@ -18,6 +19,7 @@ public partial class VersionsViewModel : PageViewModelBase
     private readonly ILauncherSettingsStore _settingsStore;
     private readonly IRuntimePlatform _platform;
     private readonly ITransferTracker _transfers;
+    private readonly IConfirmDialogService _confirmDialog;
     private readonly ILogger<VersionsViewModel> _logger;
     private LauncherSettings _settings = new();
     private Action<LauncherSettings>? _onChanged;
@@ -76,6 +78,7 @@ public partial class VersionsViewModel : PageViewModelBase
         ILauncherSettingsStore settingsStore,
         IRuntimePlatform platform,
         ITransferTracker transfers,
+        IConfirmDialogService confirmDialog,
         ILogger<VersionsViewModel> logger)
     {
         _catalog = catalog;
@@ -84,12 +87,13 @@ public partial class VersionsViewModel : PageViewModelBase
         _settingsStore = settingsStore;
         _platform = platform;
         _transfers = transfers;
+        _confirmDialog = confirmDialog;
         _logger = logger;
         _transfers.Changed += (_, _) => OnTransfersChanged();
         OnTransfersChanged();
     }
 
-    public void Bind(LauncherSettings settings, Action<LauncherSettings> onChanged)
+    public void Bind(LauncherSettings settings, Action<LauncherSettings> onChanged, bool refresh = true)
     {
         _settings = settings;
         _onChanged = onChanged;
@@ -98,7 +102,10 @@ public partial class VersionsViewModel : PageViewModelBase
             _settings.InstallsRoot = _platform.GetPlatformInfo().DefaultInstallsRoot;
         }
 
-        _ = RefreshAsync();
+        if (refresh)
+        {
+            _ = RefreshAsync();
+        }
     }
 
     partial void OnShowStableChanged(bool value) => ApplyFilter();
@@ -148,8 +155,8 @@ public partial class VersionsViewModel : PageViewModelBase
         if (string.IsNullOrWhiteSpace(StatusMessage))
         {
             StatusMessage = _catalog.LastCatalogWasStale
-                ? $"Loaded {_allRows.Count} versions from offline cache."
-                : $"Loaded {_allRows.Count} versions from catalog cache or network.";
+                ? "Showing saved catalog while offline."
+                : $"Loaded {_allRows.Count} versions.";
         }
     }
 
@@ -218,7 +225,19 @@ public partial class VersionsViewModel : PageViewModelBase
         }
 
         HasVersions = Versions.Count > 0;
-        EmptyMessage = HasVersions ? string.Empty : "No versions matched your filters.";
+        if (HasVersions)
+        {
+            EmptyMessage = string.Empty;
+        }
+        else if (!ShowStable && !ShowUnstable)
+        {
+            EmptyMessage = "Turn on Stable and/or Unstable to list versions.";
+        }
+        else
+        {
+            EmptyMessage = "No versions matched your filters.";
+        }
+
         PageLabel = total == 0 ? "No results" : $"Page {Page} of {totalPages} ({total})";
         HasPreviousPage = Page > 1;
         HasNextPage = Page * PageSize < total;
@@ -316,6 +335,16 @@ public partial class VersionsViewModel : PageViewModelBase
 
     internal async Task UninstallAsync(string version)
     {
+        var confirmed = await _confirmDialog.ConfirmAsync(
+            "Uninstall version",
+            $"Uninstall Vintage Story {version}? This removes the managed install folder.",
+            "Uninstall",
+            "Cancel").ConfigureAwait(true);
+        if (!confirmed)
+        {
+            return;
+        }
+
         var installsRoot = _settings.InstallsRoot ?? _platform.GetPlatformInfo().DefaultInstallsRoot;
         var result = await _installer.UninstallAsync(installsRoot, version).ConfigureAwait(true);
         if (!result.IsSuccess)

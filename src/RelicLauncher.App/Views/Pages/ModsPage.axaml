@@ -19,9 +19,11 @@
                  MinWidth="160"
                  Height="40"
                  VerticalContentAlignment="Center"
-                 VerticalAlignment="Center" />
-        <Button Classes="primary" Content="Search" Command="{Binding SearchCommand}" IsEnabled="{Binding !IsLoading}" />
-        <Button Classes="ghost" Content="Refresh installed" Command="{Binding RefreshInstalledCommand}" />
+                 VerticalAlignment="Center"
+                 KeyDown="OnSearchKeyDown"
+                 AutomationProperties.Name="Search mods" />
+        <Button Classes="primary" Content="Search" Command="{Binding SearchCommand}" IsEnabled="{Binding !IsLoading}" AutomationProperties.Name="Search ModDB" />
+        <Button Classes="ghost" Content="Refresh installed" Command="{Binding RefreshInstalledCommand}" AutomationProperties.Name="Refresh installed mods" />
       </StackPanel>
       <StackPanel Orientation="Horizontal" Spacing="8">
         <ComboBox ItemsSource="{Binding SortOptions}"
@@ -52,6 +54,7 @@
       <TextBlock Text="{Binding StatusMessage}"
                  Classes="muted"
                  TextWrapping="Wrap"
+                 AutomationProperties.LiveSetting="Polite"
                  IsVisible="{Binding StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
 
       <ItemsControl ItemsSource="{Binding ActiveTransfers}"
@@ -68,9 +71,9 @@
       </ItemsControl>
     </StackPanel>
 
-    <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="16">
+    <Grid x:Name="BrowseDetailGrid" Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="16">
       <Grid Grid.Column="0" RowDefinitions="*">
-        <TabControl>
+        <TabControl AutomationProperties.Name="Mods tabs">
           <TabItem Header="Browse">
             <Grid RowDefinitions="Auto,*,Auto">
               <Panel Margin="0,0,0,8">
@@ -94,7 +97,14 @@
                               Command="{Binding OpenCommand}">
                         <Grid ColumnDefinitions="56,*" ColumnSpacing="10">
                           <Border Width="48" Height="48" CornerRadius="6" ClipToBounds="True" Background="{DynamicResource Theme.Bg1}">
-                            <Image Source="{Binding Logo}" Stretch="UniformToFill" />
+                            <Panel>
+                              <Image Source="{Binding Logo}" Stretch="UniformToFill" IsVisible="{Binding !IsLogoLoading}" />
+                              <TextBlock Text="..."
+                                         Classes="muted"
+                                         HorizontalAlignment="Center"
+                                         VerticalAlignment="Center"
+                                         IsVisible="{Binding IsLogoLoading}" />
+                            </Panel>
                           </Border>
                           <StackPanel Grid.Column="1" Spacing="2">
                             <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextWrapping="Wrap" />
@@ -137,13 +147,22 @@
                           </StackPanel>
                           <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6">
                             <Button Classes="ghost"
-                                    Content="Toggle"
+                                    Content="Disable"
+                                    IsVisible="{Binding IsEnabled}"
                                     Command="{Binding $parent[UserControl].((vm:ModsViewModel)DataContext).ToggleModCommand}"
-                                    CommandParameter="{Binding}" />
+                                    CommandParameter="{Binding}"
+                                    AutomationProperties.Name="Disable mod" />
+                            <Button Classes="ghost"
+                                    Content="Enable"
+                                    IsVisible="{Binding !IsEnabled}"
+                                    Command="{Binding $parent[UserControl].((vm:ModsViewModel)DataContext).ToggleModCommand}"
+                                    CommandParameter="{Binding}"
+                                    AutomationProperties.Name="Enable mod" />
                             <Button Classes="ghost"
                                     Content="Uninstall"
                                     Command="{Binding $parent[UserControl].((vm:ModsViewModel)DataContext).UninstallModCommand}"
-                                    CommandParameter="{Binding}" />
+                                    CommandParameter="{Binding}"
+                                    AutomationProperties.Name="Uninstall mod" />
                           </StackPanel>
                         </Grid>
                       </Border>

@@ -14,7 +14,6 @@ public sealed class ViewLocator : IDataTemplate
             HomeViewModel => new HomePage(),
             VersionsViewModel => new VersionsPage(),
             ModsViewModel => new ModsPage(),
-            PlaceholderPageViewModel => new PlaceholderPage(),
             SettingsViewModel => new SettingsPage(),
             AboutViewModel => new AboutPage(),
             _ => new TextBlock { Text = $"No view for {param?.GetType().Name}" },

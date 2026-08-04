@@ -5,9 +5,11 @@ using System.Net.Http.Headers;
 using System.Security.Cryptography;
 using Microsoft.Extensions.Logging;
 using RelicLauncher.Core.Abstractions;
+using RelicLauncher.Core.Constants;
 using RelicLauncher.Core.Models;
 using RelicLauncher.Core.Paths;
 using RelicLauncher.Core.Results;
+using RelicLauncher.Infrastructure.IO;
 
 namespace RelicLauncher.Infrastructure.Versions;
 
@@ -205,7 +207,7 @@ public sealed class GameVersionInstaller : IGameVersionInstaller, IDisposable
         }
     }
 
-    private async Task<Result> DownloadAsync(
+    internal async Task<Result> DownloadAsync(
         GameVersionPackage package,
         string destination,
         IProgress<double>? progress,
@@ -230,27 +232,32 @@ public sealed class GameVersionInstaller : IGameVersionInstaller, IDisposable
                 var total = response.Content.Headers.ContentLength;
                 using var input = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
                 using var output = new FileStream(destination, FileMode.Create, FileAccess.Write, FileShare.None, 81920, useAsync: true);
-                var buffer = new byte[81920];
-                long readTotal = 0;
-                int read;
-                while ((read = await input.ReadAsync(buffer.AsMemory(0, buffer.Length), cancellationToken).ConfigureAwait(false)) > 0)
+                var copy = await BoundedStreamCopy.CopyAsync(
+                    input,
+                    output,
+                    total,
+                    RelicDefaults.MaxGameDownloadBytes,
+                    new Progress<double>(value => progress?.Report(Math.Clamp(0.9 * value, 0, 0.9))),
+                    cancellationToken).ConfigureAwait(false);
+                if (!copy.IsSuccess)
                 {
-                    await output.WriteAsync(buffer.AsMemory(0, read), cancellationToken).ConfigureAwait(false);
-                    readTotal += read;
-                    if (total is > 0)
+                    last = new InvalidOperationException(copy.Error);
+                    try
                     {
-                        progress?.Report(Math.Clamp(0.9 * (readTotal / (double)total.Value), 0, 0.9));
+                        File.Delete(destination);
                     }
-                    else
+                    catch
                     {
-                        progress?.Report(0.45);
+                        // Best effort cleanup.
                     }
+
+                    continue;
                 }
 
                 progress?.Report(0.9);
                 return Result.Success();
             }
-            catch (Exception ex) when (ex is HttpRequestException or IOException or TaskCanceledException)
+            catch (Exception ex) when (ex is HttpRequestException or IOException or TaskCanceledException or InvalidOperationException)
             {
                 last = ex;
             }

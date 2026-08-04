@@ -20,6 +20,7 @@ public partial class ModsViewModel : PageViewModelBase
     private readonly ITransferTracker _transfers;
     private readonly IRemoteImageCache _images;
     private readonly IUrlLauncher _urlLauncher;
+    private readonly IConfirmDialogService _confirmDialog;
     private readonly ILogger<ModsViewModel> _logger;
     private LauncherSettings _settings = new();
     private CancellationTokenSource? _searchCts;
@@ -134,6 +135,7 @@ public partial class ModsViewModel : PageViewModelBase
         ITransferTracker transfers,
         IRemoteImageCache images,
         IUrlLauncher urlLauncher,
+        IConfirmDialogService confirmDialog,
         ILogger<ModsViewModel> logger)
     {
         _modDb = modDb;
@@ -142,6 +144,7 @@ public partial class ModsViewModel : PageViewModelBase
         _transfers = transfers;
         _images = images;
         _urlLauncher = urlLauncher;
+        _confirmDialog = confirmDialog;
         _logger = logger;
         SelectedSortOption = SortOptions[0];
         SelectedSideFilter = SideFilterOptions[0];
@@ -149,13 +152,16 @@ public partial class ModsViewModel : PageViewModelBase
         OnTransfersChanged();
     }
 
-    public void Bind(LauncherSettings settings)
+    public void Bind(LauncherSettings settings, bool refresh = true)
     {
         _settings = settings;
         _ready = true;
-        _ = RefreshInstalledAsync();
-        _ = SearchAsync();
-        _ = _modDb.PrefetchCatalogAsync();
+        if (refresh)
+        {
+            _ = RefreshInstalledAsync();
+            _ = SearchAsync();
+            _ = _modDb.PrefetchCatalogAsync();
+        }
     }
 
     private string ResolveDataPath()
@@ -301,8 +307,8 @@ public partial class ModsViewModel : PageViewModelBase
         if (page.FromCache && string.IsNullOrWhiteSpace(StatusMessage) && TotalCount > 0)
         {
             StatusMessage = page.IsStale
-                ? $"Showing offline cached catalog ({TotalCount:N0} mods)."
-                : $"Showing cached catalog ({TotalCount:N0} mods).";
+                ? "Showing saved ModDB catalog while offline."
+                : $"Showing {TotalCount:N0} mods.";
         }
 
         foreach (var row in BrowseResults)
@@ -542,6 +548,16 @@ public partial class ModsViewModel : PageViewModelBase
     private async Task UninstallModAsync(LocalModInfo? mod)
     {
         if (mod is null)
+        {
+            return;
+        }
+
+        var confirmed = await _confirmDialog.ConfirmAsync(
+            "Uninstall mod",
+            $"Uninstall {mod.Name}? This deletes the mod files from your data folder.",
+            "Uninstall",
+            "Cancel").ConfigureAwait(true);
+        if (!confirmed)
         {
             return;
         }

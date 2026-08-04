@@ -30,7 +30,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IRuntimePlatform, RuntimePlatform>();
         services.AddSingleton<IEndpointProvider, EndpointProvider>();
         services.AddSingleton<ILauncherSettingsStore, JsonLauncherSettingsStore>();
-        services.AddSingleton<ISecretStore, FileSecretStore>();
+        services.AddSingleton<ISecretStore, PlatformSecretStore>();
         services.AddSingleton<AccountAuthService>();
         services.AddSingleton<IAccountAuthService>(sp => sp.GetRequiredService<AccountAuthService>());
         services.AddSingleton<IClientSettingsSessionWriter, ClientSettingsSessionWriter>();

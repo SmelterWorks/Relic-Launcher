@@ -30,6 +30,9 @@ public partial class HomeViewModel : PageViewModelBase
     private bool _canPlay;
 
     [ObservableProperty]
+    private bool _isLaunching;
+
+    [ObservableProperty]
     private bool _isSignedIn;
 
     [ObservableProperty]
@@ -101,17 +104,21 @@ public partial class HomeViewModel : PageViewModelBase
     public void Bind(
         LauncherSettings settings,
         Action<LauncherSettings>? onChanged = null,
-        Action? navigateToSettings = null)
+        Action? navigateToSettings = null,
+        bool refresh = true)
     {
         _settings = settings;
         _onChanged = onChanged;
         _navigateToSettings = navigateToSettings;
         ApplyLogoSettings(settings);
-        IsShowingArticle = false;
         _ = RefreshAccountStatusAsync();
         _ = RefreshInstalledVersionsAsync();
         _ = RefreshStatusAsync();
-        _ = LoadNewsAsync();
+        if (refresh)
+        {
+            IsShowingArticle = false;
+            _ = LoadNewsAsync();
+        }
     }
 
     [RelayCommand]
@@ -208,7 +215,8 @@ public partial class HomeViewModel : PageViewModelBase
         }
 
         CanPlay = true;
-        StatusMessage = $"Ready: {info.InstallPath}";
+        _logger.LogDebug("Play ready for {Version} at {Path}", version, info.InstallPath);
+        StatusMessage = $"Ready to play {version}.";
     }
 
     private async Task LoadNewsAsync()
@@ -292,25 +300,46 @@ public partial class HomeViewModel : PageViewModelBase
     [RelayCommand]
     private void CloseArticle() => IsShowingArticle = false;
 
-    [RelayCommand(CanExecute = nameof(CanPlay))]
+    [RelayCommand]
+    private async Task RetryNewsAsync() => await LoadNewsAsync().ConfigureAwait(true);
+
+    private bool CanExecutePlay() => CanPlay && !IsLaunching;
+
+    [RelayCommand(CanExecute = nameof(CanExecutePlay))]
     private async Task PlayAsync()
     {
-        var installsRoot = _settings.InstallsRoot ?? _platform.GetPlatformInfo().DefaultInstallsRoot;
-        var result = await _launchService.LaunchAsync(new GameLaunchRequest
+        IsLaunching = true;
+        StatusMessage = "Launching...";
+        try
         {
-            InstallsRoot = installsRoot,
-            Version = _settings.SelectedVersion ?? string.Empty,
-            DataPath = _settings.DataPath,
-        }).ConfigureAwait(true);
+            var installsRoot = _settings.InstallsRoot ?? _platform.GetPlatformInfo().DefaultInstallsRoot;
+            var result = await _launchService.LaunchAsync(new GameLaunchRequest
+            {
+                InstallsRoot = installsRoot,
+                Version = _settings.SelectedVersion ?? string.Empty,
+                DataPath = _settings.DataPath,
+            }).ConfigureAwait(true);
 
-        if (!result.IsSuccess)
+            if (!result.IsSuccess)
+            {
+                _logger.LogWarning("Play failed: {Error}", result.Error);
+                StatusMessage = result.Error ?? "Launch failed.";
+            }
+            else
+            {
+                var version = _settings.SelectedVersion ?? string.Empty;
+                StatusMessage = $"Launched {version}.";
+            }
+        }
+        finally
         {
-            _logger.LogWarning("Play failed: {Error}", result.Error);
-            StatusMessage = result.Error ?? "Launch failed.";
+            IsLaunching = false;
         }
     }
 
     partial void OnCanPlayChanged(bool value) => PlayCommand.NotifyCanExecuteChanged();
+
+    partial void OnIsLaunchingChanged(bool value) => PlayCommand.NotifyCanExecuteChanged();
 
     private void ApplyLogoSettings(LauncherSettings settings)
     {
