@@ -40,6 +40,7 @@ Layout: `{InstallsRoot}/versions/{version}/`, mods in `{DataPath}/Mods/`.
 | `HomeViewModel` | Play via `IGameLaunchService`, news |
 | `VersionsViewModel` | Catalog + install/uninstall/set active |
 | `ModsViewModel` | Browse ModDB + manage installed |
+| `WikiViewModel` | Domain-locked wiki `NativeWebView` + reachability probe |
 | `SettingsViewModel` | Account sign-in, paths, theme |
 | `AboutViewModel` | Build metadata |
 

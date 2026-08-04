@@ -18,9 +18,12 @@ Use these exact URLs in code, tests, and docs unless the user provides a newer c
 | Latest unstable | https://api.vintagestory.at/latestunstable.txt |
 | CDN game files | https://cdn.vintagestory.at/gamefiles/ |
 | Wiki | https://wiki.vintagestory.at/ |
+| Wiki Action API | https://wiki.vintagestory.at/api.php |
 | Mod DB | https://mods.vintagestory.at/ |
 | Mod DB API | https://mods.vintagestory.at/api |
 | Forums | https://www.vintagestory.at/forums/ |
+
+Relic Settings can override the wiki base URL (`WikiBaseUrl`). The in-app wiki WebView only navigates on that host. Off-host links open in the system browser.
 
 ## Blog article URL shape
 
