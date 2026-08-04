@@ -6,12 +6,20 @@ Base: `https://mods.vintagestory.at/api`
 
 | Endpoint | Purpose |
 |----------|---------|
-| `/api/mods?...` | Search/list. Relic uses `text`, `orderby`, `gv` (game version tag name). Do not use `gameversion` (returns empty). Full catalog has no server page size; Relic caches and paginates client-side. |
+| `/api/mods?...` | Search/list. Relic uses `text`, `orderby`, `gv` (game version tag name), and `tagids[]` (AND). Do not use `gameversion` (returns empty). Full catalog has no server page size; Relic caches and paginates client-side. |
 | `/api/mod/{id}` | Mod details + releases (`modid` or url alias). Includes `logofile`, `screenshots`, `text`, links. |
-| `/api/tags` | Tags |
+| `/api/tags` | Category tags (`tagid`, `name`, `color`). Relic loads these for clickable filters. |
 | `/api/gameversions` | Game version tags (`tagid`, `name`, `color`). Names match release `tags` and search `gv=`. |
 
 Download: `https://mods.vintagestory.at/download?fileid={fileid}` (prefer `mainfile` URLs from API when present).
+
+## Official mod blocklist
+
+The Vintage Story client loads blocked mods from:
+
+`https://cdn.vintagestory.at/api/blockedmods.json`
+
+Shape: JSON array of `{ "id": "modid@version", "reason": "..." }`. Relic can optionally warn before install/fetch when a release matches. Setting: `WarnOnBlockedMods` (default on).
 
 ## Releases and game versions
 
@@ -32,3 +40,4 @@ Local mods:
 - Zip or directory with `modinfo.json`
 - Disable by appending `.disabled` to the file/folder name
 - Relic keeps one enabled release per `modid` and caches downloads under Relic `cache/mods/files/{fileid}.zip`
+- Relic can import a local folder or zip into `Mods/`

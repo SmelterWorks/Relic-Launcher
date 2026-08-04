@@ -5,7 +5,7 @@ description: "Rules and worked examples for writing prose that does not read lik
 
 # No AI Slop
 
-The full rule list lives in the project `CLAUDE.md` (rules 1 through 24). This skill turns the rules that have worked examples into actionable guidance: each shows a WRONG version (the slop) and a RIGHT version (the fix). The pattern behind every fix is the same: replace the vague claim with a specific, checkable fact.
+This skill turns the anti-slop rules into actionable guidance with WRONG and RIGHT examples. The banned-word and detection lists are in [references/ai-writing-detection.md](references/ai-writing-detection.md). The pattern behind every fix is the same: replace the vague claim with a specific, checkable fact.
 
 ## Rule 1: No emdashes
 

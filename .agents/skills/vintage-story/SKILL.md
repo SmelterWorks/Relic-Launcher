@@ -66,6 +66,9 @@ Do not assume Relic can hot-patch game files or inject mods without following VS
 - Installed under `{DataPath}/Mods/` (zip or folder). Disable with `.disabled` suffix
 - Relic Mods page browses ModDB and manages local installs
 - One enabled release per `modid` in the shared Mods folder; downloads cached by ModDB `fileid`
+- Tag filters via `/api/tags` and `tagids[]`
+- Optional install warning using `https://cdn.vintagestory.at/api/blockedmods.json`
+- Local folder/zip import into `{DataPath}/Mods/`
 
 Wiki modding entry points: search wiki for "Modding" and "Installing mods".
 

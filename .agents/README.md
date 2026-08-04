@@ -10,3 +10,5 @@ Load the skills in `.agents/skills/` before making changes. They contain verifie
 | [rossmann-voice](skills/rossmann-voice/SKILL.md) | Only when explicitly asked for that voice (not default) |
 
 Do not invent official Vintage Story APIs, launcher features, or URLs. If a fact is not in these skills or the repo, say so and ask or look it up.
+
+Human review and git rules: `CONTRIBUTING.md` and Human review in [relic-launcher](skills/relic-launcher/SKILL.md). After edits, prompt the human to review and give a short reviewable brief (purpose, files, risks, tests run, suggested commit message). Agents must never `git commit`, `git push`, create PRs, tag, release, or publish. Humans do those.

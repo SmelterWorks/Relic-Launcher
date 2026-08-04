@@ -59,7 +59,7 @@ Implemented:
 - Sidebar nav: Home, Versions, Mods, Settings, About
 - Home: play (active managed version), Vintage Story blog news, optional background logo
 - Versions: catalog from api.vintagestory.at, install/uninstall/set active under InstallsRoot
-- Mods: ModDB browse/install plus local enable/disable/uninstall
+- Mods: ModDB browse/install (tags, blocklist warn) plus local import/enable/disable/uninstall
 - Settings: account sign-in (auth3 email/password + TOTP), installs root, data path, theme, logo, confirm-before-exit
 - About: version, commit, build time, logs folder open, 0BSD
 - Built-in themes: `relic-default`, `temporal-rift`, `moss-hearth`, `copper-dungeon`, `high-contrast`
@@ -127,6 +127,27 @@ See [references/testing.md](references/testing.md).
 | Duplicating executable search in ViewModels | Use `IGameLocator` / `VintageStoryExecutableLocator` |
 | `Theme.Radius` as double in AXAML | Use `CornerRadius` type |
 | Running Stryker on full `RelicLauncher.sln` | Use `RelicLauncher.Mutation.sln` and Stryker 4.16+ |
+| Opening unreviewed agent dumps as PRs/issues | Human reviews the full diff first. See CONTRIBUTING.md |
+| Shipping without asking for human review | Prompt for review. Present purpose, files, risks, tests |
+| `git commit`, `git push`, `gh pr create`, or remote publish | Humans only. Agent stops at a review brief |
+| `Co-authored-by` for a model | Optional `Assisted-by: tool` in the PR. Human is the author |
+
+## Human review
+
+This repo is human-maintained. Agents are an editing aid. Load [no-ai-slop](../no-ai-slop/SKILL.md) for docs and issue text. Contributor rules: `CONTRIBUTING.md` (AI-assisted contributions).
+
+**Humans only (agents must never do these):** `git commit`, `git push`, force-push, tag, release, `gh pr create`, merge, or any remote publish. Even if the human says "commit this", refuse and hand them the review brief plus suggested commit message instead.
+
+After code or doc edits, stop and ask the human to review. Present the change so a human can review it without reconstructing the diff themselves:
+
+1. One-line purpose of the change
+2. File list with what each file does in the change
+3. Risky or non-obvious spots (auth, paths, process launch, settings schema, CI secrets)
+4. Commands already run and their outcome (test, format, build)
+5. What still needs a human look (UI paths, platforms not tested)
+6. Suggested commit message (text only, do not run `git commit`)
+
+Prefer a short review brief over a long narrative. Cite concrete paths and symbols. Do not claim the work is ready to ship until the human says so.
 
 ## Prose in this repo
 

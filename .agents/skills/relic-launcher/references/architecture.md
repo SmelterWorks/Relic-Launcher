@@ -13,6 +13,7 @@
 | `IGameLaunchService` | Resolve + launch active version | `GameLaunchService` |
 | `IModDbClient` | ModDB search/details | `ModDbClient` |
 | `IModReleaseResolver` | Best release for game version | `ModReleaseResolver` |
+| `IModBlocklistService` | Official blocked-mods list | `ModBlocklistService` |
 | `IModLibraryService` | Local mods install/toggle | `ModLibraryService` |
 | `IGameLocator` | Legacy path resolve | `GameLocatorStub` |
 | `IProcessRunner` | Start process safely | `SafeProcessRunner` |
