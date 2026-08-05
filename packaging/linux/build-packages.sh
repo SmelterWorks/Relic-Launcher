@@ -56,6 +56,8 @@ WORK_DIR="$(mktemp -d)"
 trap 'rm -rf "${WORK_DIR}"' EXIT
 
 mkdir -p "${OUTPUT_DIR}"
+OUTPUT_DIR="$(cd "${OUTPUT_DIR}" && pwd)"
+PUBLISH_DIR="$(cd "${PUBLISH_DIR}" && pwd)"
 
 DEB_VERSION="${VERSION//-/\~}-1"
 RPM_VERSION="${VERSION//-/.}"
