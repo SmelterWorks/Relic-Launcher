@@ -96,6 +96,45 @@ public class WikiReachabilityProbeTests
     }
 
     [Fact]
+    public void Classify_ReturnsTemporarilyUnavailable_For503()
+    {
+        using var response = new HttpResponseMessage(HttpStatusCode.ServiceUnavailable)
+        {
+            Content = new StringContent("maintenance", Encoding.UTF8, "text/plain"),
+        };
+
+        var result = WikiReachabilityProbe.Classify(response, "maintenance");
+
+        result.Status.Should().Be(WikiReachabilityStatus.TemporarilyUnavailable);
+    }
+
+    [Fact]
+    public void Classify_ReturnsAccessBlocked_ForUnexpectedJsonShape()
+    {
+        using var response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent("{}", Encoding.UTF8, "application/json"),
+        };
+
+        var result = WikiReachabilityProbe.Classify(response, "{}");
+
+        result.Status.Should().Be(WikiReachabilityStatus.AccessBlocked);
+    }
+
+    [Fact]
+    public void Classify_ReturnsAccessBlocked_ForHtmlContentType()
+    {
+        using var response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent("<html>blocked</html>", Encoding.UTF8, "text/html"),
+        };
+
+        var result = WikiReachabilityProbe.Classify(response, "<html>blocked</html>");
+
+        result.Status.Should().Be(WikiReachabilityStatus.AccessBlocked);
+    }
+
+    [Fact]
     public async Task ProbeAsync_ReturnsReachable_WhenApiResponds()
     {
         var handler = new StubHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)

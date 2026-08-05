@@ -1,3 +1,4 @@
+using System.Text.Json;
 using FluentAssertions;
 using RelicLauncher.Core.Models;
 using RelicLauncher.Infrastructure.Versions;
@@ -42,7 +43,7 @@ public class VintageStoryVersionCatalogTests
     }
 
     [Fact]
-    public void ParseCatalog_SkipsEntriesWithoutUrls()
+    public void ParseCatalog_Throws_WhenEntriesExistButNoneParse()
     {
         var json = """
             {
@@ -54,9 +55,9 @@ public class VintageStoryVersionCatalogTests
             }
             """;
 
-        var versions = VintageStoryVersionCatalog.ParseCatalog(json);
+        var act = () => VintageStoryVersionCatalog.ParseCatalog(json);
 
-        versions.Should().BeEmpty();
+        act.Should().Throw<JsonException>();
     }
 
     [Fact]

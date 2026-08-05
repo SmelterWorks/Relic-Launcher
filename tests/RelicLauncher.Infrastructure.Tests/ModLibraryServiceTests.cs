@@ -95,6 +95,51 @@ public class ModLibraryServiceTests
     }
 
     [Fact]
+    public async Task InstallAsync_Fails_WhenFileIdMissing()
+    {
+        using var temp = new TempAppPaths();
+        var service = CreateService(temp, new HttpClient(new StubHandler(_ => new HttpResponseMessage(HttpStatusCode.OK))));
+
+        var result = await service.InstallAsync(
+            Path.Combine(temp.Paths.RootDirectory, "data"),
+            new ModReleaseInfo { FileId = 0, ModVersion = "1.0.0", DownloadUrl = "https://example.test/x" });
+
+        result.IsSuccess.Should().BeFalse();
+        result.Error.Should().Contain("file id");
+    }
+
+    [Fact]
+    public async Task InstallAsync_Fails_WhenDownloadUrlMissing()
+    {
+        using var temp = new TempAppPaths();
+        var service = CreateService(temp, new HttpClient(new StubHandler(_ => new HttpResponseMessage(HttpStatusCode.OK))));
+
+        var result = await service.InstallAsync(
+            Path.Combine(temp.Paths.RootDirectory, "data"),
+            new ModReleaseInfo { FileId = 1, ModVersion = "1.0.0", DownloadUrl = "   " });
+
+        result.IsSuccess.Should().BeFalse();
+        result.Error.Should().Contain("download URL");
+    }
+
+    [Fact]
+    public async Task ListInstalledAsync_SkipsDotEntries()
+    {
+        using var temp = new TempAppPaths();
+        var data = Path.Combine(temp.Paths.RootDirectory, "data");
+        var modsDir = Path.Combine(data, "Mods");
+        Directory.CreateDirectory(modsDir);
+        await File.WriteAllTextAsync(Path.Combine(modsDir, ".hidden"), "x");
+        await WriteModZipAsync(Path.Combine(modsDir, "visible.zip"), "visible", "Visible", "1.0.0");
+
+        var service = CreateService(temp);
+        var listed = await service.ListInstalledAsync(data);
+
+        listed.Value.Should().ContainSingle();
+        listed.Value![0].ModId.Should().Be("visible");
+    }
+
+    [Fact]
     public async Task CleanDuplicateModsAsync_KeepsNewestPerModId()
     {
         using var temp = new TempAppPaths();

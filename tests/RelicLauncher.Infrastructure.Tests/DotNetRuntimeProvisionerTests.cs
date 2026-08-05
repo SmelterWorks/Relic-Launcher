@@ -185,6 +185,41 @@ public class DotNetRuntimeProvisionerTests
     }
 
     [Fact]
+    public async Task EnsureAsync_Fails_WhenDownloadFails()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        using var temp = new TempAppPaths();
+        var handler = new StubHandler(request =>
+        {
+            if (request.RequestUri!.ToString().EndsWith("latest.version", StringComparison.Ordinal))
+            {
+                return new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent("8.0.29"),
+                };
+            }
+
+            return new HttpResponseMessage(HttpStatusCode.NotFound);
+        });
+
+        var provisioner = new DotNetRuntimeProvisioner(
+            new FixedPathProvider(temp.Paths),
+            new RuntimePlatform(),
+            NullLogger<DotNetRuntimeProvisioner>.Instance,
+            new HttpClient(handler),
+            () => Array.Empty<string>());
+
+        var result = await provisioner.EnsureAsync(8);
+
+        result.IsSuccess.Should().BeFalse();
+        result.Error.Should().Contain("HTTP");
+    }
+
+    [Fact]
     public void EnumerateDefaultSystemRoots_IncludesDotNetRootEnv()
     {
         var previous = Environment.GetEnvironmentVariable("DOTNET_ROOT");

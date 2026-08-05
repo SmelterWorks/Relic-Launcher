@@ -21,6 +21,29 @@ public class PlatformSecretStoreTests
     }
 
     [Fact]
+    public async Task DeleteAsync_Succeeds_WhenKeyMissing()
+    {
+        using var temp = new TempAppPaths();
+        var store = new PlatformSecretStore(new FixedPathProvider(temp.Paths));
+
+        var result = await store.DeleteAsync("missing");
+
+        result.IsSuccess.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task GetAsync_ReturnsNull_ForMissingKey()
+    {
+        using var temp = new TempAppPaths();
+        var store = new PlatformSecretStore(new FixedPathProvider(temp.Paths));
+
+        var result = await store.GetAsync("missing");
+
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Should().BeNull();
+    }
+
+    [Fact]
     public async Task Get_MigratesLegacyV1Payload()
     {
         using var temp = new TempAppPaths();
