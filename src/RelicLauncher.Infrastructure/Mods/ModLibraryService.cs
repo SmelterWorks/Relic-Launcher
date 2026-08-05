@@ -515,17 +515,24 @@ public sealed class ModLibraryService : IModLibraryService
 
             var total = response.Content.Headers.ContentLength;
             using var input = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
-            using var output = new FileStream(tempPath, FileMode.Create, FileAccess.Write, FileShare.None, 81920, useAsync: true);
-            var copy = await BoundedStreamCopy.CopyAsync(
-                input,
-                output,
-                total,
-                RelicDefaults.MaxModDownloadBytes,
-                progress,
-                cancellationToken).ConfigureAwait(false);
-            if (!copy.IsSuccess)
+            var stream = new FileStream(tempPath, FileMode.Create, FileAccess.Write, FileShare.None, 81920, useAsync: true);
+            try
             {
-                return Result.Failure(copy.Error ?? "Download exceeded size limit.");
+                var copy = await BoundedStreamCopy.CopyAsync(
+                    input,
+                    stream,
+                    total,
+                    RelicDefaults.MaxModDownloadBytes,
+                    progress,
+                    cancellationToken).ConfigureAwait(false);
+                if (!copy.IsSuccess)
+                {
+                    return Result.Failure(copy.Error ?? "Download exceeded size limit.");
+                }
+            }
+            finally
+            {
+                await stream.DisposeAsync().ConfigureAwait(false);
             }
 
             File.Move(tempPath, cachePath, overwrite: true);
