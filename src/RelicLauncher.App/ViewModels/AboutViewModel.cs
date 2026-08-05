@@ -27,11 +27,11 @@ public partial class AboutViewModel : PageViewModelBase
         "Relic Launcher is an unofficial community project. It is not affiliated with Anego Studios or Vintage Story.";
 
     [RelayCommand]
-    private void OpenRepository() => _urlLauncher.OpenUrl("https://github.com/SmelterWorks/Relic-Launchder");
+    private void OpenRepository() => _urlLauncher.OpenUrl("https://github.com/SmelterWorks/Relic-Launcher");
 
     [RelayCommand]
     private void OpenVintageStory() => _urlLauncher.OpenUrl("https://www.vintagestory.at/");
 
     [RelayCommand]
-    private void OpenIssues() => _urlLauncher.OpenUrl("https://github.com/SmelterWorks/Relic-Launchder/issues");
+    private void OpenIssues() => _urlLauncher.OpenUrl("https://github.com/SmelterWorks/Relic-Launcher/issues");
 }
