@@ -59,7 +59,13 @@ jobs:
           TAG="v${VERSION}"
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
           echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
-          if ! git rev-parse "$TAG" >/dev/null 2>&1; then
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release ${TAG} already exists. Immutable releases cannot be updated. Bump the version." >&2
+            exit 1
+          fi
+          if git ls-remote --exit-code --tags origin "refs/tags/${TAG}" >/dev/null 2>&1; then
+            echo "Tag ${TAG} already exists on origin, skipping tag push"
+          else
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git tag -a "$TAG" -m "Release ${TAG}"
@@ -178,6 +184,10 @@ jobs:
           VERSION: ${{ needs.prepare.outputs.version }}
         run: |
           set -euo pipefail
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release ${TAG} already exists. Immutable releases cannot be updated. Bump the version." >&2
+            exit 1
+          fi
           mapfile -t ASSETS < <(find dist -type f | sort)
           if [ "${#ASSETS[@]}" -eq 0 ]; then
             echo "No release assets found under dist/" >&2
