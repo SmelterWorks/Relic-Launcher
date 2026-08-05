@@ -98,10 +98,10 @@ EOF
 
 build_rpm() {
   local root="${WORK_DIR}/rpm"
-  local buildroot="${root}/BUILDROOT/relic-launcher-${RPM_VERSION}-${RPM_RELEASE}.x86_64"
+  local payload="${root}/SOURCES/payload"
   local spec="${root}/SPECS/relic-launcher.spec"
   mkdir -p "${root}/"{BUILD,RPMS,SOURCES,SPECS,SRPMS,BUILDROOT}
-  stage_root "${buildroot}"
+  stage_root "${payload}"
 
   cat > "${spec}" <<EOF
 Name: relic-launcher
@@ -118,6 +118,9 @@ Relic Launcher installs and manages Vintage Story versions, mods, and saves.
 %prep
 %build
 %install
+rm -rf %{buildroot}
+mkdir -p %{buildroot}
+cp -a %{_sourcedir}/payload/. %{buildroot}/
 
 %files
 %defattr(-,root,root,-)

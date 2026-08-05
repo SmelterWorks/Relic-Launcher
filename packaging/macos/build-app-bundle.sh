@@ -100,7 +100,8 @@ cat > "${APP_ROOT}/Contents/Info.plist" <<EOF
 EOF
 
 mkdir -p "${OUTPUT_DIR}"
-OUT_ZIP="${OUTPUT_DIR}/relic-launcher-${VERSION}-${RID}.app.zip"
+OUTPUT_DIR_ABS="$(cd "${OUTPUT_DIR}" && pwd)"
+OUT_ZIP="${OUTPUT_DIR_ABS}/relic-launcher-${VERSION}-${RID}.app.zip"
 (
   cd "${WORK_DIR}"
   zip -qry "${OUT_ZIP}" "${APP_NAME}"
