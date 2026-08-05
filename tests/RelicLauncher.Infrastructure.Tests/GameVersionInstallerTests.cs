@@ -75,7 +75,10 @@ public class GameVersionInstallerTests
     public async Task InstallAsync_Fails_WhenPackageMissing()
     {
         using var temp = new TempAppPaths();
-        using var installer = CreateInstaller(temp, new StubHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)));
+        using var installer = CreateInstaller(
+            temp,
+            new StubHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)),
+            new FakeRuntimePlatform { Info = CreatePlatform(HostOs.Linux, "linux") });
         var result = await installer.InstallAsync(new VersionInstallRequest
         {
             InstallsRoot = Path.Combine(temp.Paths.RootDirectory, "installs"),
