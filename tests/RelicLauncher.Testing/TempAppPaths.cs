@@ -23,9 +23,22 @@ public sealed class TempAppPaths : IDisposable
 
     public void Dispose()
     {
-        if (Directory.Exists(Paths.RootDirectory))
+        if (!Directory.Exists(Paths.RootDirectory))
         {
-            Directory.Delete(Paths.RootDirectory, recursive: true);
+            return;
+        }
+
+        for (var attempt = 0; attempt < 5; attempt++)
+        {
+            try
+            {
+                Directory.Delete(Paths.RootDirectory, recursive: true);
+                return;
+            }
+            catch (IOException) when (attempt < 4)
+            {
+                Thread.Sleep(50);
+            }
         }
     }
 }

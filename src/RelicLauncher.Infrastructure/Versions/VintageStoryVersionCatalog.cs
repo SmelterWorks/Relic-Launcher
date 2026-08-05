@@ -364,7 +364,7 @@ public sealed class VintageStoryVersionCatalog : IGameVersionCatalog
                 return null;
             }
 
-            var json = await File.ReadAllTextAsync(CatalogCachePath, cancellationToken).ConfigureAwait(false);
+            var json = await ReadSharedTextAsync(CatalogCachePath, cancellationToken).ConfigureAwait(false);
             using var doc = JsonDocument.Parse(json);
             if (!doc.RootElement.TryGetProperty("cachedAt", out var atEl) ||
                 !DateTimeOffset.TryParse(atEl.GetString(), CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var cachedAt) ||
@@ -394,7 +394,7 @@ public sealed class VintageStoryVersionCatalog : IGameVersionCatalog
                 cachedAt = DateTimeOffset.UtcNow,
                 payload = payloadJson,
             }, CacheJsonOptions);
-            await File.WriteAllTextAsync(CatalogCachePath, wrapper, cancellationToken).ConfigureAwait(false);
+            await WriteSharedTextAsync(CatalogCachePath, wrapper, cancellationToken).ConfigureAwait(false);
         }
         catch (IOException ex)
         {
@@ -418,7 +418,7 @@ public sealed class VintageStoryVersionCatalog : IGameVersionCatalog
                 return null;
             }
 
-            var text = (await File.ReadAllTextAsync(LatestCachePath, cancellationToken).ConfigureAwait(false)).Trim();
+            var text = (await ReadSharedTextAsync(LatestCachePath, cancellationToken).ConfigureAwait(false)).Trim();
             return string.IsNullOrWhiteSpace(text) ? null : text;
         }
         catch (IOException)
@@ -432,12 +432,39 @@ public sealed class VintageStoryVersionCatalog : IGameVersionCatalog
         try
         {
             Directory.CreateDirectory(Path.GetDirectoryName(LatestCachePath)!);
-            await File.WriteAllTextAsync(LatestCachePath, version, cancellationToken).ConfigureAwait(false);
+            await WriteSharedTextAsync(LatestCachePath, version, cancellationToken).ConfigureAwait(false);
         }
         catch (IOException ex)
         {
             _logger.LogDebug(ex, "Could not write latest-stable cache");
         }
+    }
+
+    private static async Task<string> ReadSharedTextAsync(string path, CancellationToken cancellationToken)
+    {
+        using var stream = new FileStream(
+            path,
+            FileMode.Open,
+            FileAccess.Read,
+            FileShare.ReadWrite | FileShare.Delete,
+            bufferSize: 4096,
+            useAsync: true);
+        using var reader = new StreamReader(stream);
+        return await reader.ReadToEndAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    private static async Task WriteSharedTextAsync(string path, string content, CancellationToken cancellationToken)
+    {
+        using var stream = new FileStream(
+            path,
+            FileMode.Create,
+            FileAccess.Write,
+            FileShare.ReadWrite | FileShare.Delete,
+            bufferSize: 4096,
+            useAsync: true);
+        using var writer = new StreamWriter(stream);
+        await writer.WriteAsync(content.AsMemory(), cancellationToken).ConfigureAwait(false);
+        await writer.FlushAsync(cancellationToken).ConfigureAwait(false);
     }
 
     private static HttpClient CreateDefaultClient()
