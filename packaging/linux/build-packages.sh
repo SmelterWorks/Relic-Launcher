@@ -88,7 +88,7 @@ Version: ${DEB_VERSION}
 Section: games
 Priority: optional
 Architecture: amd64
-Maintainer: Relic Launcher Contributors <41898282+github-actions[bot]@users.noreply.github.com>
+Maintainer: SmelterWorks <team@smelterworks.com>
 Homepage: https://github.com/SmelterWorks/Relic-Launcher
 Description: Unofficial desktop launcher for Vintage Story
  Relic Launcher installs and manages Vintage Story versions, mods, and saves.
@@ -158,7 +158,7 @@ pkgver = ${ARCH_PKGVER}
 pkgdesc = Unofficial desktop launcher for Vintage Story
 url = https://github.com/SmelterWorks/Relic-Launcher
 builddate = ${builddate}
-packager = Relic Launcher Contributors
+packager = SmelterWorks <team@smelterworks.com>
 size = ${installed_size}
 arch = x86_64
 license = custom:BSD-0-Clause

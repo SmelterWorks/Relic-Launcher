@@ -1,5 +1,8 @@
 blank_issues_enabled: false
 contact_links:
+  - name: Contact Relic Launcher team
+    url: mailto:team@smelterworks.com
+    about: Questions about this unofficial launcher (not Vintage Story official support).
   - name: Vintage Story official site
     url: https://www.vintagestory.at/
     about: Relic Launcher is unofficial. Game purchase and official support stay with Anego Studios.

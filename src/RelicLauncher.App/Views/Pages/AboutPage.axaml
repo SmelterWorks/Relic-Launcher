@@ -12,11 +12,19 @@
            Stretch="Uniform"
            HorizontalAlignment="Left"
            AutomationProperties.Name="Relic Launcher logo" />
-    <controls:PageHeader Title="{Binding Title}" Subtitle="Build info, links, and license." />
+    <controls:PageHeader Title="{Binding Title}" Subtitle="Build info, contact, links, and license." />
     <TextBlock Text="{Binding Version, StringFormat=Version {0} Unofficial Launcher}" Classes="muted" />
     <TextBlock Text="{Binding CommitSha, StringFormat=Commit {0}}" Classes="muted" />
     <TextBlock Text="{Binding BuildTimeUtc, StringFormat=Built {0} UTC}" Classes="muted" />
     <TextBlock Text="{Binding Disclaimer}" TextWrapping="Wrap" FontSize="15" />
+
+    <StackPanel Spacing="4">
+      <TextBlock Text="Contact" FontSize="15" />
+      <Button Classes="ghost"
+              Content="{Binding ContactEmailDisplay}"
+              Command="{Binding OpenContactEmailCommand}"
+              AutomationProperties.Name="Contact team email" />
+    </StackPanel>
 
     <StackPanel Orientation="Horizontal" Spacing="8">
       <Button Classes="ghost"

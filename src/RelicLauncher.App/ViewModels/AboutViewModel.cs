@@ -26,6 +26,11 @@ public partial class AboutViewModel : PageViewModelBase
     public string Disclaimer =>
         "Relic Launcher is an unofficial community project. It is not affiliated with Anego Studios or Vintage Story.";
 
+    public string ContactEmailDisplay => "team [at] smelterworks.com";
+
+    [RelayCommand]
+    private void OpenContactEmail() => _urlLauncher.OpenUrl("mailto:team@smelterworks.com");
+
     [RelayCommand]
     private void OpenRepository() => _urlLauncher.OpenUrl("https://github.com/SmelterWorks/Relic-Launcher");
 

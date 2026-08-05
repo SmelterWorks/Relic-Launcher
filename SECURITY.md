@@ -1,10 +1,10 @@
 # Security policy
 
-Relic Launcher is an unofficial community project and is not affiliated with Anego Studios do not report security issues to them about this project.
+Relic Launcher is an unofficial community project and is not affiliated with Anego Studios. Do not report security issues to them about this project.
 
 ## Reporting a vulnerability
 
-Open a private security advisory on the GitHub repository, or email the maintainers through the repository contact options. Do not file a public issue for credential or auth bugs.
+Open a private security advisory on the GitHub repository, or email team [at] smelterworks.com. Do not file a public issue for credential or auth bugs.
 
 Include the Relic Launcher version, OS, steps to reproduce, and impact.
 

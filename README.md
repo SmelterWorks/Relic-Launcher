@@ -115,7 +115,7 @@ To add a built-in pack: create an `.axaml` resource dictionary with the same key
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md).
+See [CONTRIBUTING.md](CONTRIBUTING.md). Contact: team [at] smelterworks.com for launcher questions.
 
 ## Security
 

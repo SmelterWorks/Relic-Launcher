@@ -43,6 +43,10 @@ Skills for AI agents are in `.agents/skills/`. See `.agents/README.md` for the i
 
 Docs and issue text follow the anti-slop rules under `.agents/skills/`. Concrete headings, no filler phrases, no emdashes.
 
+## Contact
+
+Questions about Relic Launcher: team [at] smelterworks.com
+
 ## Security notes for workflows
 
 Workflows pin third-party actions to full commit SHAs. Prefer `env:` for untrusted values. Do not add `pull_request_target` without a documented threat model.
