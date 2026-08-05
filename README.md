@@ -25,6 +25,7 @@ Built with C# / .NET 10 and Avalonia 12.1. Targets the same desktop platforms Vi
 - Server Hosting
 - Custom fonts support
 - Prevent having to login twice (launcher then game)
+- i18n - multi-language support
 
 > [!NOTE]
 > Development is human-maintained. We use OpenCode with open-weight models as an editing aid. Every change is reviewed by a human before merge and must pass the project tests. Contributors own any AI-assisted patches they submit.
