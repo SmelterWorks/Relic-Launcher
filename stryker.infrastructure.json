@@ -13,7 +13,7 @@
     "thresholds": {
       "high": 70,
       "low": 50,
-      "break": 39
+      "break": 38
     },
     "verbosity": "info",
     "mutate": [

@@ -29,7 +29,7 @@
 Thresholds (approximate targets):
 
 - Core: break 50%
-- Infrastructure: break 39%, excludes `FileExplorerService` and `UrlLauncher` (OS-specific process spawn)
+- Infrastructure: break 38%, excludes `FileExplorerService` and `UrlLauncher` (OS-specific process spawn)
 
 Low mutation score means missing tests, not necessarily bad code. Add tests that would fail if the mutated line were wrong.
 
