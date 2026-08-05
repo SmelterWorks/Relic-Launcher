@@ -189,6 +189,52 @@ public class GameVersionInstallerTests
     }
 
     [Fact]
+    public async Task InstallAsync_Fails_WhenMd5Mismatch()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        using var temp = new TempAppPaths();
+        var installsRoot = Path.Combine(temp.Paths.RootDirectory, "installs");
+        var archiveBytes = CreateTarGzWithExecutable();
+        var handler = new StubHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new ByteArrayContent(archiveBytes),
+        });
+
+        using var installer = CreateInstaller(temp, handler, new FakeRuntimePlatform
+        {
+            Info = CreatePlatform(HostOs.Linux, "linux"),
+        });
+
+        var result = await installer.InstallAsync(new VersionInstallRequest
+        {
+            InstallsRoot = installsRoot,
+            Version = new GameVersionInfo
+            {
+                Version = "1.22.6",
+                Channel = GameVersionChannel.Stable,
+                Packages =
+                [
+                    new GameVersionPackage
+                    {
+                        PlatformKey = "linux",
+                        Kind = ClientPackageKind.TarGz,
+                        FileName = "vs_client_linux-x64_1.22.6.tar.gz",
+                        CdnUrl = "https://cdn.example/linux.tar.gz",
+                        Md5 = "deadbeef",
+                    },
+                ],
+            },
+        });
+
+        result.IsSuccess.Should().BeFalse();
+        result.Error.Should().Contain("MD5");
+    }
+
+    [Fact]
     public async Task UninstallAsync_RemovesVersionDirectoryAndInventoryEntry()
     {
         using var temp = new TempAppPaths();

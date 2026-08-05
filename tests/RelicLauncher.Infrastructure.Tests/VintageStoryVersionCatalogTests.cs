@@ -40,4 +40,50 @@ public class VintageStoryVersionCatalogTests
         versions[0].Packages.Should().Contain(p => p.PlatformKey == "linux" && p.Kind == ClientPackageKind.TarGz);
         versions[0].Packages.Should().Contain(p => p.PlatformKey == "windows" && p.Kind == ClientPackageKind.WindowsInstaller);
     }
+
+    [Fact]
+    public void ParseCatalog_SkipsEntriesWithoutUrls()
+    {
+        var json = """
+            {
+              "1.22.6": {
+                "linux": {
+                  "filename": "vs_client_linux-x64_1.22.6.tar.gz"
+                }
+              }
+            }
+            """;
+
+        var versions = VintageStoryVersionCatalog.ParseCatalog(json);
+
+        versions.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ParseCatalog_ParsesZipAndLocalUrl()
+    {
+        var json = """
+            {
+              "1.21.0": {
+                "mac-arm64": {
+                  "filename": "vs_client_mac-arm64_1.21.0.zip",
+                  "urls": {
+                    "cdn": "https://cdn.example/mac.zip",
+                    "local": "https://mirror.example/mac.zip"
+                  },
+                  "md5": "abc123"
+                }
+              }
+            }
+            """;
+
+        var versions = VintageStoryVersionCatalog.ParseCatalog(json);
+
+        versions.Should().ContainSingle();
+        versions[0].Packages.Should().ContainSingle(p =>
+            p.PlatformKey == "mac-arm64" &&
+            p.Kind == ClientPackageKind.Zip &&
+            p.LocalUrl == "https://mirror.example/mac.zip" &&
+            p.Md5 == "abc123");
+    }
 }
