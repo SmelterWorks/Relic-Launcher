@@ -225,6 +225,15 @@
                                        TextWrapping="Wrap"
                                        IsVisible="{Binding HasTags}" />
                             <TextBlock Text="Disabled" Classes="muted" IsVisible="{Binding !IsEnabled}" />
+                            <TextBlock Text="{Binding DependencyStatusLabel}"
+                                       Classes="muted"
+                                       FontSize="12"
+                                       Foreground="{DynamicResource Theme.Danger}"
+                                       IsVisible="{Binding HasDependencyProblems}" />
+                            <TextBlock Text="{Binding DependencyStatusLabel}"
+                                       Classes="muted"
+                                       FontSize="12"
+                                       IsVisible="{Binding ShowDependencyOk}" />
                           </StackPanel>
                           <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6">
                             <Button Classes="ghost"
@@ -362,6 +371,20 @@
               <TextBlock Text="{Binding SelectedDetails.DescriptionText}"
                          TextWrapping="Wrap"
                          LineHeight="22" />
+              <StackPanel Spacing="4" IsVisible="{Binding HasDependencyRows}">
+                <TextBlock Text="Dependencies" FontWeight="SemiBold" />
+                <ItemsControl ItemsSource="{Binding DependencyRows}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:ModDependencyStatusRowViewModel">
+                      <TextBlock Text="{Binding Label}"
+                                 Classes="muted"
+                                 FontSize="12"
+                                 TextWrapping="Wrap"
+                                 Margin="0,0,0,2" />
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
               <StackPanel Orientation="Horizontal" Spacing="8">
                 <Button Classes="ghost"
                         Content="ModDB page"

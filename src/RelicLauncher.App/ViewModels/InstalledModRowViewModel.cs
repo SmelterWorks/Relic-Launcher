@@ -15,7 +15,8 @@ public sealed partial class InstalledModRowViewModel : ViewModelBase
         LocalModInfo info,
         ModSummary? catalog,
         IRemoteImageCache images,
-        IModLibraryService modLibrary)
+        IModLibraryService modLibrary,
+        IReadOnlyList<ModDependencyIssue>? dependencyIssues = null)
     {
         Info = info;
         Catalog = catalog;
@@ -34,6 +35,7 @@ public sealed partial class InstalledModRowViewModel : ViewModelBase
             : string.Join(", ", Tags.Take(4));
         Downloads = catalog?.Downloads ?? 0;
         LastReleased = catalog?.LastReleased;
+        ApplyDependencyIssues(dependencyIssues);
     }
 
     public LocalModInfo Info { get; }
@@ -49,12 +51,56 @@ public sealed partial class InstalledModRowViewModel : ViewModelBase
     public bool HasTags => !string.IsNullOrWhiteSpace(TagsLabel);
     public int Downloads { get; }
     public string? LastReleased { get; }
+    public string DependencyStatusLabel { get; private set; } = string.Empty;
+    public bool HasDependencyProblems { get; private set; }
+    public bool ShowDependencyOk => !HasDependencyProblems && !string.IsNullOrWhiteSpace(DependencyStatusLabel);
 
     [ObservableProperty]
     private Bitmap? _logo;
 
     [ObservableProperty]
     private bool _isLogoLoading;
+
+    public void ApplyDependencyIssues(IReadOnlyList<ModDependencyIssue>? issues)
+    {
+        var blocking = issues?
+            .Where(i => i.Kind != ModDependencyIssueKind.Satisfied)
+            .ToList() ?? [];
+        HasDependencyProblems = blocking.Count > 0;
+        if (!HasDependencyProblems)
+        {
+            DependencyStatusLabel = Info.Dependencies.Count == 0
+                ? string.Empty
+                : "Dependencies ok";
+            return;
+        }
+
+        var missing = blocking.Count(i => i.Kind == ModDependencyIssueKind.Missing);
+        var disabled = blocking.Count(i => i.Kind == ModDependencyIssueKind.Disabled);
+        var outdated = blocking.Count(i => i.Kind == ModDependencyIssueKind.Outdated);
+        var parts = new List<string>();
+        if (missing > 0)
+        {
+            parts.Add($"{missing} missing");
+        }
+
+        if (disabled > 0)
+        {
+            parts.Add($"{disabled} disabled");
+        }
+
+        if (outdated > 0)
+        {
+            parts.Add($"{outdated} outdated");
+        }
+
+        if (parts.Count == 0)
+        {
+            parts.Add($"{blocking.Count} dependency issue(s)");
+        }
+
+        DependencyStatusLabel = string.Join(", ", parts);
+    }
 
     public async Task LoadLogoAsync()
     {

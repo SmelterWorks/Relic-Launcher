@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using RelicLauncher.Core.Abstractions;
 using RelicLauncher.Core.Constants;
 using RelicLauncher.Core.Models;
+using RelicLauncher.Core.Mods;
 using RelicLauncher.Core.Paths;
 using RelicLauncher.Core.Results;
 using RelicLauncher.Core.Versions;
@@ -343,6 +344,49 @@ public sealed class ModLibraryService : IModLibraryService
         }
     }
 
+    public Task<Result<string>> EnsureReleaseCachedAsync(
+        ModReleaseInfo release,
+        IProgress<double>? progress = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (release.FileId <= 0)
+        {
+            return Task.FromResult(Result<string>.Failure("Release has no file id."));
+        }
+
+        if (string.IsNullOrWhiteSpace(release.DownloadUrl))
+        {
+            return Task.FromResult(Result<string>.Failure("Release has no download URL."));
+        }
+
+        return EnsureCachedAsync(release, progress, cancellationToken);
+    }
+
+    public ParsedModInfo? TryPeekModInfo(string zipOrFolderPath)
+    {
+        if (string.IsNullOrWhiteSpace(zipOrFolderPath))
+        {
+            return null;
+        }
+
+        try
+        {
+            var isDir = Directory.Exists(zipOrFolderPath);
+            if (!isDir && !File.Exists(zipOrFolderPath))
+            {
+                return null;
+            }
+
+            var json = TryReadModInfoJson(zipOrFolderPath, isDir);
+            return ModInfoJsonParser.TryParse(json);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException)
+        {
+            _logger.LogDebug(ex, "Could not peek modinfo from {Path}", zipOrFolderPath);
+            return null;
+        }
+    }
+
     internal static LocalModInfo? ReadLocalMod(string path)
     {
         var name = Path.GetFileName(path);
@@ -357,22 +401,17 @@ public sealed class ModLibraryService : IModLibraryService
         string? displayName = null;
         string? version = null;
         string? iconPath = null;
+        IReadOnlyList<ModDependencyRequirement> dependencies = [];
 
-        try
+        var modInfoJson = TryReadModInfoJson(path, isDir);
+        var parsed = ModInfoJsonParser.TryParse(modInfoJson);
+        if (parsed is not null)
         {
-            var modInfoJson = TryReadModInfoJson(path, isDir);
-            if (modInfoJson is not null)
-            {
-                using var doc = JsonDocument.Parse(modInfoJson);
-                var root = doc.RootElement;
-                modId = ReadStringProperty(root, "modid") ?? ReadStringProperty(root, "modId");
-                displayName = ReadStringProperty(root, "name");
-                version = ReadStringProperty(root, "version");
-                iconPath = ReadStringProperty(root, "iconPath") ?? ReadStringProperty(root, "iconpath");
-            }
-        }
-        catch (JsonException)
-        {
+            modId = parsed.ModId;
+            displayName = parsed.Name;
+            version = parsed.Version;
+            iconPath = parsed.IconPath;
+            dependencies = parsed.Dependencies;
         }
 
         return new LocalModInfo
@@ -383,6 +422,7 @@ public sealed class ModLibraryService : IModLibraryService
             Name = displayName ?? StripDisabled(name),
             Version = version,
             IconPath = iconPath,
+            Dependencies = dependencies,
             IsEnabled = enabled,
             IsDirectory = isDir,
         };
@@ -468,11 +508,6 @@ public sealed class ModLibraryService : IModLibraryService
 
         return null;
     }
-
-    private static string? ReadStringProperty(JsonElement root, string name)
-        => root.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String
-            ? value.GetString()
-            : null;
 
     private async Task<Result<string>> EnsureCachedAsync(
         ModReleaseInfo release,

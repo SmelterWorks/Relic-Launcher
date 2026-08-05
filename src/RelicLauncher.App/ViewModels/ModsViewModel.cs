@@ -18,6 +18,7 @@ public partial class ModsViewModel : PageViewModelBase
     private readonly IModDbClient _modDb;
     private readonly IModLibraryService _modLibrary;
     private readonly IModReleaseResolver _releaseResolver;
+    private readonly IModDependencyInstallPlanner _dependencyPlanner;
     private readonly IModBlocklistService _blocklist;
     private readonly IRuntimePlatform _platform;
     private readonly ITransferTracker _transfers;
@@ -134,8 +135,12 @@ public partial class ModsViewModel : PageViewModelBase
     [ObservableProperty]
     private string _blocklistWarning = string.Empty;
 
+    [ObservableProperty]
+    private bool _hasDependencyRows;
+
     public ObservableCollection<ModRowViewModel> BrowseResults { get; } = [];
     public ObservableCollection<InstalledModRowViewModel> InstalledMods { get; } = [];
+    public ObservableCollection<ModDependencyStatusRowViewModel> DependencyRows { get; } = [];
     public ObservableCollection<ModImageItemViewModel> ScreenshotItems { get; } = [];
     public ObservableCollection<TransferJobRowViewModel> ActiveTransfers { get; } = [];
     public ObservableCollection<ModTagChipViewModel> TagChips { get; } = [];
@@ -166,6 +171,7 @@ public partial class ModsViewModel : PageViewModelBase
         IModDbClient modDb,
         IModLibraryService modLibrary,
         IModReleaseResolver releaseResolver,
+        IModDependencyInstallPlanner dependencyPlanner,
         IModBlocklistService blocklist,
         IRuntimePlatform platform,
         ITransferTracker transfers,
@@ -179,6 +185,7 @@ public partial class ModsViewModel : PageViewModelBase
         _modDb = modDb;
         _modLibrary = modLibrary;
         _releaseResolver = releaseResolver;
+        _dependencyPlanner = dependencyPlanner;
         _blocklist = blocklist;
         _platform = platform;
         _transfers = transfers;
@@ -392,7 +399,9 @@ public partial class ModsViewModel : PageViewModelBase
         }
 
         var catalog = await LoadCatalogIndexAsync().ConfigureAwait(true);
-        foreach (var mod in result.Value!)
+        var installed = result.Value!;
+        var audit = ModDependencyResolver.Audit(installed, _settings.SelectedVersion);
+        foreach (var mod in installed)
         {
             ModSummary? summary = null;
             if (!string.IsNullOrWhiteSpace(mod.ModId))
@@ -400,12 +409,20 @@ public partial class ModsViewModel : PageViewModelBase
                 catalog.TryGetValue(NormalizeKey(mod.ModId), out summary);
             }
 
-            _allInstalledRows.Add(new InstalledModRowViewModel(mod, summary, _images, _modLibrary));
+            IReadOnlyList<ModDependencyIssue>? issues = null;
+            if (!string.IsNullOrWhiteSpace(mod.ModId)
+                && audit.IssuesByDependentModId.TryGetValue(mod.ModId, out var blocking))
+            {
+                issues = blocking;
+            }
+
+            _allInstalledRows.Add(new InstalledModRowViewModel(mod, summary, _images, _modLibrary, issues));
         }
 
         UpdateDuplicateState();
         ApplyInstalledFilters();
         UpdateSelectedInstalledState();
+        RefreshDependencyRowsForSelection();
     }
 
     private async Task<Dictionary<string, ModSummary>> LoadCatalogIndexAsync()
@@ -540,6 +557,57 @@ public partial class ModsViewModel : PageViewModelBase
             : string.IsNullOrWhiteSpace(match.Version)
                 ? "Already installed"
                 : $"Already installed ({match.Version})";
+        RefreshDependencyRowsForSelection();
+    }
+
+    private void RefreshDependencyRowsForSelection()
+    {
+        DependencyRows.Clear();
+        LocalModInfo? local = null;
+        if (SelectedDetails is not null)
+        {
+            local = _allInstalledRows.FirstOrDefault(row => MatchesInstalled(row.Info, SelectedDetails))?.Info;
+        }
+
+        if (local is null || local.Dependencies.Count == 0)
+        {
+            HasDependencyRows = false;
+            return;
+        }
+
+        var audit = ModDependencyResolver.AuditMod(
+            local,
+            _allInstalledRows.Select(r => r.Info).ToList(),
+            _settings.SelectedVersion);
+        foreach (var issue in audit.Issues.Where(i =>
+                     string.Equals(i.DependentModId, local.ModId, StringComparison.OrdinalIgnoreCase)))
+        {
+            DependencyRows.Add(new ModDependencyStatusRowViewModel(issue));
+        }
+
+        HasDependencyRows = DependencyRows.Count > 0;
+    }
+
+    private void RefreshDependencyRowsForLocal(LocalModInfo local)
+    {
+        DependencyRows.Clear();
+        if (local.Dependencies.Count == 0)
+        {
+            HasDependencyRows = false;
+            return;
+        }
+
+        var audit = ModDependencyResolver.AuditMod(
+            local,
+            _allInstalledRows.Select(r => r.Info).ToList(),
+            _settings.SelectedVersion);
+        foreach (var issue in audit.Issues.Where(i =>
+                     string.Equals(i.DependentModId, local.ModId, StringComparison.OrdinalIgnoreCase)))
+        {
+            DependencyRows.Add(new ModDependencyStatusRowViewModel(issue));
+        }
+
+        HasDependencyRows = DependencyRows.Count > 0;
     }
 
     private static bool MatchesInstalled(LocalModInfo local, ModDetails details)
@@ -603,6 +671,7 @@ public partial class ModsViewModel : PageViewModelBase
             SelectedRelease = null;
             DetailStatus = "This local mod is not linked to ModDB.";
             UpdateSelectedInstalledState();
+            RefreshDependencyRowsForLocal(row.Info);
             return;
         }
 
@@ -822,17 +891,118 @@ public partial class ModsViewModel : PageViewModelBase
             return;
         }
 
-        await RunModInstallAsync(SelectedDetails, release).ConfigureAwait(true);
+        var plan = await BuildInstallPlanAsync(release).ConfigureAwait(true);
+        if (plan is null)
+        {
+            return;
+        }
+
+        if (!await ConfirmDependencyPlanAsync(plan).ConfigureAwait(true))
+        {
+            return;
+        }
+
+        if (!await ConfirmBlockedPlanAsync(plan).ConfigureAwait(true))
+        {
+            return;
+        }
+
+        await RunModInstallPlanAsync(plan).ConfigureAwait(true);
+    }
+
+    private async Task<ModDependencyInstallPlan?> BuildInstallPlanAsync(ModReleaseInfo release)
+    {
+        var installed = _allInstalledRows.Select(r => r.Info).ToList();
+        var gameVersion = _settings.SelectedVersion;
+        if (string.IsNullOrWhiteSpace(gameVersion))
+        {
+            DetailStatus = "Set an active game version before installing with dependencies.";
+            return null;
+        }
+
+        DetailStatus = "Resolving dependencies...";
+        var planResult = await _dependencyPlanner.PlanAsync(release, gameVersion, installed).ConfigureAwait(true);
+        if (!planResult.IsSuccess)
+        {
+            DetailStatus = planResult.Error ?? "Could not resolve dependencies.";
+            return null;
+        }
+
+        return planResult.Value;
+    }
+
+    private async Task<bool> ConfirmBlockedPlanAsync(ModDependencyInstallPlan plan)
+    {
+        foreach (var step in plan.ReleasesToInstall)
+        {
+            if (step.Release is null)
+            {
+                continue;
+            }
+
+            if (!await ConfirmBlockedReleaseAsync(step.ModId, step.Release).ConfigureAwait(true))
+            {
+                DetailStatus = "Install canceled.";
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private async Task<bool> ConfirmDependencyPlanAsync(ModDependencyInstallPlan plan)
+    {
+        var extras = plan.ReleasesToInstall
+            .Where(s => s.Depth > 0 && s.Release is not null)
+            .ToList();
+        var unresolved = plan.Unresolved;
+        if (extras.Count == 0 && unresolved.Count == 0)
+        {
+            return true;
+        }
+
+        var lines = new List<string>();
+        if (extras.Count > 0)
+        {
+            lines.Add("Also install these dependencies:");
+            foreach (var step in extras)
+            {
+                var version = step.Release?.ModVersion ?? "?";
+                lines.Add($"- {step.ModId} {version}");
+            }
+        }
+
+        if (unresolved.Count > 0)
+        {
+            lines.Add("Could not resolve:");
+            foreach (var step in unresolved)
+            {
+                lines.Add($"- {step.ModId}: {step.Error ?? "unavailable"}");
+            }
+
+            lines.Add("Install the selected mod anyway?");
+        }
+
+        return await _confirmDialog.ConfirmAsync(
+            extras.Count > 0 ? "Install dependencies" : "Unresolved dependencies",
+            string.Join(Environment.NewLine, lines),
+            "Install",
+            "Cancel").ConfigureAwait(true);
     }
 
     private async Task<bool> ConfirmBlockedInstallAsync(ModDetails details, ModReleaseInfo release)
+    {
+        var modId = ResolveModIdentifier(details);
+        return await ConfirmBlockedReleaseAsync(modId, release).ConfigureAwait(true);
+    }
+
+    private async Task<bool> ConfirmBlockedReleaseAsync(string modId, ModReleaseInfo release)
     {
         if (!_settings.WarnOnBlockedMods)
         {
             return true;
         }
 
-        var modId = ResolveModIdentifier(details);
         var match = await _blocklist.FindMatchAsync(modId, release.ModVersion).ConfigureAwait(true);
         if (!match.IsSuccess || match.Value is null)
         {
@@ -855,24 +1025,50 @@ public partial class ModsViewModel : PageViewModelBase
         return proceed;
     }
 
-    private async Task RunModInstallAsync(ModDetails details, ModReleaseInfo release)
+    private async Task RunModInstallPlanAsync(ModDependencyInstallPlan plan)
     {
-        var jobId = $"mod-{details.ModId}-{release.FileId}-{Guid.NewGuid():N}";
-        var session = _transfers.Begin(jobId, $"Mod {details.Name}", TransferJobKind.Mod);
+        foreach (var step in plan.ReleasesToInstall)
+        {
+            if (step.Release is null)
+            {
+                continue;
+            }
+
+            var name = step.Depth == 0
+                ? (SelectedDetails?.Name ?? step.ModId)
+                : step.ModId;
+            await RunModInstallAsync(name, step.Release, refreshInstalled: false).ConfigureAwait(true);
+            if (!string.IsNullOrWhiteSpace(DetailStatus) && DetailStatus.Contains("failed", StringComparison.OrdinalIgnoreCase))
+            {
+                await RefreshInstalledAsync().ConfigureAwait(true);
+                return;
+            }
+        }
+
+        await RefreshInstalledAsync().ConfigureAwait(true);
+    }
+
+    private async Task RunModInstallAsync(ModDetails details, ModReleaseInfo release)
+        => await RunModInstallAsync(details.Name, release, refreshInstalled: true).ConfigureAwait(true);
+
+    private async Task RunModInstallAsync(string displayName, ModReleaseInfo release, bool refreshInstalled)
+    {
+        var jobId = $"mod-{release.FileId}-{Guid.NewGuid():N}";
+        var session = _transfers.Begin(jobId, $"Mod {displayName}", TransferJobKind.Mod);
         try
         {
             await session.StartAsync().ConfigureAwait(true);
             IsInstalling = true;
             _activeInstalls++;
             InstallProgress = 0;
-            InstallProgressLabel = $"Downloading {details.Name}...";
+            InstallProgressLabel = $"Downloading {displayName}...";
             DetailStatus = InstallProgressLabel;
 
             var progress = new Progress<double>(value =>
             {
                 InstallProgress = value;
                 session.Report(value);
-                InstallProgressLabel = $"Downloading {details.Name}... {value:P0}";
+                InstallProgressLabel = $"Downloading {displayName}... {value:P0}";
                 DetailStatus = InstallProgressLabel;
             });
 
@@ -889,7 +1085,10 @@ public partial class ModsViewModel : PageViewModelBase
             DetailStatus = $"Installed {result.Value.FileName}";
             InstallProgress = 1;
             InstallProgressLabel = DetailStatus;
-            await RefreshInstalledAsync().ConfigureAwait(true);
+            if (refreshInstalled)
+            {
+                await RefreshInstalledAsync().ConfigureAwait(true);
+            }
         }
         catch (OperationCanceledException)
         {
@@ -940,7 +1139,47 @@ public partial class ModsViewModel : PageViewModelBase
             return;
         }
 
-        var result = await _modLibrary.SetEnabledAsync(mod, !mod.IsEnabled).ConfigureAwait(true);
+        var enabling = !mod.IsEnabled;
+        if (enabling && !string.IsNullOrWhiteSpace(mod.ModId))
+        {
+            var installed = _allInstalledRows.Select(r => r.Info).ToList();
+            var asEnabled = new LocalModInfo
+            {
+                Path = mod.Path,
+                FileName = mod.FileName,
+                ModId = mod.ModId,
+                Name = mod.Name,
+                Version = mod.Version,
+                IconPath = mod.IconPath,
+                Dependencies = mod.Dependencies,
+                IsEnabled = true,
+                IsDirectory = mod.IsDirectory,
+            };
+            var audit = ModDependencyResolver.AuditMod(asEnabled, installed, _settings.SelectedVersion);
+            var blocking = audit.Issues
+                .Where(i => i.Kind is ModDependencyIssueKind.Missing
+                    or ModDependencyIssueKind.Disabled
+                    or ModDependencyIssueKind.Outdated
+                    or ModDependencyIssueKind.BuiltinVersionMismatch)
+                .ToList();
+            if (blocking.Count > 0)
+            {
+                var summary = string.Join(
+                    Environment.NewLine,
+                    blocking.Take(8).Select(i => $"- {i.RequiredModId}: {i.Kind}"));
+                var proceed = await _confirmDialog.ConfirmAsync(
+                    "Missing dependencies",
+                    $"This mod has dependency problems:{Environment.NewLine}{summary}{Environment.NewLine}Enable anyway?",
+                    "Enable",
+                    "Cancel").ConfigureAwait(true);
+                if (!proceed)
+                {
+                    return;
+                }
+            }
+        }
+
+        var result = await _modLibrary.SetEnabledAsync(mod, enabling).ConfigureAwait(true);
         if (!result.IsSuccess)
         {
             StatusMessage = result.Error ?? "Could not change mod state.";

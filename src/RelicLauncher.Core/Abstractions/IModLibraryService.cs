@@ -1,4 +1,5 @@
 using RelicLauncher.Core.Models;
+using RelicLauncher.Core.Mods;
 using RelicLauncher.Core.Results;
 
 namespace RelicLauncher.Core.Abstractions;
@@ -20,6 +21,13 @@ public interface IModLibraryService
     Task<Result<int>> CleanDuplicateModsAsync(string dataPath, CancellationToken cancellationToken = default);
 
     Task<Result<LocalModInfo>> ImportLocalAsync(string dataPath, string sourcePath, CancellationToken cancellationToken = default);
+
+    Task<Result<string>> EnsureReleaseCachedAsync(
+        ModReleaseInfo release,
+        IProgress<double>? progress = null,
+        CancellationToken cancellationToken = default);
+
+    ParsedModInfo? TryPeekModInfo(string zipOrFolderPath);
 
     byte[]? TryReadModIcon(LocalModInfo mod);
 }

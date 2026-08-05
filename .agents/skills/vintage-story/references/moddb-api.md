@@ -34,6 +34,8 @@ One zip can list many game versions. There is no range syntax. Authors attach ex
 
 `GET /api/v2/mods/install-information?ids={modinfoId}&gv={gameVersion}` resolves the best zip for a game version. Live responses include `fileName`, `fileUrl` (path like `/download/{fileid}/...`), and optional `recommendedUpgrade`. Relic prefers this for “install for active version,” then falls back to v1 release `tags` if v2 fails. Do not build a full v2 client beyond this resolver.
 
+Upstream has an open proposal for `?resolve-deps=1` (transitive ModDB relations). Relic does **not** use that flag yet. Dependency resolution reads each zip’s `modinfo.json` `dependencies` object locally and looks up missing mods through the existing install-information / v1 release path.
+
 Local mods:
 
 - Folder: `{DataPath}/Mods/`
@@ -41,3 +43,4 @@ Local mods:
 - Disable by appending `.disabled` to the file/folder name
 - Relic keeps one enabled release per `modid` and caches downloads under Relic `cache/mods/files/{fileid}.zip`
 - Relic can import a local folder or zip into `Mods/`
+- `modinfo.json` `dependencies` are audited on the Mods page and used when offering transitive installs

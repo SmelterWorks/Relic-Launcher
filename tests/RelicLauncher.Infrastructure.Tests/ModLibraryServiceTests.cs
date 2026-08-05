@@ -163,6 +163,54 @@ public class ModLibraryServiceTests
         listed.Value.Should().NotContain(m => m.Version == "1.0.0" && m.ModId == "sample");
     }
 
+    [Fact]
+    public async Task ListInstalledAsync_ParsesDependenciesFromModInfo()
+    {
+        using var temp = new TempAppPaths();
+        var data = Path.Combine(temp.Paths.RootDirectory, "data");
+        var modsDir = Path.Combine(data, "Mods");
+        Directory.CreateDirectory(modsDir);
+
+        var zipPath = Path.Combine(modsDir, "rooted.zip");
+        using (var zip = ZipFile.Open(zipPath, ZipArchiveMode.Create))
+        {
+            var entry = zip.CreateEntry("modinfo.json");
+            await using var writer = new StreamWriter(entry.Open(), Encoding.UTF8);
+            await writer.WriteAsync(
+                """{"modid":"rooted","name":"Rooted","version":"1.0.0","dependencies":{"game":"1.20.0","lib":"2.0.0","any":"*"}}""");
+        }
+
+        var service = CreateService(temp);
+        var listed = await service.ListInstalledAsync(data);
+
+        listed.IsSuccess.Should().BeTrue();
+        listed.Value.Should().ContainSingle();
+        listed.Value![0].Dependencies.Should().HaveCount(3);
+        listed.Value[0].Dependencies.Should().Contain(d => d.ModId == "lib" && d.MinimumVersion == "2.0.0");
+        listed.Value[0].Dependencies.Should().Contain(d => d.ModId == "any" && d.AllowsAnyVersion);
+    }
+
+    [Fact]
+    public async Task TryPeekModInfo_ReadsCachedZip()
+    {
+        using var temp = new TempAppPaths();
+        var zipPath = Path.Combine(temp.Paths.RootDirectory, "peek.zip");
+        using (var zip = ZipFile.Open(zipPath, ZipArchiveMode.Create))
+        {
+            var entry = zip.CreateEntry("modinfo.json");
+            await using var writer = new StreamWriter(entry.Open(), Encoding.UTF8);
+            await writer.WriteAsync(
+                """{"modid":"peekme","name":"Peek","version":"9.9.9","dependencies":{"game":"*"}}""");
+        }
+
+        var service = CreateService(temp);
+        var peeked = service.TryPeekModInfo(zipPath);
+
+        peeked.Should().NotBeNull();
+        peeked!.ModId.Should().Be("peekme");
+        peeked.Dependencies.Should().ContainSingle(d => d.ModId == "game");
+    }
+
     private static ModLibraryService CreateService(TempAppPaths temp, HttpClient? client = null)
         => client is null
             ? new ModLibraryService(new FixedPathProvider(temp.Paths), NullLogger<ModLibraryService>.Instance)
