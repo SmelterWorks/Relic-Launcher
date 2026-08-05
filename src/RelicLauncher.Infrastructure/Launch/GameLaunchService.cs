@@ -2,6 +2,7 @@ using RelicLauncher.Core.Abstractions;
 using RelicLauncher.Core.Models;
 using RelicLauncher.Core.Paths;
 using RelicLauncher.Core.Results;
+using RelicLauncher.Core.Versions;
 
 namespace RelicLauncher.Infrastructure.Launch;
 
@@ -10,15 +11,18 @@ public sealed class GameLaunchService : IGameLaunchService
     private readonly IProcessRunner _processRunner;
     private readonly IRuntimePlatform _platform;
     private readonly IClientSettingsSessionWriter _sessionWriter;
+    private readonly IDotNetRuntimeProvisioner _runtimeProvisioner;
 
     public GameLaunchService(
         IProcessRunner processRunner,
         IRuntimePlatform platform,
-        IClientSettingsSessionWriter sessionWriter)
+        IClientSettingsSessionWriter sessionWriter,
+        IDotNetRuntimeProvisioner runtimeProvisioner)
     {
         _processRunner = processRunner;
         _platform = platform;
         _sessionWriter = sessionWriter;
+        _runtimeProvisioner = runtimeProvisioner;
     }
 
     public Task<Result<GameInstallInfo>> ResolveAsync(GameLaunchRequest request, CancellationToken cancellationToken = default)
@@ -63,6 +67,21 @@ public sealed class GameLaunchService : IGameLaunchService
             return Result.Failure("No client executable found for the selected version.");
         }
 
+        var runtimeMajor = GameDotNetRuntimeRequirements.TryGetRequiredMajor(request.Version);
+        if (!runtimeMajor.IsSuccess)
+        {
+            return Result.Failure(runtimeMajor.Error ?? "Unsupported game version for .NET runtime.");
+        }
+
+        var runtime = await _runtimeProvisioner.EnsureAsync(
+            runtimeMajor.Value,
+            request.Progress,
+            cancellationToken).ConfigureAwait(false);
+        if (!runtime.IsSuccess)
+        {
+            return Result.Failure(runtime.Error ?? "Could not provision the required .NET runtime.");
+        }
+
         var dataPath = string.IsNullOrWhiteSpace(request.DataPath)
             ? _platform.GetPlatformInfo().DefaultDataPath
             : request.DataPath.Trim();
@@ -72,6 +91,16 @@ public sealed class GameLaunchService : IGameLaunchService
         _ = await _sessionWriter.ApplySessionAsync(dataPath, cancellationToken).ConfigureAwait(false);
 
         var args = new[] { "--dataPath", dataPath };
-        return await _processRunner.StartAsync(info.ExecutablePath, args, cancellationToken).ConfigureAwait(false);
+        IReadOnlyDictionary<string, string?>? environment = null;
+        if (runtime.Value!.IsManagedByRelic)
+        {
+            environment = new Dictionary<string, string?>(StringComparer.Ordinal)
+            {
+                ["DOTNET_ROOT"] = runtime.Value.DotNetRoot,
+            };
+        }
+
+        return await _processRunner.StartAsync(info.ExecutablePath, args, environment, cancellationToken)
+            .ConfigureAwait(false);
     }
 }

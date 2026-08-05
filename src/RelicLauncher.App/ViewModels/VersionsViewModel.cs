@@ -7,6 +7,7 @@ using RelicLauncher.App.Services;
 using RelicLauncher.Core.Abstractions;
 using RelicLauncher.Core.Constants;
 using RelicLauncher.Core.Models;
+using RelicLauncher.Core.Versions;
 
 namespace RelicLauncher.App.ViewModels;
 
@@ -16,6 +17,7 @@ public partial class VersionsViewModel : PageViewModelBase
     private readonly IGameVersionCatalog _catalog;
     private readonly IInstalledVersionStore _installedStore;
     private readonly IGameVersionInstaller _installer;
+    private readonly IDotNetRuntimeProvisioner _runtimeProvisioner;
     private readonly ILauncherSettingsStore _settingsStore;
     private readonly IRuntimePlatform _platform;
     private readonly ITransferTracker _transfers;
@@ -75,6 +77,7 @@ public partial class VersionsViewModel : PageViewModelBase
         IGameVersionCatalog catalog,
         IInstalledVersionStore installedStore,
         IGameVersionInstaller installer,
+        IDotNetRuntimeProvisioner runtimeProvisioner,
         ILauncherSettingsStore settingsStore,
         IRuntimePlatform platform,
         ITransferTracker transfers,
@@ -84,6 +87,7 @@ public partial class VersionsViewModel : PageViewModelBase
         _catalog = catalog;
         _installedStore = installedStore;
         _installer = installer;
+        _runtimeProvisioner = runtimeProvisioner;
         _settingsStore = settingsStore;
         _platform = platform;
         _transfers = transfers;
@@ -325,12 +329,64 @@ public partial class VersionsViewModel : PageViewModelBase
         }
 
         session.Complete($"Installed {version.Version}");
+        await EnsureRuntimeForVersionAsync(version.Version, cancellationToken).ConfigureAwait(true);
+
         _settings.SelectedVersion = version.Version;
         await PersistSettingsAsync().ConfigureAwait(true);
         await RefreshAsync().ConfigureAwait(true);
         StatusMessage = $"Installed {version.Version}.";
         InstallProgress = 1;
         InstallProgressLabel = StatusMessage;
+    }
+
+    private async Task EnsureRuntimeForVersionAsync(string version, CancellationToken cancellationToken)
+    {
+        var major = GameDotNetRuntimeRequirements.TryGetRequiredMajor(version);
+        if (!major.IsSuccess)
+        {
+            _logger.LogInformation("Skipping runtime provision for {Version}: {Error}", version, major.Error);
+            return;
+        }
+
+        var session = _transfers.Begin(
+            $"runtime-{version}-{Guid.NewGuid():N}",
+            $".NET {major.Value} runtime",
+            TransferJobKind.Runtime);
+
+        try
+        {
+            await session.StartAsync(cancellationToken).ConfigureAwait(true);
+            InstallProgressLabel = $"Preparing .NET {major.Value} runtime...";
+            var progress = new Progress<double>(value =>
+            {
+                session.Report(value);
+                InstallProgress = value;
+                InstallProgressLabel = value >= 1.0
+                    ? $".NET {major.Value} runtime ready"
+                    : $"Downloading .NET {major.Value} runtime... {value:P0}";
+            });
+
+            var ensured = await _runtimeProvisioner.EnsureAsync(major.Value, progress, cancellationToken)
+                .ConfigureAwait(true);
+            if (!ensured.IsSuccess)
+            {
+                session.Fail(ensured.Error ?? "Runtime download failed.");
+                StatusMessage = ensured.Error ?? "Runtime download failed.";
+                _logger.LogWarning("Runtime provision failed for {Version}: {Error}", version, ensured.Error);
+                return;
+            }
+
+            session.Complete($".NET {major.Value} runtime ready");
+        }
+        catch (OperationCanceledException)
+        {
+            session.Cancel();
+            throw;
+        }
+        finally
+        {
+            await session.DisposeAsync().ConfigureAwait(true);
+        }
     }
 
     internal async Task UninstallAsync(string version)
@@ -386,8 +442,8 @@ public partial class VersionsViewModel : PageViewModelBase
         {
             ActiveTransfers.Clear();
             foreach (var job in _transfers.GetJobs().Where(j =>
-                         j.Kind == TransferJobKind.Version &&
-                         j.State is TransferJobState.Queued or TransferJobState.Running))
+                         (j.Kind == TransferJobKind.Version || j.Kind == TransferJobKind.Runtime)
+                         && (j.State == TransferJobState.Queued || j.State == TransferJobState.Running)))
             {
                 ActiveTransfers.Add(new TransferJobRowViewModel(job));
             }

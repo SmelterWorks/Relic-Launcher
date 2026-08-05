@@ -136,26 +136,6 @@
     <Setter Property="Padding" Value="0,0,10,0" />
   </Style>
 
-  <Style Selector="ScrollBar">
-    <Setter Property="AllowAutoHide" Value="True" />
-  </Style>
-
-  <Style Selector="ScrollBar:vertical">
-    <Setter Property="Width" Value="6" />
-    <Setter Property="MinWidth" Value="6" />
-    <Setter Property="Margin" Value="4,2,0,2" />
-  </Style>
-
-  <Style Selector="ScrollBar:horizontal">
-    <Setter Property="Height" Value="6" />
-    <Setter Property="MinHeight" Value="6" />
-    <Setter Property="Margin" Value="2,4,2,0" />
-  </Style>
-
-  <Style Selector="ScrollBar /template/ Thumb">
-    <Setter Property="CornerRadius" Value="3" />
-  </Style>
-
   <Style Selector="Button.settings-section-header">
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="BorderThickness" Value="0" />

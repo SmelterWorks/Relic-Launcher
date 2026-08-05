@@ -8,6 +8,13 @@
     <local:ViewLocator />
   </Application.DataTemplates>
 
+  <Application.Resources>
+    <!-- Shrinks the whole Fluent scrollbar (track, thumb, buttons) consistently.
+         Overriding the ScrollBar's own Width/Height directly breaks the built-in
+         collapse render transform, which assumes this resource as its base size. -->
+    <x:Double x:Key="ScrollBarSize">14</x:Double>
+  </Application.Resources>
+
   <Application.Styles>
     <FluentTheme />
     <StyleInclude Source="avares://RelicLauncher.App/Styles/Controls.axaml" />

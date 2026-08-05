@@ -20,6 +20,7 @@ public partial class HomeViewModel : PageViewModelBase
     private readonly IInstalledVersionStore _installedStore;
     private readonly ILauncherSettingsStore _settingsStore;
     private readonly IAccountAuthService _accountAuth;
+    private readonly ITransferTracker _transfers;
     private readonly ILogger<HomeViewModel> _logger;
     private LauncherSettings _settings = new();
     private Action<LauncherSettings>? _onChanged;
@@ -87,6 +88,7 @@ public partial class HomeViewModel : PageViewModelBase
         IInstalledVersionStore installedStore,
         ILauncherSettingsStore settingsStore,
         IAccountAuthService accountAuth,
+        ITransferTracker transfers,
         ILogger<HomeViewModel> logger)
     {
         _launchService = launchService;
@@ -97,6 +99,7 @@ public partial class HomeViewModel : PageViewModelBase
         _installedStore = installedStore;
         _settingsStore = settingsStore;
         _accountAuth = accountAuth;
+        _transfers = transfers;
         _logger = logger;
         StatusMessage = "Install a Vintage Story version on the Versions page to enable Play.";
     }
@@ -310,29 +313,56 @@ public partial class HomeViewModel : PageViewModelBase
     {
         IsLaunching = true;
         StatusMessage = "Launching...";
+        var version = _settings.SelectedVersion ?? string.Empty;
+        var runtimeMajor = GameDotNetRuntimeRequirements.TryGetRequiredMajor(version);
+        var runtimeLabel = runtimeMajor.IsSuccess
+            ? $".NET {runtimeMajor.Value} runtime"
+            : ".NET runtime";
+        var session = _transfers.Begin(
+            $"runtime-play-{version}-{Guid.NewGuid():N}",
+            runtimeLabel,
+            TransferJobKind.Runtime);
+
         try
         {
+            await session.StartAsync().ConfigureAwait(true);
             var installsRoot = _settings.InstallsRoot ?? _platform.GetPlatformInfo().DefaultInstallsRoot;
+            var progress = new Progress<double>(value =>
+            {
+                session.Report(value);
+                StatusMessage = value < 1.0
+                    ? $"Preparing {runtimeLabel}... {value:P0}"
+                    : "Launching...";
+            });
+
             var result = await _launchService.LaunchAsync(new GameLaunchRequest
             {
                 InstallsRoot = installsRoot,
-                Version = _settings.SelectedVersion ?? string.Empty,
+                Version = version,
                 DataPath = _settings.DataPath,
+                Progress = progress,
             }).ConfigureAwait(true);
 
             if (!result.IsSuccess)
             {
+                session.Fail(result.Error ?? "Launch failed.");
                 _logger.LogWarning("Play failed: {Error}", result.Error);
                 StatusMessage = result.Error ?? "Launch failed.";
             }
             else
             {
-                var version = _settings.SelectedVersion ?? string.Empty;
+                session.Complete($"Ready for {version}");
                 StatusMessage = $"Launched {version}.";
             }
         }
+        catch (OperationCanceledException)
+        {
+            session.Cancel();
+            StatusMessage = "Launch canceled.";
+        }
         finally
         {
+            await session.DisposeAsync().ConfigureAwait(true);
             IsLaunching = false;
         }
     }

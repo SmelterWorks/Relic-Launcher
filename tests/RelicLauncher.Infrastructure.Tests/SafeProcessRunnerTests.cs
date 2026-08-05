@@ -62,12 +62,45 @@ public class SafeProcessRunnerTests
         result.IsSuccess.Should().BeTrue();
     }
 
+    [Fact]
+    public async Task StartAsync_AppliesEnvironmentVariables()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        using var script = new TempExecutable(writeDotNetRoot: true);
+        var outFile = Path.Combine(script.DirectoryPath, "out.txt");
+        var result = await _runner.StartAsync(
+            script.Path,
+            [outFile],
+            new Dictionary<string, string?>(StringComparer.Ordinal) { ["DOTNET_ROOT"] = "/managed/dotnet-root" });
+
+        result.IsSuccess.Should().BeTrue();
+        await WaitForFileAsync(outFile).ConfigureAwait(true);
+        (await File.ReadAllTextAsync(outFile).ConfigureAwait(true)).Trim().Should().Be("/managed/dotnet-root");
+    }
+
+    private static async Task WaitForFileAsync(string path)
+    {
+        for (var i = 0; i < 50; i++)
+        {
+            if (File.Exists(path) && new FileInfo(path).Length > 0)
+            {
+                return;
+            }
+
+            await Task.Delay(20).ConfigureAwait(false);
+        }
+    }
+
     private sealed class TempExecutable : IDisposable
     {
         public string Path { get; }
         public string DirectoryPath { get; }
 
-        public TempExecutable()
+        public TempExecutable(bool writeDotNetRoot = false)
         {
             DirectoryPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "RelicLauncherTests", Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(DirectoryPath);
@@ -75,6 +108,16 @@ public class SafeProcessRunnerTests
             if (OperatingSystem.IsWindows())
             {
                 File.WriteAllText(Path, "@echo off\r\nexit /b 0\r\n");
+            }
+            else if (writeDotNetRoot)
+            {
+                File.WriteAllText(Path, "#!/bin/sh\nprintf '%s' \"$DOTNET_ROOT\" > \"$1\"\n");
+                global::System.Diagnostics.Process.Start(new global::System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = "chmod",
+                    ArgumentList = { "+x", Path },
+                    UseShellExecute = false,
+                })?.WaitForExit();
             }
             else
             {

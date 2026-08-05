@@ -4,5 +4,6 @@ public enum TransferJobKind
 {
     Version,
     Mod,
+    Runtime,
     Other,
 }

@@ -14,7 +14,17 @@ public sealed class SafeProcessRunner : IProcessRunner
         _logger = logger;
     }
 
-    public Task<Result> StartAsync(string executablePath, IReadOnlyList<string> arguments, CancellationToken cancellationToken = default)
+    public Task<Result> StartAsync(
+        string executablePath,
+        IReadOnlyList<string> arguments,
+        CancellationToken cancellationToken = default)
+        => StartAsync(executablePath, arguments, environment: null, cancellationToken);
+
+    public Task<Result> StartAsync(
+        string executablePath,
+        IReadOnlyList<string> arguments,
+        IReadOnlyDictionary<string, string?>? environment,
+        CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -24,7 +34,7 @@ public sealed class SafeProcessRunner : IProcessRunner
             return Task.FromResult(Result.Failure(validation.Error!));
         }
 
-        return Task.FromResult(StartProcess(validation.Value!, arguments ?? Array.Empty<string>()));
+        return Task.FromResult(StartProcess(validation.Value!, arguments ?? Array.Empty<string>(), environment));
     }
 
     private static Result<string> Validate(string executablePath, IReadOnlyList<string>? arguments)
@@ -52,7 +62,10 @@ public sealed class SafeProcessRunner : IProcessRunner
         return Result<string>.Success(fullPath);
     }
 
-    private Result StartProcess(string fullPath, IReadOnlyList<string> arguments)
+    private Result StartProcess(
+        string fullPath,
+        IReadOnlyList<string> arguments,
+        IReadOnlyDictionary<string, string?>? environment)
     {
         try
         {
@@ -66,6 +79,14 @@ public sealed class SafeProcessRunner : IProcessRunner
             foreach (var arg in arguments)
             {
                 startInfo.ArgumentList.Add(arg);
+            }
+
+            if (environment is not null)
+            {
+                foreach (var pair in environment)
+                {
+                    startInfo.Environment[pair.Key] = pair.Value;
+                }
             }
 
             var process = System.Diagnostics.Process.Start(startInfo);

@@ -23,7 +23,7 @@ public class GameLaunchServiceTests
         var exePath = Path.Combine(versionDir, "Vintagestory");
         await File.WriteAllTextAsync(exePath, "bin");
 
-        var service = new GameLaunchService(new CapturingProcessRunner(), new RuntimePlatform(), new NoopSessionWriter());
+        var service = CreateService(new CapturingProcessRunner(), new StubRuntimeProvisioner());
         var result = await service.ResolveAsync(new GameLaunchRequest
         {
             InstallsRoot = installsRoot,
@@ -47,7 +47,7 @@ public class GameLaunchServiceTests
         var dataPath = Path.Combine(temp.Paths.RootDirectory, "data");
 
         var runner = new CapturingProcessRunner();
-        var service = new GameLaunchService(runner, new RuntimePlatform(), new NoopSessionWriter());
+        var service = CreateService(runner, new StubRuntimeProvisioner { IsManagedByRelic = false });
         var result = await service.LaunchAsync(new GameLaunchRequest
         {
             InstallsRoot = installsRoot,
@@ -58,7 +58,60 @@ public class GameLaunchServiceTests
         result.IsSuccess.Should().BeTrue();
         runner.LastExecutable.Should().Be(exePath);
         runner.LastArguments.Should().Equal("--dataPath", dataPath);
+        runner.LastEnvironment.Should().BeNull();
         Directory.Exists(Path.Combine(dataPath, "Mods")).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task LaunchAsync_SetsDotNetRoot_WhenRuntimeIsManaged()
+    {
+        using var temp = new TempAppPaths();
+        var installsRoot = Path.Combine(temp.Paths.RootDirectory, "installs");
+        var versionDir = Path.Combine(installsRoot, "versions", "1.21.5");
+        Directory.CreateDirectory(versionDir);
+        await File.WriteAllTextAsync(Path.Combine(versionDir, "Vintagestory"), "bin");
+        var managedRoot = Path.Combine(temp.Paths.CacheDirectory, "dotnet", "net8");
+
+        var runner = new CapturingProcessRunner();
+        var service = CreateService(runner, new StubRuntimeProvisioner
+        {
+            IsManagedByRelic = true,
+            DotNetRoot = managedRoot,
+            MajorVersion = 8,
+        });
+        var result = await service.LaunchAsync(new GameLaunchRequest
+        {
+            InstallsRoot = installsRoot,
+            Version = "1.21.5",
+            DataPath = Path.Combine(temp.Paths.RootDirectory, "data"),
+        });
+
+        result.IsSuccess.Should().BeTrue();
+        runner.LastEnvironment.Should().NotBeNull();
+        runner.LastEnvironment!["DOTNET_ROOT"].Should().Be(managedRoot);
+    }
+
+    [Fact]
+    public async Task LaunchAsync_Fails_WhenRuntimeProvisionFails()
+    {
+        using var temp = new TempAppPaths();
+        var installsRoot = Path.Combine(temp.Paths.RootDirectory, "installs");
+        var versionDir = Path.Combine(installsRoot, "versions", "1.22.6");
+        Directory.CreateDirectory(versionDir);
+        await File.WriteAllTextAsync(Path.Combine(versionDir, "Vintagestory"), "bin");
+
+        var service = CreateService(
+            new CapturingProcessRunner(),
+            new StubRuntimeProvisioner { FailWith = "download blocked" });
+        var result = await service.LaunchAsync(new GameLaunchRequest
+        {
+            InstallsRoot = installsRoot,
+            Version = "1.22.6",
+            DataPath = Path.Combine(temp.Paths.RootDirectory, "data"),
+        });
+
+        result.IsSuccess.Should().BeFalse();
+        result.Error.Should().Contain("download blocked");
     }
 
     [Fact]
@@ -87,7 +140,11 @@ public class GameLaunchServiceTests
             },
         };
         var writer = new ClientSettingsSessionWriter(auth, NullLogger<ClientSettingsSessionWriter>.Instance);
-        var service = new GameLaunchService(new CapturingProcessRunner(), new RuntimePlatform(), writer);
+        var service = new GameLaunchService(
+            new CapturingProcessRunner(),
+            new RuntimePlatform(),
+            writer,
+            new StubRuntimeProvisioner { IsManagedByRelic = false });
         var result = await service.LaunchAsync(new GameLaunchRequest
         {
             InstallsRoot = installsRoot,
@@ -102,6 +159,9 @@ public class GameLaunchServiceTests
         json.Should().Contain("\"sessionkey\": \"sk\"");
         json.Should().Contain("\"playername\": \"PlayerOne\"");
     }
+
+    private static GameLaunchService CreateService(IProcessRunner runner, IDotNetRuntimeProvisioner provisioner)
+        => new(runner, new RuntimePlatform(), new NoopSessionWriter(), provisioner);
 
     private sealed class NoopSessionWriter : IClientSettingsSessionWriter
     {
@@ -126,15 +186,56 @@ public class GameLaunchServiceTests
             => Task.FromResult(Result.Success());
     }
 
+    private sealed class StubRuntimeProvisioner : IDotNetRuntimeProvisioner
+    {
+        public bool IsManagedByRelic { get; init; } = true;
+        public string DotNetRoot { get; init; } = "/managed/dotnet";
+        public int MajorVersion { get; init; } = 10;
+        public string? FailWith { get; init; }
+        public int EnsureCallCount { get; private set; }
+
+        public Task<Result<DotNetRuntimeResolveInfo>> EnsureAsync(
+            int majorVersion,
+            IProgress<double>? progress = null,
+            CancellationToken cancellationToken = default)
+        {
+            EnsureCallCount++;
+            progress?.Report(1.0);
+            if (FailWith is not null)
+            {
+                return Task.FromResult(Result<DotNetRuntimeResolveInfo>.Failure(FailWith));
+            }
+
+            return Task.FromResult(Result<DotNetRuntimeResolveInfo>.Success(new DotNetRuntimeResolveInfo
+            {
+                DotNetRoot = DotNetRoot,
+                IsManagedByRelic = IsManagedByRelic,
+                MajorVersion = MajorVersion == 0 ? majorVersion : MajorVersion,
+            }));
+        }
+    }
+
     private sealed class CapturingProcessRunner : IProcessRunner
     {
         public string? LastExecutable { get; private set; }
         public IReadOnlyList<string> LastArguments { get; private set; } = [];
+        public IReadOnlyDictionary<string, string?>? LastEnvironment { get; private set; }
 
-        public Task<Result> StartAsync(string executablePath, IReadOnlyList<string> arguments, CancellationToken cancellationToken = default)
+        public Task<Result> StartAsync(
+            string executablePath,
+            IReadOnlyList<string> arguments,
+            CancellationToken cancellationToken = default)
+            => StartAsync(executablePath, arguments, environment: null, cancellationToken);
+
+        public Task<Result> StartAsync(
+            string executablePath,
+            IReadOnlyList<string> arguments,
+            IReadOnlyDictionary<string, string?>? environment,
+            CancellationToken cancellationToken = default)
         {
             LastExecutable = executablePath;
             LastArguments = arguments.ToList();
+            LastEnvironment = environment;
             return Task.FromResult(Result.Success());
         }
     }

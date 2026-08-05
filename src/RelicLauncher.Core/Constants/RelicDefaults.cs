@@ -10,6 +10,7 @@ public static class RelicDefaults
     public const double HomeBackgroundLogoOpacity = 0.2;
     public const long MaxGameDownloadBytes = 4L * 1024 * 1024 * 1024;
     public const long MaxModDownloadBytes = 512L * 1024 * 1024;
+    public const long MaxDotNetRuntimeDownloadBytes = 512L * 1024 * 1024;
     public const long MaxRemoteImageBytes = 8L * 1024 * 1024;
     public const int RemoteImageMemoryCacheEntries = 64;
 }

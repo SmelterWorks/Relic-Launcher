@@ -59,13 +59,6 @@
       <NativeWebView x:Name="WikiWebView"
                      AutomationProperties.Name="Wiki browser" />
 
-      <!-- Captures wheel Avalonia-side when the native host does not scroll. -->
-      <Border x:Name="WikiWheelCatcher"
-              Background="Transparent"
-              HorizontalAlignment="Stretch"
-              VerticalAlignment="Stretch"
-              IsVisible="{Binding !HasError}" />
-
       <Border Background="{DynamicResource Theme.Bg0}"
               Opacity="0.85"
               IsVisible="{Binding IsLoading}"

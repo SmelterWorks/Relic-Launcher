@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using RelicLauncher.Core.Abstractions;
 using RelicLauncher.Infrastructure.Auth;
 using RelicLauncher.Infrastructure.Caching;
+using RelicLauncher.Infrastructure.DotNet;
 using RelicLauncher.Infrastructure.Endpoints;
 using RelicLauncher.Infrastructure.Hosting;
 using RelicLauncher.Infrastructure.Launch;
@@ -37,6 +38,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IClientSettingsSessionWriter, ClientSettingsSessionWriter>();
         services.AddSingleton<IGameLocator, GameLocatorStub>();
         services.AddSingleton<IProcessRunner, SafeProcessRunner>();
+        services.AddSingleton<IDotNetRuntimeProvisioner, DotNetRuntimeProvisioner>();
         services.AddSingleton<IUpdateCheckService, UpdateCheckServiceStub>();
         services.AddSingleton<IGameVersionCatalog, VintageStoryVersionCatalog>();
         services.AddSingleton<IInstalledVersionStore, JsonInstalledVersionStore>();
