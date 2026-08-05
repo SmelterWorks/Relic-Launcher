@@ -18,18 +18,32 @@ public sealed class DiskRemoteImageCache : IRemoteImageCache, IDisposable
     private readonly ILogger<DiskRemoteImageCache> _logger;
 
     public DiskRemoteImageCache(IAppPathProvider pathProvider, ILogger<DiskRemoteImageCache> logger)
+        : this(pathProvider, logger, CreateHttpClient())
+    {
+    }
+
+    internal DiskRemoteImageCache(
+        IAppPathProvider pathProvider,
+        ILogger<DiskRemoteImageCache> logger,
+        HttpClient httpClient)
     {
         _logger = logger;
         _cacheDir = Path.Combine(pathProvider.GetPaths().CacheDirectory, "images");
         Directory.CreateDirectory(_cacheDir);
-        _httpClient = new HttpClient(new HttpClientHandler
+        _httpClient = httpClient;
+    }
+
+    private static HttpClient CreateHttpClient()
+    {
+        var client = new HttpClient(new HttpClientHandler
         {
             AutomaticDecompression = DecompressionMethods.All,
         })
         {
             Timeout = TimeSpan.FromSeconds(30),
         };
-        _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("RelicLauncher/0.1.0");
+        client.DefaultRequestHeaders.UserAgent.ParseAdd("RelicLauncher/0.1.0");
+        return client;
     }
 
     public async Task<byte[]?> GetImageBytesAsync(string url, CancellationToken cancellationToken = default)

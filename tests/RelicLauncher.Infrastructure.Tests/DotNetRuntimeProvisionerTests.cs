@@ -3,6 +3,7 @@ using System.Net;
 using System.Text;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
+using RelicLauncher.Core.Models;
 using RelicLauncher.Infrastructure.DotNet;
 using RelicLauncher.Infrastructure.Platform;
 using RelicLauncher.Testing;
@@ -116,6 +117,87 @@ public class DotNetRuntimeProvisionerTests
 
         result.IsSuccess.Should().BeFalse();
         result.Error.Should().Contain("Unsupported");
+    }
+
+    [Fact]
+    public async Task EnsureAsync_Fails_WhenRidUnsupported()
+    {
+        using var temp = new TempAppPaths();
+        var platform = new FakeRuntimePlatform
+        {
+            Info = new PlatformInfo
+            {
+                Os = HostOs.Linux,
+                Arch = HostArch.Arm64,
+                ClientPackageKey = "linux-arm64",
+                DefaultDataPath = "/tmp/data",
+                DefaultInstallsRoot = "/tmp/installs",
+            },
+        };
+        var provisioner = new DotNetRuntimeProvisioner(
+            new FixedPathProvider(temp.Paths),
+            platform,
+            NullLogger<DotNetRuntimeProvisioner>.Instance,
+            new HttpClient(new StubHandler(_ => new HttpResponseMessage(HttpStatusCode.OK))),
+            () => Array.Empty<string>());
+
+        var result = await provisioner.EnsureAsync(8);
+
+        result.IsSuccess.Should().BeFalse();
+        result.Error.Should().Contain("No .NET runtime package");
+    }
+
+    [Fact]
+    public async Task EnsureAsync_Fails_WhenVersionLookupFails()
+    {
+        using var temp = new TempAppPaths();
+        var provisioner = new DotNetRuntimeProvisioner(
+            new FixedPathProvider(temp.Paths),
+            new RuntimePlatform(),
+            NullLogger<DotNetRuntimeProvisioner>.Instance,
+            new HttpClient(new StubHandler(_ => new HttpResponseMessage(HttpStatusCode.ServiceUnavailable))),
+            () => Array.Empty<string>());
+
+        var result = await provisioner.EnsureAsync(8);
+
+        result.IsSuccess.Should().BeFalse();
+        result.Error.Should().Contain("Could not resolve");
+    }
+
+    [Fact]
+    public async Task EnsureAsync_Fails_WhenVersionResponseEmpty()
+    {
+        using var temp = new TempAppPaths();
+        var provisioner = new DotNetRuntimeProvisioner(
+            new FixedPathProvider(temp.Paths),
+            new RuntimePlatform(),
+            NullLogger<DotNetRuntimeProvisioner>.Instance,
+            new HttpClient(new StubHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent("   "),
+            })),
+            () => Array.Empty<string>());
+
+        var result = await provisioner.EnsureAsync(8);
+
+        result.IsSuccess.Should().BeFalse();
+        result.Error.Should().Contain("Empty version response");
+    }
+
+    [Fact]
+    public void EnumerateDefaultSystemRoots_IncludesDotNetRootEnv()
+    {
+        var previous = Environment.GetEnvironmentVariable("DOTNET_ROOT");
+        var custom = Path.Combine(Path.GetTempPath(), "custom-dotnet-root");
+        Environment.SetEnvironmentVariable("DOTNET_ROOT", custom);
+        try
+        {
+            DotNetRuntimeProvisioner.EnumerateDefaultSystemRoots().Should().Contain(custom);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("DOTNET_ROOT", previous);
+        }
     }
 
     private static void SeedSharedFramework(string root, int major, bool requireDesktop)

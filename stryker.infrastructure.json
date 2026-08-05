@@ -20,7 +20,8 @@
       "!**/Logging/**",
       "!**/Hosting/**",
       "!**/Paths/FileExplorerService.cs",
-      "!**/Paths/UrlLauncher.cs"
+      "!**/Paths/UrlLauncher.cs",
+      "!**/ServiceCollectionExtensions.cs"
     ]
   }
 }
