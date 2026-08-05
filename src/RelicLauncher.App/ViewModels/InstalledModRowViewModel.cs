@@ -2,6 +2,7 @@ using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using RelicLauncher.App.Services;
 using RelicLauncher.Core.Abstractions;
+using RelicLauncher.Core.Constants;
 using RelicLauncher.Core.Models;
 
 namespace RelicLauncher.App.ViewModels;
@@ -10,6 +11,7 @@ public sealed partial class InstalledModRowViewModel : ViewModelBase
 {
     private readonly IRemoteImageCache _images;
     private readonly IModLibraryService _modLibrary;
+    private bool _logoLoadStarted;
 
     public InstalledModRowViewModel(
         LocalModInfo info,
@@ -61,6 +63,9 @@ public sealed partial class InstalledModRowViewModel : ViewModelBase
     [ObservableProperty]
     private bool _isLogoLoading;
 
+    partial void OnLogoChanging(Bitmap? value)
+        => OwnedBitmap.DisposeIfOwned(_logo);
+
     public void ApplyDependencyIssues(IReadOnlyList<ModDependencyIssue>? issues)
     {
         var blocking = issues?
@@ -102,16 +107,28 @@ public sealed partial class InstalledModRowViewModel : ViewModelBase
         DependencyStatusLabel = string.Join(", ", parts);
     }
 
+    public void UnloadLogo()
+    {
+        _logoLoadStarted = false;
+        Logo = ModIconAssets.Default;
+    }
+
     public async Task LoadLogoAsync()
     {
+        if (_logoLoadStarted)
+        {
+            return;
+        }
+
+        _logoLoadStarted = true;
         IsLogoLoading = true;
         try
         {
             var localBytes = _modLibrary.TryReadModIcon(Info);
             if (localBytes is { Length: > 0 })
             {
-                using var localStream = new MemoryStream(localBytes);
-                Logo = new Bitmap(localStream);
+                Logo = ScaledBitmapLoader.FromBytes(localBytes, RelicDefaults.DecodeWidthModListLogo)
+                       ?? ModIconAssets.Default;
                 return;
             }
 
@@ -128,8 +145,8 @@ public sealed partial class InstalledModRowViewModel : ViewModelBase
                 return;
             }
 
-            using var stream = new MemoryStream(bytes);
-            Logo = new Bitmap(stream);
+            Logo = ScaledBitmapLoader.FromBytes(bytes, RelicDefaults.DecodeWidthModListLogo)
+                   ?? ModIconAssets.Default;
         }
         finally
         {

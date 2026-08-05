@@ -39,37 +39,12 @@ public sealed class RemoteNewsImageLoader : IRemoteNewsImageLoader, IDisposable
 
         try
         {
-            using var response = await _httpClient.GetAsync(normalized, HttpCompletionOption.ResponseHeadersRead, cancellationToken)
-                .ConfigureAwait(false);
-            if (!response.IsSuccessStatusCode)
+            var bitmap = await FetchScaledAsync(normalized, cancellationToken).ConfigureAwait(false);
+            if (bitmap is null)
             {
                 return null;
             }
 
-            var length = response.Content.Headers.ContentLength;
-            if (length is > 0 && length.Value > RelicDefaults.MaxRemoteImageBytes)
-            {
-                return null;
-            }
-
-            using var input = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
-            using var buffer = new MemoryStream();
-            var chunk = new byte[81920];
-            long total = 0;
-            int read;
-            while ((read = await input.ReadAsync(chunk.AsMemory(0, chunk.Length), cancellationToken).ConfigureAwait(false)) > 0)
-            {
-                total += read;
-                if (total > RelicDefaults.MaxRemoteImageBytes)
-                {
-                    return null;
-                }
-
-                await buffer.WriteAsync(chunk.AsMemory(0, read), cancellationToken).ConfigureAwait(false);
-            }
-
-            buffer.Position = 0;
-            var bitmap = new Bitmap(buffer);
             Remember(normalized, bitmap);
             return bitmap;
         }
@@ -92,6 +67,41 @@ public sealed class RemoteNewsImageLoader : IRemoteNewsImageLoader, IDisposable
 
         _memoryCache.Clear();
         _httpClient.Dispose();
+    }
+
+    private async Task<Bitmap?> FetchScaledAsync(string normalized, CancellationToken cancellationToken)
+    {
+        using var response = await _httpClient.GetAsync(normalized, HttpCompletionOption.ResponseHeadersRead, cancellationToken)
+            .ConfigureAwait(false);
+        if (!response.IsSuccessStatusCode)
+        {
+            return null;
+        }
+
+        var length = response.Content.Headers.ContentLength;
+        if (length is > 0 && length.Value > RelicDefaults.MaxRemoteImageBytes)
+        {
+            return null;
+        }
+
+        using var input = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+        using var buffer = new MemoryStream();
+        var chunk = new byte[81920];
+        long total = 0;
+        int read;
+        while ((read = await input.ReadAsync(chunk.AsMemory(0, chunk.Length), cancellationToken).ConfigureAwait(false)) > 0)
+        {
+            total += read;
+            if (total > RelicDefaults.MaxRemoteImageBytes)
+            {
+                return null;
+            }
+
+            await buffer.WriteAsync(chunk.AsMemory(0, read), cancellationToken).ConfigureAwait(false);
+        }
+
+        buffer.Position = 0;
+        return ScaledBitmapLoader.FromStream(buffer, RelicDefaults.DecodeWidthNewsImage);
     }
 
     private void Remember(string key, Bitmap bitmap)

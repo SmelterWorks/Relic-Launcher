@@ -35,6 +35,7 @@ public partial class ModsViewModel : PageViewModelBase
     private readonly HashSet<string> _selectedTagIds = new(StringComparer.OrdinalIgnoreCase);
     private IReadOnlyList<ModTagInfo> _allTags = [];
     private readonly List<InstalledModRowViewModel> _allInstalledRows = [];
+    private bool _viewerOwnsImage;
 
     [ObservableProperty]
     private string _searchText = string.Empty;
@@ -286,7 +287,7 @@ public partial class ModsViewModel : PageViewModelBase
     {
         IsLoading = true;
         StatusMessage = string.Empty;
-        BrowseResults.Clear();
+        ClearBrowseResults();
         HasBrowseResults = false;
         try
         {
@@ -334,7 +335,7 @@ public partial class ModsViewModel : PageViewModelBase
     {
         StatusMessage = error ?? "Mod search failed.";
         _logger.LogWarning("Mod search failed: {Error}", error);
-        BrowseResults.Clear();
+        ClearBrowseResults();
         HasBrowseResults = false;
         EmptyBrowseMessage = "Could not load mods.";
         UpdatePaging(0, Page, DefaultPageSize);
@@ -342,7 +343,7 @@ public partial class ModsViewModel : PageViewModelBase
 
     private void ApplySearchSuccess(ModSearchResult page)
     {
-        BrowseResults.Clear();
+        ClearBrowseResults();
         foreach (var mod in page.Mods)
         {
             BrowseResults.Add(new ModRowViewModel(mod, _images, OpenModAsync));
@@ -362,11 +363,6 @@ public partial class ModsViewModel : PageViewModelBase
             StatusMessage = page.IsStale
                 ? "Showing saved ModDB catalog while offline."
                 : $"Showing {TotalCount:N0} mods.";
-        }
-
-        foreach (var row in BrowseResults)
-        {
-            _ = row.LoadLogoAsync();
         }
     }
 
@@ -468,11 +464,6 @@ public partial class ModsViewModel : PageViewModelBase
             : HasInstalledMods
                 ? string.Empty
                 : "No installed mods match the current search or filters.";
-
-        foreach (var row in InstalledMods)
-        {
-            _ = row.LoadLogoAsync();
-        }
     }
 
     private IEnumerable<InstalledModRowViewModel> FilterInstalledRows(IEnumerable<InstalledModRowViewModel> source)
@@ -684,9 +675,9 @@ public partial class ModsViewModel : PageViewModelBase
         DetailStatus = "Loading details...";
         SelectedDetails = null;
         SelectedRelease = null;
-        DetailLogo = ModIconAssets.Default;
-        ScreenshotItems.Clear();
         CloseImageViewer();
+        ClearScreenshotItems();
+        DetailLogo = ModIconAssets.Default;
         UpdateSelectedInstalledState();
 
         var result = await _modDb.GetModAsync(id).ConfigureAwait(true);
@@ -771,22 +762,17 @@ public partial class ModsViewModel : PageViewModelBase
         if (!string.IsNullOrWhiteSpace(details.LogoUrl))
         {
             var bytes = await _images.GetImageBytesAsync(details.LogoUrl).ConfigureAwait(true);
-            if (bytes is not null)
-            {
-                using var stream = new MemoryStream(bytes);
-                DetailLogo = new Bitmap(stream);
-            }
-            else
-            {
-                DetailLogo = ModIconAssets.Default;
-            }
+            DetailLogo = bytes is null
+                ? ModIconAssets.Default
+                : ScaledBitmapLoader.FromBytes(bytes, RelicDefaults.DecodeWidthModDetailLogo)
+                  ?? ModIconAssets.Default;
         }
         else
         {
             DetailLogo = ModIconAssets.Default;
         }
 
-        ScreenshotItems.Clear();
+        ClearScreenshotItems();
         foreach (var shot in details.Screenshots.Take(8))
         {
             var thumbUrl = shot.ThumbnailUrl ?? shot.MainUrl;
@@ -801,8 +787,12 @@ public partial class ModsViewModel : PageViewModelBase
                 continue;
             }
 
-            using var stream = new MemoryStream(bytes);
-            var bitmap = new Bitmap(stream);
+            var bitmap = ScaledBitmapLoader.FromBytes(bytes, RelicDefaults.DecodeWidthScreenshotThumb);
+            if (bitmap is null)
+            {
+                continue;
+            }
+
             ScreenshotItems.Add(new ModImageItemViewModel(bitmap, shot.MainUrl ?? thumbUrl, OpenScreenshotAsync));
         }
     }
@@ -822,7 +812,7 @@ public partial class ModsViewModel : PageViewModelBase
             return;
         }
 
-        ViewerImage = DetailLogo;
+        SetViewerImage(DetailLogo, ownsImage: false);
         IsImageViewerOpen = true;
     }
 
@@ -833,7 +823,7 @@ public partial class ModsViewModel : PageViewModelBase
     {
         IsImageViewerOpen = true;
         IsViewerLoading = true;
-        ViewerImage = fallback;
+        SetViewerImage(fallback, ownsImage: false);
         try
         {
             if (string.IsNullOrWhiteSpace(url))
@@ -847,8 +837,11 @@ public partial class ModsViewModel : PageViewModelBase
                 return;
             }
 
-            using var stream = new MemoryStream(bytes);
-            ViewerImage = new Bitmap(stream);
+            var bitmap = ScaledBitmapLoader.FromBytes(bytes, RelicDefaults.DecodeWidthImageViewer);
+            if (bitmap is not null)
+            {
+                SetViewerImage(bitmap, ownsImage: true);
+            }
         }
         finally
         {
@@ -861,7 +854,57 @@ public partial class ModsViewModel : PageViewModelBase
     {
         IsImageViewerOpen = false;
         IsViewerLoading = false;
-        ViewerImage = null;
+        SetViewerImage(null, ownsImage: false);
+    }
+
+    public void UnloadMedia()
+    {
+        CloseImageViewer();
+        ClearScreenshotItems();
+        DetailLogo = ModIconAssets.Default;
+        foreach (var row in BrowseResults)
+        {
+            row.UnloadLogo();
+        }
+
+        foreach (var row in _allInstalledRows)
+        {
+            row.UnloadLogo();
+        }
+    }
+
+    partial void OnDetailLogoChanging(Bitmap? value)
+        => OwnedBitmap.DisposeIfOwned(_detailLogo);
+
+    private void SetViewerImage(Bitmap? image, bool ownsImage)
+    {
+        if (_viewerOwnsImage)
+        {
+            OwnedBitmap.DisposeIfOwned(ViewerImage);
+        }
+
+        _viewerOwnsImage = ownsImage && image is not null;
+        ViewerImage = image;
+    }
+
+    private void ClearBrowseResults()
+    {
+        foreach (var row in BrowseResults)
+        {
+            row.UnloadLogo();
+        }
+
+        BrowseResults.Clear();
+    }
+
+    private void ClearScreenshotItems()
+    {
+        foreach (var item in ScreenshotItems)
+        {
+            item.Dispose();
+        }
+
+        ScreenshotItems.Clear();
     }
 
     [RelayCommand]

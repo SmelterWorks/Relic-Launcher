@@ -130,6 +130,11 @@ public partial class MainWindowViewModel : ViewModelBase
 
     private void Navigate(string navId, Func<ViewModelBase> createPage, Action<ViewModelBase>? rebind = null)
     {
+        if (!string.Equals(ActiveNav, navId, StringComparison.Ordinal))
+        {
+            UnloadPageMedia(CurrentPage);
+        }
+
         ActiveNav = navId;
         if (_pageCache.TryGetValue(navId, out var cached))
         {
@@ -144,6 +149,19 @@ public partial class MainWindowViewModel : ViewModelBase
         }
 
         NotifyNavState();
+    }
+
+    private static void UnloadPageMedia(ViewModelBase? page)
+    {
+        switch (page)
+        {
+            case ModsViewModel mods:
+                mods.UnloadMedia();
+                break;
+            case HomeViewModel home:
+                home.UnloadMedia();
+                break;
+        }
     }
 
     private void OnSettingsChanged(LauncherSettings settings)

@@ -301,7 +301,11 @@ public partial class HomeViewModel : PageViewModelBase
     }
 
     [RelayCommand]
-    private void CloseArticle() => IsShowingArticle = false;
+    private void CloseArticle()
+    {
+        IsShowingArticle = false;
+        SelectedArticleBlocks.Clear();
+    }
 
     [RelayCommand]
     private async Task RetryNewsAsync() => await LoadNewsAsync().ConfigureAwait(true);
@@ -375,7 +379,25 @@ public partial class HomeViewModel : PageViewModelBase
     {
         var logo = HomeBackgroundLogoResolver.Resolve(settings);
         ShowBackgroundLogo = logo.ShowLogo;
+        var previous = BackgroundLogo;
         BackgroundLogo = logo.ShowLogo ? HomeBackgroundLogoImageLoader.Load(logo.Source) : null;
+        if (!ReferenceEquals(previous, BackgroundLogo))
+        {
+            OwnedBitmap.DisposeIfOwned(previous);
+        }
+
         BackgroundLogoOpacity = logo.Opacity;
+    }
+
+    public void UnloadMedia()
+    {
+        if (IsShowingArticle)
+        {
+            CloseArticle();
+        }
+        else
+        {
+            SelectedArticleBlocks.Clear();
+        }
     }
 }

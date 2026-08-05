@@ -4,7 +4,7 @@ namespace RelicLauncher.App.Services;
 
 public static class HomeBackgroundLogoResolver
 {
-    public const string SquareLogoUri = "avares://RelicLauncher.App/Assets/Branding/vs-logo-square.png";
+    public const string SquareLogoUri = "avares://RelicLauncher.App/Assets/Branding/vs-logo-square-ui.png";
     public const string BannerLogoUri = "avares://RelicLauncher.App/Assets/Branding/vs-logo-banner.png";
 
     public static HomeBackgroundLogoState Resolve(LauncherSettings settings)

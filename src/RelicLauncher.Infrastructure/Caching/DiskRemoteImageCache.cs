@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using System.Net;
 using System.Security.Cryptography;
 using System.Text;
@@ -12,9 +11,6 @@ public sealed class DiskRemoteImageCache : IRemoteImageCache, IDisposable
 {
     private readonly HttpClient _httpClient;
     private readonly string _cacheDir;
-    private readonly ConcurrentDictionary<string, byte[]> _memory = new(StringComparer.OrdinalIgnoreCase);
-    private readonly LinkedList<string> _lru = new();
-    private readonly Lock _lruGate = new();
     private readonly ILogger<DiskRemoteImageCache> _logger;
 
     public DiskRemoteImageCache(IAppPathProvider pathProvider, ILogger<DiskRemoteImageCache> logger)
@@ -54,12 +50,6 @@ public sealed class DiskRemoteImageCache : IRemoteImageCache, IDisposable
             return null;
         }
 
-        if (_memory.TryGetValue(normalized, out var cached))
-        {
-            Touch(normalized);
-            return cached;
-        }
-
         try
         {
             var fromDisk = await TryReadDiskAsync(normalized, cancellationToken).ConfigureAwait(false);
@@ -93,7 +83,6 @@ public sealed class DiskRemoteImageCache : IRemoteImageCache, IDisposable
             return null;
         }
 
-        Remember(normalized, disk);
         return disk;
     }
 
@@ -130,42 +119,7 @@ public sealed class DiskRemoteImageCache : IRemoteImageCache, IDisposable
 
         var bytes = buffer.ToArray();
         await File.WriteAllBytesAsync(GetPath(normalized), bytes, cancellationToken).ConfigureAwait(false);
-        Remember(normalized, bytes);
         return bytes;
-    }
-
-    private void Remember(string key, byte[] bytes)
-    {
-        _memory[key] = bytes;
-        Touch(key);
-        EvictIfNeeded();
-    }
-
-    private void Touch(string key)
-    {
-        lock (_lruGate)
-        {
-            _lru.Remove(key);
-            _lru.AddFirst(key);
-        }
-    }
-
-    private void EvictIfNeeded()
-    {
-        lock (_lruGate)
-        {
-            while (_lru.Count > RelicDefaults.RemoteImageMemoryCacheEntries)
-            {
-                var last = _lru.Last;
-                if (last is null)
-                {
-                    break;
-                }
-
-                _lru.RemoveLast();
-                _memory.TryRemove(last.Value, out _);
-            }
-        }
     }
 
     private string GetPath(string url)

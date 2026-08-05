@@ -1,5 +1,5 @@
 using Avalonia.Media.Imaging;
-using Avalonia.Platform;
+using RelicLauncher.Core.Constants;
 
 namespace RelicLauncher.App.Services;
 
@@ -16,13 +16,12 @@ public static class HomeBackgroundLogoImageLoader
         {
             if (source.StartsWith("avares://", StringComparison.OrdinalIgnoreCase))
             {
-                using var stream = AssetLoader.Open(new Uri(source));
-                return new Bitmap(stream);
+                return ScaledBitmapLoader.FromAssetUri(source, RelicDefaults.DecodeWidthHomeLogo);
             }
 
             if (File.Exists(source))
             {
-                return new Bitmap(source);
+                return ScaledBitmapLoader.FromFile(source, RelicDefaults.DecodeWidthHomeLogo);
             }
         }
         catch (Exception)

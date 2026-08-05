@@ -1,10 +1,11 @@
 using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using RelicLauncher.App.Services;
 
 namespace RelicLauncher.App.ViewModels;
 
-public sealed partial class ModImageItemViewModel : ViewModelBase
+public sealed partial class ModImageItemViewModel : ViewModelBase, IDisposable
 {
     private readonly Func<ModImageItemViewModel, Task> _open;
 
@@ -20,4 +21,6 @@ public sealed partial class ModImageItemViewModel : ViewModelBase
 
     [RelayCommand]
     private Task OpenAsync() => _open(this);
+
+    public void Dispose() => OwnedBitmap.DisposeIfOwned(Thumbnail);
 }

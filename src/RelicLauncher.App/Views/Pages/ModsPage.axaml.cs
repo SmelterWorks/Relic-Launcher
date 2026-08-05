@@ -77,4 +77,20 @@ public partial class ModsPage : UserControl
             e.Handled = true;
         }
     }
+
+    private void OnBrowseContainerPrepared(object? sender, ContainerPreparedEventArgs e)
+    {
+        if (e.Container.DataContext is ModRowViewModel row)
+        {
+            _ = row.LoadLogoAsync();
+        }
+    }
+
+    private void OnInstalledContainerPrepared(object? sender, ContainerPreparedEventArgs e)
+    {
+        if (e.Container.DataContext is InstalledModRowViewModel row)
+        {
+            _ = row.LoadLogoAsync();
+        }
+    }
 }

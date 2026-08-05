@@ -63,24 +63,29 @@ internal static class Program
 
         if (OperatingSystem.IsLinux())
         {
-            // Glx on Virtio/QEMU can init then draw nothing. Software first is
-            // slower but maps a visible window. Override with RELIC_USE_GLX=1.
-            var preferGlx = string.Equals(
-                Environment.GetEnvironmentVariable("RELIC_USE_GLX"),
-                "1",
-                StringComparison.Ordinal);
+            // Prefer Glx for lower RSS. Virtio/QEMU can need Software: set
+            // RELIC_FORCE_SOFTWARE=1 (RELIC_USE_GLX=0 also forces Software).
+            var forceSoftware =
+                string.Equals(
+                    Environment.GetEnvironmentVariable("RELIC_FORCE_SOFTWARE"),
+                    "1",
+                    StringComparison.Ordinal)
+                || string.Equals(
+                    Environment.GetEnvironmentVariable("RELIC_USE_GLX"),
+                    "0",
+                    StringComparison.Ordinal);
             builder = builder.With(new X11PlatformOptions
             {
-                RenderingMode = preferGlx
+                RenderingMode = forceSoftware
                     ?
                     [
-                        X11RenderingMode.Glx,
                         X11RenderingMode.Software,
+                        X11RenderingMode.Glx,
                     ]
                     :
                     [
-                        X11RenderingMode.Software,
                         X11RenderingMode.Glx,
+                        X11RenderingMode.Software,
                     ],
             });
 

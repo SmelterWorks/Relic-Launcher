@@ -394,10 +394,19 @@ public sealed class GameVersionInstaller : IGameVersionInstaller, IDisposable
         Directory.Delete(nested, recursive: true);
     }
 
-    private static async Task<string> ComputeMd5Async(string path, CancellationToken cancellationToken)
+    internal static async Task<string> ComputeMd5Async(string path, CancellationToken cancellationToken)
     {
-        var bytes = await File.ReadAllBytesAsync(path, cancellationToken).ConfigureAwait(false);
-        var hash = MD5.HashData(bytes);
-        return Convert.ToHexString(hash).ToLowerInvariant();
+        var stream = new FileStream(
+            path,
+            FileMode.Open,
+            FileAccess.Read,
+            FileShare.Read,
+            bufferSize: 1024 * 128,
+            options: FileOptions.Asynchronous | FileOptions.SequentialScan);
+        await using (stream.ConfigureAwait(false))
+        {
+            var hash = await MD5.HashDataAsync(stream, cancellationToken).ConfigureAwait(false);
+            return Convert.ToHexString(hash).ToLowerInvariant();
+        }
     }
 }
