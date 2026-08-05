@@ -55,7 +55,12 @@ Relic Launcher settings live under **`RelicLauncher`**, not `VintagestoryData`.
 
 - Custom C# engine (per [press kit](https://www.vintagestory.at/presskit.html/))
 - Desktop: Windows, macOS, Linux
-- Recent game releases use modern .NET (README notes VS 1.22 family aligns with .NET 10 runtime for framework-dependent tooling)
+- Client packages are framework-dependent. Required .NET Desktop / runtime by game version (wiki):
+  - `1.22.0+` → .NET **10**
+  - `1.21.x` → .NET **8**
+  - `1.18.8`–`1.20.x` → .NET **7**
+  - older than `1.18.8` → .NET Framework 4 / Mono (Relic does not provision this)
+- Relic provisions portable Microsoft runtimes under `{RelicAppData}/cache/dotnet/net{major}/` when the host lacks the matching shared framework, and launches with `DOTNET_ROOT` for managed roots. Windows uses the windowsdesktop runtime pack. Linux/macOS use the dotnet runtime pack. Mapping lives in `GameDotNetRuntimeRequirements`.
 
 Do not assume Relic can hot-patch game files or inject mods without following VS mod conventions on the wiki.
 

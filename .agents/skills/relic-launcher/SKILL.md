@@ -60,8 +60,10 @@ Implemented:
 - Home: play (active managed version), Vintage Story blog news, optional background logo
 - Versions: catalog from api.vintagestory.at, install/uninstall/set active under InstallsRoot
 - Mods: ModDB browse/install (tags, blocklist warn) plus local import/enable/disable/uninstall
+- Portable .NET 7/8/10 runtime provision for the game client (`IDotNetRuntimeProvisioner`, `DOTNET_ROOT` on launch)
 - Wiki: domain-locked `NativeWebView` for the configured wiki base URL (default wiki.vintagestory.at), with reachability probe and Open in browser fallback
 - Settings: account sign-in (auth3 email/password + TOTP), installs root, data path, theme, logo, confirm-before-exit, service URLs including Wiki
+
 - About: version, commit, build time, logs folder open, 0BSD
 - Built-in themes: `relic-default`, `temporal-rift`, `moss-hearth`, `copper-dungeon`, `high-contrast`
 
