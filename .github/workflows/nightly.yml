@@ -91,7 +91,8 @@ jobs:
             -o "artifacts/${RID}"
           case "$RID" in
             win-x64)
-              (cd "artifacts/${RID}" && zip -r "../../relic-launcher-nightly-${STAMP}-${RID}.zip" .)
+              chmod +x packaging/create-zip.sh
+              packaging/create-zip.sh "relic-launcher-nightly-${STAMP}-${RID}.zip" "artifacts/${RID}"
               ;;
             osx-x64|osx-arm64)
               chmod +x packaging/macos/build-app-bundle.sh

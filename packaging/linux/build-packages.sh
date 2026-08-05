@@ -58,7 +58,7 @@ trap 'rm -rf "${WORK_DIR}"' EXIT
 mkdir -p "${OUTPUT_DIR}"
 
 DEB_VERSION="${VERSION//-/\~}-1"
-RPM_VERSION="${VERSION}"
+RPM_VERSION="${VERSION//-/.}"
 RPM_RELEASE="1"
 ARCH_PKGVER="${VERSION//-/.}-1"
 INSTALL_LIB="usr/lib/relic-launcher"
