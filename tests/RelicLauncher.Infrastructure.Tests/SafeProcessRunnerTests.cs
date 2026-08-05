@@ -104,13 +104,13 @@ public class SafeProcessRunnerTests
         {
             DirectoryPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "RelicLauncherTests", Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(DirectoryPath);
-            Path = System.IO.Path.Combine(DirectoryPath, OperatingSystem.IsWindows() ? "runner.cmd" : "runner.sh");
             if (OperatingSystem.IsWindows())
             {
-                File.WriteAllText(Path, "@echo off\r\nexit /b 0\r\n");
+                Path = System.IO.Path.Combine(Environment.SystemDirectory, "where.exe");
             }
             else if (writeDotNetRoot)
             {
+                Path = System.IO.Path.Combine(DirectoryPath, "runner.sh");
                 File.WriteAllText(Path, "#!/bin/sh\nprintf '%s' \"$DOTNET_ROOT\" > \"$1\"\n");
                 global::System.Diagnostics.Process.Start(new global::System.Diagnostics.ProcessStartInfo
                 {
@@ -121,6 +121,7 @@ public class SafeProcessRunnerTests
             }
             else
             {
+                Path = System.IO.Path.Combine(DirectoryPath, "runner.sh");
                 File.WriteAllText(Path, "#!/bin/sh\nexit 0\n");
                 global::System.Diagnostics.Process.Start(new global::System.Diagnostics.ProcessStartInfo
                 {
