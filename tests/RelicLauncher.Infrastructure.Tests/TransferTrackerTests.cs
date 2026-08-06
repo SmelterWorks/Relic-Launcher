@@ -136,6 +136,18 @@ public class TransferTrackerTests
         tracker.GetJobs().Count(j => j.State == TransferJobState.Completed).Should().BeLessThanOrEqualTo(20);
     }
 
+    [Fact]
+    public async Task Begin_ModpackKind_RecordsJobKind()
+    {
+        var tracker = new TransferTracker();
+        await using var session = tracker.Begin("modpack-1", "Apply pack", TransferJobKind.Modpack);
+        await session.StartAsync().ConfigureAwait(true);
+        session.Complete("Done");
+
+        tracker.GetJobs().Should().ContainSingle(j =>
+            j.Kind == TransferJobKind.Modpack && j.State == TransferJobState.Completed);
+    }
+
     private static async Task WaitForStateAsync(TransferTracker tracker, string id, TransferJobState state)
     {
         for (var i = 0; i < 50; i++)
