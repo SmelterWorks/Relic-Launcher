@@ -99,6 +99,10 @@ jobs:
         with:
           dotnet-version: "10.0.x"
 
+      - name: Install NSIS
+        if: matrix.rid == 'win-x64'
+        run: choco install nsis -y --no-progress
+
       - name: Publish
         shell: bash
         env:
@@ -115,8 +119,21 @@ jobs:
             -o "artifacts/${RID}"
           case "$RID" in
             win-x64)
-              chmod +x packaging/create-zip.sh
+              chmod +x packaging/create-zip.sh packaging/windows/build-packages.sh
               packaging/create-zip.sh "relic-launcher-${VERSION}-${RID}.zip" "artifacts/${RID}"
+              dotnet publish src/RelicLauncher.App/RelicLauncher.App.csproj \
+                -c Release \
+                -r "$RID" \
+                --self-contained true \
+                -p:PublishSingleFile=true \
+                -p:Version="$VERSION" \
+                -o "artifacts/${RID}-portable"
+              find "artifacts/${RID}-portable" -name '*.pdb' -delete
+              packaging/windows/build-packages.sh \
+                --version "$VERSION" \
+                --publish-dir "artifacts/${RID}" \
+                --portable-dir "artifacts/${RID}-portable" \
+                --output-dir .
               ;;
             osx-x64|osx-arm64)
               chmod +x packaging/macos/build-app-bundle.sh
@@ -156,6 +173,7 @@ jobs:
             relic-launcher-*.tar.gz
             relic-launcher-*.zip
             relic-launcher-*.app.zip
+            relic-launcher-*-setup.exe
             relic-launcher-*.deb
             relic-launcher-*.rpm
             relic-launcher-*.pkg.tar.zst

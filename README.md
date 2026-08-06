@@ -41,6 +41,7 @@ Built with C# / .NET 10 and Avalonia 12.1. Targets the same desktop platforms Vi
 ```bash
 dotnet restore RelicLauncher.sln
 dotnet build RelicLauncher.sln -c Release
+
 dotnet run --project src/RelicLauncher.App/RelicLauncher.App.csproj
 ```
 
@@ -54,6 +55,7 @@ Mutation tests (Stryker.NET, validates test quality):
 
 ```bash
 dotnet tool restore
+
 dotnet stryker --config-file stryker.core.json
 dotnet stryker --config-file stryker.infrastructure.json
 ```
@@ -72,14 +74,20 @@ Self-contained publishes (what CI/release use):
 
 ```bash
 dotnet publish src/RelicLauncher.App/RelicLauncher.App.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=false -o artifacts/win-x64
+dotnet publish src/RelicLauncher.App/RelicLauncher.App.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o artifacts/win-x64-portable
+
+chmod +x packaging/windows/build-packages.sh
+packaging/windows/build-packages.sh --version 0.1.0 --publish-dir artifacts/win-x64 --portable-dir artifacts/win-x64-portable --output-dir .
+
 dotnet publish src/RelicLauncher.App/RelicLauncher.App.csproj -c Release -r linux-x64 --self-contained true -p:PublishSingleFile=false -o artifacts/linux-x64
+
 dotnet publish src/RelicLauncher.App/RelicLauncher.App.csproj -c Release -r osx-x64 --self-contained true -p:PublishSingleFile=false -o artifacts/osx-x64
 dotnet publish src/RelicLauncher.App/RelicLauncher.App.csproj -c Release -r osx-arm64 --self-contained true -p:PublishSingleFile=false -o artifacts/osx-arm64
 ```
 
 Release artifacts:
 
-- Windows: `relic-launcher-{version}-win-x64.zip` (extract and run `RelicLauncher.App.exe`)
+- Windows: `relic-launcher-{version}-win-x64.zip` (folder), `relic-launcher-{version}-win-x64-portable.zip` (single exe), `relic-launcher-{version}-win-x64-setup.exe` (NSIS installer)
 - macOS: `relic-launcher-{version}-osx-*.app.zip` (`Relic Launcher.app`, not notarized)
 - Linux: deb, rpm, Arch pkg, AppImage via `packaging/linux/build-packages.sh`
 

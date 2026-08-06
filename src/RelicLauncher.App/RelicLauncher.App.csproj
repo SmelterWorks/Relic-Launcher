@@ -6,8 +6,19 @@
     <ApplicationIcon>Assets\Icons\icon.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <PublishTrimmed>false</PublishTrimmed>
+    <IncludeNativeLibrariesForSelfExtract Condition="'$(PublishSingleFile)' == 'true'">true</IncludeNativeLibrariesForSelfExtract>
+    <EnableCompressionInSingleFile Condition="'$(PublishSingleFile)' == 'true'">true</EnableCompressionInSingleFile>
+    <DebugType Condition="'$(PublishSingleFile)' == 'true'">none</DebugType>
+    <DebugSymbols Condition="'$(PublishSingleFile)' == 'true'">false</DebugSymbols>
     <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
   </PropertyGroup>
+
+  <Target Name="RemoveSingleFilePublishPdbs" AfterTargets="Publish" Condition="'$(PublishSingleFile)' == 'true'">
+    <ItemGroup>
+      <_PublishPdbFiles Include="$(PublishDir)**/*.pdb" />
+    </ItemGroup>
+    <Delete Files="@(_PublishPdbFiles)" />
+  </Target>
 
   <ItemGroup>
     <InternalsVisibleTo Include="RelicLauncher.App.Tests" />
