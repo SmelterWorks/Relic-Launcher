@@ -292,6 +292,123 @@
               </ListBox>
             </Grid>
           </TabItem>
+
+          <TabItem Header="Modpacks">
+            <Grid RowDefinitions="Auto,Auto,*" DataContext="{Binding ModpackPanel}">
+              <StackPanel Spacing="8" Margin="0,0,0,8">
+                <TextBlock Text="Save current enabled mods as a modpack or apply a saved or imported pack."
+                           Classes="muted"
+                           TextWrapping="Wrap" />
+                <TextBox Text="{Binding NewPackName}"
+                         PlaceholderText="Modpack name"
+                         AutomationProperties.Name="Modpack name" />
+                <TextBox Text="{Binding NewPackDescription}"
+                         PlaceholderText="Description (optional)"
+                         AcceptsReturn="True"
+                         MinHeight="48"
+                         AutomationProperties.Name="Modpack description" />
+                <TextBlock Text="{Binding DistributionNote}"
+                           Classes="muted"
+                           TextWrapping="Wrap"
+                           IsVisible="{Binding DistributionNote, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <Button Classes="primary"
+                          Content="Save from installed"
+                          Command="{Binding SaveFromInstalledCommand}"
+                          IsEnabled="{Binding !IsBusy}"
+                          AutomationProperties.Name="Save modpack from installed mods" />
+                  <Button Classes="ghost"
+                          Content="Import replace"
+                          Command="{Binding ImportAndApplyReplaceCommand}"
+                          IsEnabled="{Binding !IsBusy}"
+                          AutomationProperties.Name="Import modpack replace" />
+                  <Button Classes="ghost"
+                          Content="Import merge"
+                          Command="{Binding ImportAndApplyMergeCommand}"
+                          IsEnabled="{Binding !IsBusy}"
+                          AutomationProperties.Name="Import modpack merge" />
+                  <Button Classes="ghost"
+                          Content="Refresh"
+                          Command="{Binding RefreshCommand}"
+                          AutomationProperties.Name="Refresh modpacks" />
+                </StackPanel>
+                <TextBlock Text="{Binding StatusMessage}"
+                           Classes="muted"
+                           TextWrapping="Wrap"
+                           IsVisible="{Binding StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                <ItemsControl ItemsSource="{Binding ActiveTransfers}"
+                              IsVisible="{Binding ActiveTransfers.Count}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:TransferJobRowViewModel">
+                      <StackPanel Spacing="4" Margin="0,0,0,6">
+                        <TextBlock Text="{Binding Label}" FontWeight="SemiBold" />
+                        <TextBlock Text="{Binding StatusText}" Classes="muted" />
+                        <ProgressBar Minimum="0" Maximum="1" Value="{Binding Progress}" Height="6" />
+                      </StackPanel>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
+
+              <TextBlock Grid.Row="1"
+                         Text="No saved modpacks yet."
+                         Classes="muted"
+                         Margin="0,0,0,8"
+                         IsVisible="{Binding !HasSavedPacks}" />
+
+              <ListBox Grid.Row="2"
+                       ItemsSource="{Binding SavedPacks}"
+                       Background="Transparent"
+                       BorderThickness="0"
+                       ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                <ListBox.ItemTemplate>
+                  <DataTemplate x:DataType="vm:ModpackRowViewModel">
+                    <Border Background="{DynamicResource Theme.Surface}"
+                            Padding="12"
+                            Margin="0,0,0,8"
+                            CornerRadius="{DynamicResource Theme.Radius}">
+                      <StackPanel Spacing="6">
+                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                        <TextBlock Text="{Binding Description}"
+                                   Classes="muted"
+                                   TextWrapping="Wrap"
+                                   IsVisible="{Binding Description, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                        <TextBlock Classes="muted" FontSize="12">
+                          <Run Text="{Binding GameVersion}" />
+                          <Run Text=" · " />
+                          <Run Text="{Binding ModCount}" />
+                          <Run Text=" mods · " />
+                          <Run Text="{Binding DistributionLabel}" />
+                        </TextBlock>
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                          <Button Classes="ghost"
+                                  Content="Apply replace"
+                                  Command="{Binding $parent[ListBox].((vm:ModpackPanelViewModel)DataContext).ApplyReplaceCommand}"
+                                  CommandParameter="{Binding}"
+                                  AutomationProperties.Name="Apply modpack replace" />
+                          <Button Classes="ghost"
+                                  Content="Apply merge"
+                                  Command="{Binding $parent[ListBox].((vm:ModpackPanelViewModel)DataContext).ApplyMergeCommand}"
+                                  CommandParameter="{Binding}"
+                                  AutomationProperties.Name="Apply modpack merge" />
+                          <Button Classes="ghost"
+                                  Content="Export"
+                                  Command="{Binding $parent[ListBox].((vm:ModpackPanelViewModel)DataContext).ExportCommand}"
+                                  CommandParameter="{Binding}"
+                                  AutomationProperties.Name="Export modpack" />
+                          <Button Classes="ghost"
+                                  Content="Delete"
+                                  Command="{Binding $parent[ListBox].((vm:ModpackPanelViewModel)DataContext).DeleteCommand}"
+                                  CommandParameter="{Binding}"
+                                  AutomationProperties.Name="Delete modpack" />
+                        </StackPanel>
+                      </StackPanel>
+                    </Border>
+                  </DataTemplate>
+                </ListBox.ItemTemplate>
+              </ListBox>
+            </Grid>
+          </TabItem>
         </TabControl>
       </Grid>
 

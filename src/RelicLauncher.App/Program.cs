@@ -149,7 +149,8 @@ internal static class Program
         services.AddSingleton<MainWindowViewModel>();
         services.AddTransient<HomeViewModel>();
         services.AddTransient<VersionsViewModel>();
-        services.AddTransient<ModsViewModel>();
+        services.AddSingleton<ModInstallOrchestrator>();
+        services.AddTransient<ModpackPanelViewModel>();
         services.AddTransient<BackupViewModel>();
         services.AddTransient<WikiViewModel>();
         services.AddTransient<SettingsViewModel>();

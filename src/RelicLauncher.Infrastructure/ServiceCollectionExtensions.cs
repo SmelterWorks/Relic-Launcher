@@ -11,6 +11,7 @@ using RelicLauncher.Infrastructure.Hosting;
 using RelicLauncher.Infrastructure.Launch;
 using RelicLauncher.Infrastructure.Logging;
 using RelicLauncher.Infrastructure.Mods;
+using RelicLauncher.Infrastructure.Modpacks;
 using RelicLauncher.Infrastructure.News;
 using RelicLauncher.Infrastructure.Paths;
 using RelicLauncher.Infrastructure.Platform;
@@ -51,6 +52,8 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IModBlocklistService, ModBlocklistService>();
         services.AddSingleton<IModLibraryService, ModLibraryService>();
         services.AddSingleton<IModDependencyInstallPlanner, ModDependencyInstallPlanner>();
+        services.AddSingleton<IModOriginResolver, ModOriginResolver>();
+        services.AddSingleton<IModpackService, ModpackService>();
         services.AddSingleton<ITransferTracker, TransferTracker>();
         services.AddSingleton<IRemoteImageCache, DiskRemoteImageCache>();
         services.AddSingleton<NewsCacheStore>();

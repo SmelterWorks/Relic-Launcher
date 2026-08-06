@@ -9,4 +9,8 @@ public interface IStoragePickerService
     Task<string?> PickZipFileAsync(string? title = null);
 
     Task<string?> SaveZipFileAsync(string? suggestedFileName = null, string? title = null);
+
+    Task<string?> PickModpackFileAsync(string? title = null);
+
+    Task<string?> SaveModpackFileAsync(string? suggestedFileName = null, string? title = null);
 }

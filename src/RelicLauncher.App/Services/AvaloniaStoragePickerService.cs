@@ -95,6 +95,55 @@ public sealed class AvaloniaStoragePickerService(MainWindowHolder windowHolder) 
         return file?.TryGetLocalPath();
     }
 
+    public async Task<string?> PickModpackFileAsync(string? title = null)
+    {
+        var storage = GetStorageProvider();
+        if (storage is null)
+        {
+            return null;
+        }
+
+        var files = await storage.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = title ?? "Select modpack",
+            AllowMultiple = false,
+            FileTypeFilter =
+            [
+                new FilePickerFileType("Relic modpack")
+                {
+                    Patterns = ["*.relicmodpack", "*.zip"],
+                },
+            ],
+        }).ConfigureAwait(true);
+
+        return files.Count > 0 ? files[0].TryGetLocalPath() : null;
+    }
+
+    public async Task<string?> SaveModpackFileAsync(string? suggestedFileName = null, string? title = null)
+    {
+        var storage = GetStorageProvider();
+        if (storage is null)
+        {
+            return null;
+        }
+
+        var file = await storage.SaveFilePickerAsync(new FilePickerSaveOptions
+        {
+            Title = title ?? "Export modpack",
+            SuggestedFileName = suggestedFileName ?? "modpack.relicmodpack",
+            DefaultExtension = "relicmodpack",
+            FileTypeChoices =
+            [
+                new FilePickerFileType("Relic modpack")
+                {
+                    Patterns = ["*.relicmodpack"],
+                },
+            ],
+        }).ConfigureAwait(true);
+
+        return file?.TryGetLocalPath();
+    }
+
     private IStorageProvider? GetStorageProvider()
         => windowHolder.Window?.StorageProvider;
 }

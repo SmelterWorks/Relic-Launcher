@@ -6,5 +6,6 @@ public enum TransferJobKind
     Mod,
     Runtime,
     Backup,
+    Modpack,
     Other,
 }

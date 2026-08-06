@@ -20,6 +20,7 @@ public partial class ModsViewModel : PageViewModelBase
     private readonly IModReleaseResolver _releaseResolver;
     private readonly IModDependencyInstallPlanner _dependencyPlanner;
     private readonly IModBlocklistService _blocklist;
+    private readonly ModInstallOrchestrator _installOrchestrator;
     private readonly IRuntimePlatform _platform;
     private readonly ITransferTracker _transfers;
     private readonly IRemoteImageCache _images;
@@ -168,12 +169,16 @@ public partial class ModsViewModel : PageViewModelBase
 
     public bool ShowEmptyBrowse => !IsLoading && !HasBrowseResults;
 
+    public ModpackPanelViewModel ModpackPanel { get; }
+
     public ModsViewModel(
         IModDbClient modDb,
         IModLibraryService modLibrary,
         IModReleaseResolver releaseResolver,
         IModDependencyInstallPlanner dependencyPlanner,
         IModBlocklistService blocklist,
+        ModInstallOrchestrator installOrchestrator,
+        ModpackPanelViewModel modpackPanel,
         IRuntimePlatform platform,
         ITransferTracker transfers,
         IRemoteImageCache images,
@@ -188,6 +193,8 @@ public partial class ModsViewModel : PageViewModelBase
         _releaseResolver = releaseResolver;
         _dependencyPlanner = dependencyPlanner;
         _blocklist = blocklist;
+        _installOrchestrator = installOrchestrator;
+        ModpackPanel = modpackPanel;
         _platform = platform;
         _transfers = transfers;
         _images = images;
@@ -206,6 +213,7 @@ public partial class ModsViewModel : PageViewModelBase
     {
         _settings = settings;
         _ready = true;
+        ModpackPanel.Bind(settings, refresh);
         _ = RefreshInstalledAsync();
         if (refresh)
         {
@@ -975,120 +983,56 @@ public partial class ModsViewModel : PageViewModelBase
     }
 
     private async Task<bool> ConfirmBlockedPlanAsync(ModDependencyInstallPlan plan)
-    {
-        foreach (var step in plan.ReleasesToInstall)
-        {
-            if (step.Release is null)
-            {
-                continue;
-            }
-
-            if (!await ConfirmBlockedReleaseAsync(step.ModId, step.Release).ConfigureAwait(true))
-            {
-                DetailStatus = "Install canceled.";
-                return false;
-            }
-        }
-
-        return true;
-    }
+        => await _installOrchestrator.ConfirmBlockedPlanAsync(_settings, plan).ConfigureAwait(true);
 
     private async Task<bool> ConfirmDependencyPlanAsync(ModDependencyInstallPlan plan)
     {
-        var extras = plan.ReleasesToInstall
-            .Where(s => s.Depth > 0 && s.Release is not null)
-            .ToList();
-        var unresolved = plan.Unresolved;
-        if (extras.Count == 0 && unresolved.Count == 0)
+        var confirmed = await _installOrchestrator.ConfirmDependencyPlanAsync(plan).ConfigureAwait(true);
+        if (!confirmed)
         {
-            return true;
+            DetailStatus = "Install canceled.";
         }
 
-        var lines = new List<string>();
-        if (extras.Count > 0)
-        {
-            lines.Add("Also install these dependencies:");
-            foreach (var step in extras)
-            {
-                var version = step.Release?.ModVersion ?? "?";
-                lines.Add($"- {step.ModId} {version}");
-            }
-        }
-
-        if (unresolved.Count > 0)
-        {
-            lines.Add("Could not resolve:");
-            foreach (var step in unresolved)
-            {
-                lines.Add($"- {step.ModId}: {step.Error ?? "unavailable"}");
-            }
-
-            lines.Add("Install the selected mod anyway?");
-        }
-
-        return await _confirmDialog.ConfirmAsync(
-            extras.Count > 0 ? "Install dependencies" : "Unresolved dependencies",
-            string.Join(Environment.NewLine, lines),
-            "Install",
-            "Cancel").ConfigureAwait(true);
+        return confirmed;
     }
 
     private async Task<bool> ConfirmBlockedInstallAsync(ModDetails details, ModReleaseInfo release)
     {
         var modId = ResolveModIdentifier(details);
-        return await ConfirmBlockedReleaseAsync(modId, release).ConfigureAwait(true);
-    }
-
-    private async Task<bool> ConfirmBlockedReleaseAsync(string modId, ModReleaseInfo release)
-    {
-        if (!_settings.WarnOnBlockedMods)
-        {
-            return true;
-        }
-
-        var match = await _blocklist.FindMatchAsync(modId, release.ModVersion).ConfigureAwait(true);
-        if (!match.IsSuccess || match.Value is null)
-        {
-            return true;
-        }
-
-        var reason = string.IsNullOrWhiteSpace(match.Value.Reason)
-            ? match.Value.Id
-            : $"{match.Value.Id}: {match.Value.Reason}";
-        var proceed = await _confirmDialog.ConfirmAsync(
-            "Blocked mod warning",
-            $"This release is on the official Vintage Story blocked-mods list ({reason}). Install anyway?",
-            "Install anyway",
-            "Cancel").ConfigureAwait(true);
-        if (!proceed)
+        var confirmed = await _installOrchestrator.ConfirmBlockedReleaseAsync(_settings, modId, release).ConfigureAwait(true);
+        if (!confirmed)
         {
             DetailStatus = "Install canceled.";
         }
 
-        return proceed;
+        return confirmed;
     }
 
     private async Task RunModInstallPlanAsync(ModDependencyInstallPlan plan)
     {
-        foreach (var step in plan.ReleasesToInstall)
+        IsInstalling = true;
+        _activeInstalls++;
+        try
         {
-            if (step.Release is null)
+            var result = await _installOrchestrator.InstallPlanAsync(
+                ResolveDataPath(),
+                plan,
+                step => step.Depth == 0
+                    ? (SelectedDetails?.Name ?? step.ModId)
+                    : step.ModId).ConfigureAwait(true);
+
+            if (!result.Success)
             {
-                continue;
+                DetailStatus = result.Message ?? "Install failed.";
             }
 
-            var name = step.Depth == 0
-                ? (SelectedDetails?.Name ?? step.ModId)
-                : step.ModId;
-            await RunModInstallAsync(name, step.Release, refreshInstalled: false).ConfigureAwait(true);
-            if (!string.IsNullOrWhiteSpace(DetailStatus) && DetailStatus.Contains("failed", StringComparison.OrdinalIgnoreCase))
-            {
-                await RefreshInstalledAsync().ConfigureAwait(true);
-                return;
-            }
+            await RefreshInstalledAsync().ConfigureAwait(true);
         }
-
-        await RefreshInstalledAsync().ConfigureAwait(true);
+        finally
+        {
+            _activeInstalls = Math.Max(0, _activeInstalls - 1);
+            IsInstalling = _activeInstalls > 0;
+        }
     }
 
     private async Task RunModInstallAsync(ModDetails details, ModReleaseInfo release)
