@@ -2,14 +2,13 @@ using System.Globalization;
 using System.IO.Compression;
 using System.Net;
 using System.Text;
-using System.Text.Json;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using RelicLauncher.Core.Abstractions;
 using RelicLauncher.Core.Models;
 using RelicLauncher.Core.Results;
-using RelicLauncher.Infrastructure.Mods;
 using RelicLauncher.Infrastructure.Modpacks;
+using RelicLauncher.Infrastructure.Mods;
 using RelicLauncher.Testing;
 using Xunit;
 
@@ -185,6 +184,78 @@ public class ModpackServiceTests
         diff.IsSuccess.Should().BeTrue();
         diff.Value!.Entries.Should().Contain(e => e.Kind == ModpackApplyDiffKind.Add && e.ModId == "newmod");
         diff.Value.Entries.Should().Contain(e => e.Kind == ModpackApplyDiffKind.Remove && e.ModId == "extra");
+    }
+
+    [Fact]
+    public async Task ComputeApplyDiff_Merge_DoesNotIncludeRemovals()
+    {
+        using var temp = new TempAppPaths();
+        var dataPath = Path.Combine(temp.Paths.RootDirectory, "data");
+        var modsDir = Path.Combine(dataPath, "Mods");
+        Directory.CreateDirectory(modsDir);
+        await File.WriteAllBytesAsync(Path.Combine(modsDir, "extra.zip"), CreateZip("extra", "Extra", "1.0.0", "{}"));
+
+        var library = CreateLibrary(temp, new Dictionary<int, byte[]>());
+        var service = CreateService(temp, library);
+        var manifest = new ModpackManifest
+        {
+            Name = "Merge Pack",
+            GameVersion = "1.22.0",
+            CreatedAt = DateTimeOffset.UtcNow,
+            Mods =
+            [
+                new ModpackModEntry { ModId = "newmod", ModVersion = "1.0.0", FileId = 5, Source = ModpackModSource.ModDb },
+            ],
+        };
+
+        var diff = await service.ComputeApplyDiffAsync(new ModpackApplyRequest
+        {
+            DataPath = dataPath,
+            Manifest = manifest,
+            Mode = ModpackApplyMode.Merge,
+        });
+
+        diff.IsSuccess.Should().BeTrue();
+        diff.Value!.Entries.Should().NotContain(e => e.Kind == ModpackApplyDiffKind.Remove);
+    }
+
+    [Fact]
+    public async Task ReadManifestAsync_RoundTrip_FromExport()
+    {
+        using var temp = new TempAppPaths();
+        var dataPath = Path.Combine(temp.Paths.RootDirectory, "data");
+        var modsDir = Path.Combine(dataPath, "Mods");
+        Directory.CreateDirectory(modsDir);
+        var zipBytes = CreateZip("roundtrip", "Round", "1.0.0", "{}");
+        await File.WriteAllBytesAsync(Path.Combine(modsDir, "mod_11.zip"), zipBytes);
+
+        var library = CreateLibrary(temp, new Dictionary<int, byte[]> { [11] = zipBytes });
+        var service = CreateService(temp, library);
+        var destination = Path.Combine(temp.Paths.RootDirectory, "roundtrip.relicmodpack");
+
+        await service.ExportAsync(new ModpackExportRequest
+        {
+            DestinationPath = destination,
+            DataPath = dataPath,
+            GameVersion = "1.22.0",
+            Name = "Round Trip",
+            Mods =
+            [
+                new LocalModInfo
+                {
+                    Path = Path.Combine(modsDir, "mod_11.zip"),
+                    FileName = "mod_11.zip",
+                    ModId = "roundtrip",
+                    Version = "1.0.0",
+                    IsEnabled = true,
+                },
+            ],
+        });
+
+        var read = await service.ReadManifestAsync(destination);
+        read.IsSuccess.Should().BeTrue();
+        read.Value!.Name.Should().Be("Round Trip");
+        read.Value.Mods.Should().ContainSingle(m => m.ModId == "roundtrip");
     }
 
     private static ModpackService CreateService(TempAppPaths temp, ModLibraryService library)

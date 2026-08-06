@@ -46,7 +46,7 @@ public sealed partial class ModpackService
         var mods = request.Mods
             .Where(m => !BuiltinModIds.IsBuiltin(m.ModId))
             .ToList();
-        var packId = $"{SanitizeArchiveName(request.Name)}-{Guid.NewGuid():N}"[..48];
+        var packId = CreateLocalPackId(request.Name);
         var packDir = Path.Combine(GetLocalModpacksRoot(), packId);
         Directory.CreateDirectory(packDir);
 
@@ -174,6 +174,12 @@ public sealed partial class ModpackService
         }
 
         return Result.Success();
+    }
+
+    private static string CreateLocalPackId(string name)
+    {
+        var packId = $"{SanitizeArchiveName(name)}-{Guid.NewGuid():N}";
+        return packId.Length > 48 ? packId[..48] : packId;
     }
 
     private static void ExtractOfflineModsFromZip(string tempZip, string packDir, CancellationToken cancellationToken)
