@@ -14,17 +14,17 @@ Built with C# / .NET 10 and Avalonia 12.1. Targets the same desktop platforms Vi
 - Local mods support
 - Optional warning when a mod is on the official blocked-mods list
 - One-click play with mods, saves, and worlds kept in one shared folder
+- Sign in once in the launcher, no second login screen in-game
+- Backup and restore mods, worlds, and installed game versions as a single zip
 - Game news, custom themes, and support for Windows, Linux, and macOS
 - In-app Vintage Story wiki browser (domain locked, URL configurable in Settings)
 
 ## Upcoming
 
-- Backup mods, worlds, and game versions
 - Launcher sandboxing (the app itself, not the game)
 - Packaging: Flatpak
 - Server Hosting
 - Custom fonts support
-- Prevent having to login twice (launcher then game)
 - i18n - multi-language support
 
 > [!NOTE]

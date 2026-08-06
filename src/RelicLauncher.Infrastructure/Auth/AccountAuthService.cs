@@ -26,6 +26,7 @@ public sealed class AccountAuthService : IAccountAuthService
     private readonly IEndpointProvider _endpoints;
     private readonly ILogger<AccountAuthService> _logger;
     private readonly HttpClient _httpClient;
+    private readonly ISessionSignatureValidator _sessionSignatureValidator;
     private StoredSession? _session;
 
     public AccountAuthService(ISecretStore secretStore, IEndpointProvider endpoints, ILogger<AccountAuthService> logger)
@@ -36,8 +37,9 @@ public sealed class AccountAuthService : IAccountAuthService
     internal AccountAuthService(
         ISecretStore secretStore,
         ILogger<AccountAuthService> logger,
-        HttpMessageHandler handler)
-        : this(secretStore, new EndpointProvider(), logger, handler)
+        HttpMessageHandler handler,
+        ISessionSignatureValidator? sessionSignatureValidator = null)
+        : this(secretStore, new EndpointProvider(), logger, handler, sessionSignatureValidator)
     {
     }
 
@@ -45,11 +47,13 @@ public sealed class AccountAuthService : IAccountAuthService
         ISecretStore secretStore,
         IEndpointProvider endpoints,
         ILogger<AccountAuthService> logger,
-        HttpMessageHandler handler)
+        HttpMessageHandler handler,
+        ISessionSignatureValidator? sessionSignatureValidator = null)
     {
         _secretStore = secretStore;
         _endpoints = endpoints;
         _logger = logger;
+        _sessionSignatureValidator = sessionSignatureValidator ?? new GameSessionSignatureValidator();
         _httpClient = new HttpClient(handler)
         {
             Timeout = TimeSpan.FromSeconds(45),
@@ -157,6 +161,84 @@ public sealed class AccountAuthService : IAccountAuthService
         }
 
         return Result.Failure("Sign in with your Vintage Story game account in Settings.");
+    }
+
+    public async Task<Result> ValidateSessionAsync(CancellationToken cancellationToken = default)
+    {
+        var status = await GetStatusAsync(cancellationToken).ConfigureAwait(false);
+        if (!status.IsSuccess)
+        {
+            return Result.Failure(status.Error ?? "Could not read account status.");
+        }
+
+        if (!status.Value!.IsSignedIn)
+        {
+            return Result.Failure("Sign in with your Vintage Story game account in Settings.");
+        }
+
+        if (!_sessionSignatureValidator.IsValid(status.Value.SessionKey, status.Value.SessionSignature, status.Value.PlayerUid))
+        {
+            _logger.LogWarning("Saved game session failed local signature check for {Player}", status.Value.PlayerName);
+            await ClearSessionInternalAsync(cancellationToken).ConfigureAwait(false);
+            return Result.Failure("Your saved Vintage Story session is invalid. Sign in again in Settings.");
+        }
+
+        try
+        {
+            return await ValidateWithServerAsync(status.Value, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or IOException)
+        {
+            _logger.LogDebug(ex, "Session validate request failed; continuing offline with cached session.");
+            return Result.Success();
+        }
+    }
+
+    private async Task<Result> ValidateWithServerAsync(AccountSessionStatus status, CancellationToken cancellationToken)
+    {
+        var form = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["uid"] = status.PlayerUid ?? string.Empty,
+            ["sessionkey"] = status.SessionKey ?? string.Empty,
+        };
+
+        using var content = new FormUrlEncodedContent(form);
+        using var response = await _httpClient
+            .PostAsync(VintageStoryEndpoints.ClientValidateUrl, content, cancellationToken)
+            .ConfigureAwait(false);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            _logger.LogDebug("Session validate HTTP {Status}; continuing offline with cached session.", (int)response.StatusCode);
+            return Result.Success();
+        }
+
+        var body = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+        ClientValidateResponse? parsed;
+        try
+        {
+            parsed = JsonSerializer.Deserialize<ClientValidateResponse>(body, JsonOptions);
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogDebug(ex, "Session validate returned non-JSON; continuing offline with cached session.");
+            return Result.Success();
+        }
+
+        if (parsed is null)
+        {
+            return Result.Success();
+        }
+
+        if (parsed.Valid == 1)
+        {
+            await UpdateFromValidateAsync(parsed, cancellationToken).ConfigureAwait(false);
+            return Result.Success();
+        }
+
+        _logger.LogInformation("Game session rejected by server. Reason={Reason}", parsed.Reason);
+        await ClearSessionInternalAsync(cancellationToken).ConfigureAwait(false);
+        return Result.Failure("Your Vintage Story session expired. Sign in again in Settings.");
     }
 
     private Result<AccountSessionStatus> HandleLoginFailure(GameLoginResponse parsed)
@@ -268,6 +350,43 @@ public sealed class AccountAuthService : IAccountAuthService
         catch (JsonException ex)
         {
             _logger.LogWarning(ex, "Failed to restore game account session");
+        }
+    }
+
+    private async Task ClearSessionInternalAsync(CancellationToken cancellationToken)
+    {
+        _session = null;
+        await _secretStore.DeleteAsync(SessionSecretKey, cancellationToken).ConfigureAwait(false);
+        await _secretStore.DeleteAsync(EmailSecretKey, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task UpdateFromValidateAsync(ClientValidateResponse parsed, CancellationToken cancellationToken)
+    {
+        if (_session is null)
+        {
+            return;
+        }
+
+        var updated = new StoredSession
+        {
+            Email = _session.Email,
+            PlayerName = _session.PlayerName,
+            PlayerUid = _session.PlayerUid,
+            SessionKey = _session.SessionKey,
+            SessionSignature = _session.SessionSignature,
+            Entitlements = FormatEntitlements(parsed.Entitlements) is { Length: > 0 } entitlements
+                ? entitlements
+                : _session.Entitlements,
+            MpToken = string.Empty,
+            HostGameServer = FormatHostGameServer(parsed.HasGameServer) is { Length: > 0 } hostGameServer
+                ? hostGameServer
+                : _session.HostGameServer,
+        };
+
+        var persist = await PersistSessionAsync(updated, cancellationToken).ConfigureAwait(false);
+        if (persist.IsSuccess)
+        {
+            _session = updated;
         }
     }
 
@@ -426,4 +545,20 @@ public sealed class AccountAuthService : IAccountAuthService
         [JsonPropertyName("hasgameserver")]
         public JsonElement? HasGameServer { get; set; }
     }
+
+    private sealed class ClientValidateResponse
+    {
+        [JsonPropertyName("valid")]
+        public int Valid { get; set; }
+
+        [JsonPropertyName("reason")]
+        public string? Reason { get; set; }
+
+        [JsonPropertyName("entitlements")]
+        public JsonElement? Entitlements { get; set; }
+
+        [JsonPropertyName("hasgameserver")]
+        public JsonElement? HasGameServer { get; set; }
+    }
+
 }

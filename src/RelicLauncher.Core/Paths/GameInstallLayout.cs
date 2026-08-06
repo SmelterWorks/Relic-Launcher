@@ -16,4 +16,13 @@ public static class GameInstallLayout
 
     public static string GetModsDirectory(string dataPath)
         => Path.Combine(dataPath, "Mods");
+
+    public static string GetModConfigDirectory(string dataPath)
+        => Path.Combine(dataPath, "ModConfig");
+
+    public static string GetSavesDirectory(string dataPath)
+        => Path.Combine(dataPath, "Saves");
+
+    public static string GetBackupSavesDirectory(string dataPath)
+        => Path.Combine(dataPath, "BackupSaves");
 }

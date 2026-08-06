@@ -13,6 +13,18 @@ public sealed class ClientSettingsSessionWriter : IClientSettingsSessionWriter
         WriteIndented = true,
     };
 
+    private static readonly string[] SessionFieldNames =
+    [
+        "sessionkey",
+        "sessionsignature",
+        "useremail",
+        "playeruid",
+        "playername",
+        "entitlements",
+        "mptoken",
+        "hostgameserver",
+    ];
+
     private readonly IAccountAuthService _accountAuth;
     private readonly ILogger<ClientSettingsSessionWriter> _logger;
 
@@ -81,6 +93,50 @@ public sealed class ClientSettingsSessionWriter : IClientSettingsSessionWriter
         {
             _logger.LogWarning(ex, "Failed writing clientsettings session under {DataPath}", dataPath);
             return Result.Failure("Could not write game session into clientsettings.json: " + ex.Message);
+        }
+    }
+
+    public async Task<Result> ClearSessionAsync(string dataPath, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(dataPath))
+        {
+            return Result.Failure("Data path is empty.");
+        }
+
+        var path = Path.Combine(dataPath, "clientsettings.json");
+        if (!File.Exists(path))
+        {
+            return Result.Success();
+        }
+
+        try
+        {
+            var existing = await File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false);
+            if (string.IsNullOrWhiteSpace(existing))
+            {
+                return Result.Success();
+            }
+
+            if (JsonNode.Parse(existing) is not JsonObject root ||
+                root["stringSettings"] is not JsonObject stringSettings)
+            {
+                return Result.Success();
+            }
+
+            foreach (var field in SessionFieldNames)
+            {
+                stringSettings[field] = string.Empty;
+            }
+
+            var json = root.ToJsonString(WriteOptions);
+            await File.WriteAllTextAsync(path, json, cancellationToken).ConfigureAwait(false);
+            _logger.LogInformation("Cleared game session in {Path}", path);
+            return Result.Success();
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException)
+        {
+            _logger.LogWarning(ex, "Failed clearing clientsettings session under {DataPath}", dataPath);
+            return Result.Failure("Could not clear game session in clientsettings.json: " + ex.Message);
         }
     }
 }

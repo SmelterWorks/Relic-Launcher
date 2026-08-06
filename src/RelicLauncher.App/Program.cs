@@ -150,6 +150,7 @@ internal static class Program
         services.AddTransient<HomeViewModel>();
         services.AddTransient<VersionsViewModel>();
         services.AddTransient<ModsViewModel>();
+        services.AddTransient<BackupViewModel>();
         services.AddTransient<WikiViewModel>();
         services.AddTransient<SettingsViewModel>();
         services.AddTransient<AboutViewModel>();

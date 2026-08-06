@@ -1,0 +1,69 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:RelicLauncher.App.ViewModels"
+             xmlns:controls="using:RelicLauncher.App.Views.Controls"
+             x:Class="RelicLauncher.App.Views.Pages.BackupPage"
+             x:DataType="vm:BackupViewModel">
+  <Grid RowDefinitions="Auto,*">
+    <controls:PageHeader Title="Backup"
+                         Subtitle="Archive mods, worlds, and installed game versions to a zip file, or restore one." />
+
+    <ScrollViewer Grid.Row="1" Margin="0,16,0,0">
+      <StackPanel Spacing="20" MaxWidth="640" HorizontalAlignment="Left">
+        <StackPanel Spacing="8">
+          <TextBlock Text="What to include" FontWeight="SemiBold" FontSize="16" />
+          <CheckBox Content="Mods (installed mods and mod configs)" IsChecked="{Binding IncludeMods}" AutomationProperties.Name="Include mods in backup" />
+          <CheckBox Content="Worlds (saves and in-game world backups)" IsChecked="{Binding IncludeWorlds}" AutomationProperties.Name="Include worlds in backup" />
+        </StackPanel>
+
+        <StackPanel Spacing="8">
+          <TextBlock Text="Game versions (optional, large files)" FontWeight="SemiBold" FontSize="16" />
+          <TextBlock Text="No installed versions found." Classes="muted" IsVisible="{Binding !HasInstalledVersions}" />
+          <ItemsControl ItemsSource="{Binding InstalledVersions}" IsVisible="{Binding HasInstalledVersions}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:BackupVersionRowViewModel">
+                <CheckBox Content="{Binding Version}" IsChecked="{Binding IsSelected}" Margin="0,2" />
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+
+        <StackPanel Orientation="Horizontal" Spacing="12">
+          <Button Classes="primary"
+                  Content="Create backup"
+                  Command="{Binding CreateBackupCommand}"
+                  IsEnabled="{Binding !IsBusy}"
+                  AutomationProperties.Name="Create backup" />
+          <Button Classes="ghost"
+                  Content="Restore backup"
+                  Command="{Binding RestoreBackupCommand}"
+                  IsEnabled="{Binding !IsBusy}"
+                  AutomationProperties.Name="Restore backup" />
+        </StackPanel>
+
+        <StackPanel Spacing="4" IsVisible="{Binding IsBusy}">
+          <TextBlock Text="{Binding ProgressLabel}" Classes="muted" TextWrapping="Wrap" />
+          <ProgressBar Minimum="0" Maximum="1" Value="{Binding Progress}" Height="8" />
+        </StackPanel>
+
+        <ItemsControl ItemsSource="{Binding ActiveTransfers}" IsVisible="{Binding ActiveTransfers.Count}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:TransferJobRowViewModel">
+              <StackPanel Spacing="4" Margin="0,0,0,6">
+                <TextBlock Text="{Binding Label}" FontWeight="SemiBold" />
+                <TextBlock Text="{Binding StatusText}" Classes="muted" />
+                <ProgressBar Minimum="0" Maximum="1" Value="{Binding Progress}" Height="6" />
+              </StackPanel>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <TextBlock Text="{Binding StatusMessage}"
+                   Classes="muted"
+                   TextWrapping="Wrap"
+                   AutomationProperties.LiveSetting="Polite"
+                   IsVisible="{Binding StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+      </StackPanel>
+    </ScrollViewer>
+  </Grid>
+</UserControl>

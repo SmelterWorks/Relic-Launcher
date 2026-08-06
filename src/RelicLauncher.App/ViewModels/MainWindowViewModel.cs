@@ -44,6 +44,7 @@ public partial class MainWindowViewModel : ViewModelBase
     public bool IsHomeActive => string.Equals(ActiveNav, "home", StringComparison.Ordinal);
     public bool IsVersionsActive => string.Equals(ActiveNav, "versions", StringComparison.Ordinal);
     public bool IsModsActive => string.Equals(ActiveNav, "mods", StringComparison.Ordinal);
+    public bool IsBackupActive => string.Equals(ActiveNav, "backup", StringComparison.Ordinal);
     public bool IsWikiActive => string.Equals(ActiveNav, "wiki", StringComparison.Ordinal);
     public bool IsSettingsActive => string.Equals(ActiveNav, "settings", StringComparison.Ordinal);
     public bool IsAboutActive => string.Equals(ActiveNav, "about", StringComparison.Ordinal);
@@ -101,6 +102,17 @@ public partial class MainWindowViewModel : ViewModelBase
     }, existing =>
     {
         ((ModsViewModel)existing).Bind(Settings, refresh: false);
+    });
+
+    [RelayCommand]
+    private void NavigateBackup() => Navigate("backup", () =>
+    {
+        var page = _services.GetRequiredService<BackupViewModel>();
+        page.Bind(Settings);
+        return page;
+    }, existing =>
+    {
+        ((BackupViewModel)existing).Bind(Settings, refresh: false);
     });
 
     [RelayCommand]
@@ -180,6 +192,10 @@ public partial class MainWindowViewModel : ViewModelBase
         {
             mods.Bind(settings, refresh: false);
         }
+        else if (CurrentPage is BackupViewModel backup)
+        {
+            backup.Bind(settings, refresh: false);
+        }
         else if (CurrentPage is WikiViewModel wiki)
         {
             wiki.Bind(settings, refresh: false);
@@ -201,6 +217,7 @@ public partial class MainWindowViewModel : ViewModelBase
         OnPropertyChanged(nameof(IsHomeActive));
         OnPropertyChanged(nameof(IsVersionsActive));
         OnPropertyChanged(nameof(IsModsActive));
+        OnPropertyChanged(nameof(IsBackupActive));
         OnPropertyChanged(nameof(IsWikiActive));
         OnPropertyChanged(nameof(IsSettingsActive));
         OnPropertyChanged(nameof(IsAboutActive));

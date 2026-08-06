@@ -217,6 +217,13 @@ public partial class HomeViewModel : PageViewModelBase
             return;
         }
 
+        var status = await _accountAuth.GetStatusAsync().ConfigureAwait(true);
+        if (!status.IsSuccess || status.Value is not { IsSignedIn: true })
+        {
+            StatusMessage = "Sign in with your Vintage Story account in Settings to enable Play.";
+            return;
+        }
+
         CanPlay = true;
         _logger.LogDebug("Play ready for {Version} at {Path}", version, info.InstallPath);
         StatusMessage = string.Empty;
@@ -352,6 +359,8 @@ public partial class HomeViewModel : PageViewModelBase
                 session.Fail(result.Error ?? "Launch failed.");
                 _logger.LogWarning("Play failed: {Error}", result.Error);
                 StatusMessage = result.Error ?? "Launch failed.";
+                await RefreshAccountStatusAsync().ConfigureAwait(true);
+                await RefreshStatusAsync().ConfigureAwait(true);
             }
             else
             {

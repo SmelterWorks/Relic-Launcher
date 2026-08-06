@@ -144,7 +144,8 @@ public class GameLaunchServiceTests
             new CapturingProcessRunner(),
             new RuntimePlatform(),
             writer,
-            new StubRuntimeProvisioner { IsManagedByRelic = false });
+            new StubRuntimeProvisioner { IsManagedByRelic = false },
+            auth);
         var result = await service.LaunchAsync(new GameLaunchRequest
         {
             InstallsRoot = installsRoot,
@@ -160,18 +161,90 @@ public class GameLaunchServiceTests
         json.Should().Contain("\"playername\": \"PlayerOne\"");
     }
 
+    [Fact]
+    public async Task LaunchAsync_Fails_WhenNotSignedIn()
+    {
+        using var temp = new TempAppPaths();
+        var installsRoot = Path.Combine(temp.Paths.RootDirectory, "installs");
+        var versionDir = Path.Combine(installsRoot, "versions", "1.22.6");
+        Directory.CreateDirectory(versionDir);
+        await File.WriteAllTextAsync(Path.Combine(versionDir, "Vintagestory"), "bin");
+
+        var service = new GameLaunchService(
+            new CapturingProcessRunner(),
+            new RuntimePlatform(),
+            new NoopSessionWriter(),
+            new StubRuntimeProvisioner(),
+            new StubAccountAuth { ValidateFailure = "Sign in with your Vintage Story game account in Settings." });
+
+        var result = await service.LaunchAsync(new GameLaunchRequest
+        {
+            InstallsRoot = installsRoot,
+            Version = "1.22.6",
+            DataPath = Path.Combine(temp.Paths.RootDirectory, "data"),
+        });
+
+        result.IsSuccess.Should().BeFalse();
+        result.Error.Should().Contain("Sign in");
+    }
+
+    [Fact]
+    public async Task LaunchAsync_Fails_WhenSessionWriteFails()
+    {
+        using var temp = new TempAppPaths();
+        var installsRoot = Path.Combine(temp.Paths.RootDirectory, "installs");
+        var versionDir = Path.Combine(installsRoot, "versions", "1.22.6");
+        Directory.CreateDirectory(versionDir);
+        await File.WriteAllTextAsync(Path.Combine(versionDir, "Vintagestory"), "bin");
+
+        var service = new GameLaunchService(
+            new CapturingProcessRunner(),
+            new RuntimePlatform(),
+            new FailingSessionWriter(),
+            new StubRuntimeProvisioner { IsManagedByRelic = false },
+            new StubAccountAuth { Status = new AccountSessionStatus { IsSignedIn = true, PlayerUid = "uid-1" } });
+
+        var result = await service.LaunchAsync(new GameLaunchRequest
+        {
+            InstallsRoot = installsRoot,
+            Version = "1.22.6",
+            DataPath = Path.Combine(temp.Paths.RootDirectory, "data"),
+        });
+
+        result.IsSuccess.Should().BeFalse();
+        result.Error.Should().Contain("clientsettings.json");
+    }
+
     private static GameLaunchService CreateService(IProcessRunner runner, IDotNetRuntimeProvisioner provisioner)
-        => new(runner, new RuntimePlatform(), new NoopSessionWriter(), provisioner);
+        => new(
+            runner,
+            new RuntimePlatform(),
+            new NoopSessionWriter(),
+            provisioner,
+            new StubAccountAuth { Status = new AccountSessionStatus { IsSignedIn = true, PlayerUid = "uid-1" } });
 
     private sealed class NoopSessionWriter : IClientSettingsSessionWriter
     {
         public Task<Result> ApplySessionAsync(string dataPath, CancellationToken cancellationToken = default)
+            => Task.FromResult(Result.Success());
+
+        public Task<Result> ClearSessionAsync(string dataPath, CancellationToken cancellationToken = default)
+            => Task.FromResult(Result.Success());
+    }
+
+    private sealed class FailingSessionWriter : IClientSettingsSessionWriter
+    {
+        public Task<Result> ApplySessionAsync(string dataPath, CancellationToken cancellationToken = default)
+            => Task.FromResult(Result.Failure("Could not write clientsettings.json."));
+
+        public Task<Result> ClearSessionAsync(string dataPath, CancellationToken cancellationToken = default)
             => Task.FromResult(Result.Success());
     }
 
     private sealed class StubAccountAuth : IAccountAuthService
     {
         public AccountSessionStatus Status { get; init; } = new() { IsSignedIn = false };
+        public string? ValidateFailure { get; init; }
 
         public Task<Result<AccountSessionStatus>> GetStatusAsync(CancellationToken cancellationToken = default)
             => Task.FromResult(Result<AccountSessionStatus>.Success(Status));
@@ -184,6 +257,9 @@ public class GameLaunchServiceTests
 
         public Task<Result> EnsureAuthenticatedAsync(CancellationToken cancellationToken = default)
             => Task.FromResult(Result.Success());
+
+        public Task<Result> ValidateSessionAsync(CancellationToken cancellationToken = default)
+            => Task.FromResult(ValidateFailure is null ? Result.Success() : Result.Failure(ValidateFailure));
     }
 
     private sealed class StubRuntimeProvisioner : IDotNetRuntimeProvisioner

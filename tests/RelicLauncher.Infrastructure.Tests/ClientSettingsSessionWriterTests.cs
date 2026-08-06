@@ -67,6 +67,53 @@ public class ClientSettingsSessionWriterTests
         json.Should().Contain("player@example.test");
     }
 
+    [Fact]
+    public async Task ClearSessionAsync_NoOp_WhenFileMissing()
+    {
+        using var temp = new TempAppPaths();
+        var dataPath = Path.Combine(temp.Paths.RootDirectory, "data");
+        var writer = new ClientSettingsSessionWriter(new StubAccountAuth(), NullLogger<ClientSettingsSessionWriter>.Instance);
+
+        var result = await writer.ClearSessionAsync(dataPath);
+
+        result.IsSuccess.Should().BeTrue();
+        File.Exists(Path.Combine(dataPath, "clientsettings.json")).Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task ClearSessionAsync_BlanksSessionFields_ButKeepsOtherSettings()
+    {
+        using var temp = new TempAppPaths();
+        var dataPath = Path.Combine(temp.Paths.RootDirectory, "data");
+        var writer = new ClientSettingsSessionWriter(
+            new StubAccountAuth
+            {
+                Status = Result<AccountSessionStatus>.Success(new AccountSessionStatus
+                {
+                    IsSignedIn = true,
+                    SessionKey = "session-key",
+                    SessionSignature = "signature",
+                    PlayerUid = "player-uid",
+                    PlayerName = "Player",
+                    Email = "player@example.test",
+                    Entitlements = "entitlements",
+                    MpToken = "mp-token",
+                    HostGameServer = "host",
+                }),
+            },
+            NullLogger<ClientSettingsSessionWriter>.Instance);
+        await writer.ApplySessionAsync(dataPath);
+
+        var result = await writer.ClearSessionAsync(dataPath);
+
+        result.IsSuccess.Should().BeTrue();
+        var json = await File.ReadAllTextAsync(Path.Combine(dataPath, "clientsettings.json"));
+        json.Should().NotContain("session-key");
+        json.Should().NotContain("player-uid");
+        json.Should().NotContain("player@example.test");
+        json.Should().Contain("stringSettings");
+    }
+
     private sealed class StubAccountAuth : IAccountAuthService
     {
         public Result<AccountSessionStatus> Status { get; set; } = Result<AccountSessionStatus>.Success(new AccountSessionStatus());
@@ -81,6 +128,9 @@ public class ClientSettingsSessionWriterTests
             => Task.FromResult(Result.Success());
 
         public Task<Result> EnsureAuthenticatedAsync(CancellationToken cancellationToken = default)
+            => Task.FromResult(Result.Success());
+
+        public Task<Result> ValidateSessionAsync(CancellationToken cancellationToken = default)
             => Task.FromResult(Result.Success());
     }
 }

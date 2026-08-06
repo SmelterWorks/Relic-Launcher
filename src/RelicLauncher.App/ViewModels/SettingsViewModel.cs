@@ -19,6 +19,7 @@ public partial class SettingsViewModel : PageViewModelBase
     private readonly IStoragePickerService _storagePicker;
     private readonly IRuntimePlatform _platform;
     private readonly IAccountAuthService _accountAuth;
+    private readonly IClientSettingsSessionWriter _sessionWriter;
     private readonly IDebugLogBuffer _debugLogBuffer;
     private readonly IConfirmDialogService _confirmDialog;
     private readonly ILogger<SettingsViewModel> _logger;
@@ -122,6 +123,7 @@ public partial class SettingsViewModel : PageViewModelBase
         IStoragePickerService storagePicker,
         IRuntimePlatform platform,
         IAccountAuthService accountAuth,
+        IClientSettingsSessionWriter sessionWriter,
         IFileExplorerService fileExplorer,
         IDebugLogBuffer debugLogBuffer,
         IConfirmDialogService confirmDialog,
@@ -133,6 +135,7 @@ public partial class SettingsViewModel : PageViewModelBase
         _storagePicker = storagePicker;
         _platform = platform;
         _accountAuth = accountAuth;
+        _sessionWriter = sessionWriter;
         _debugLogBuffer = debugLogBuffer;
         _confirmDialog = confirmDialog;
         _logger = logger;
@@ -399,6 +402,10 @@ public partial class SettingsViewModel : PageViewModelBase
     private async Task SignOutAsync()
     {
         await _accountAuth.LogoutAsync().ConfigureAwait(true);
+        var dataPath = string.IsNullOrWhiteSpace(DataPath)
+            ? _platform.GetPlatformInfo().DefaultDataPath
+            : DataPath.Trim();
+        await _sessionWriter.ClearSessionAsync(dataPath).ConfigureAwait(true);
         IsSignedIn = false;
         RequiresTotp = false;
         _preLoginToken = null;

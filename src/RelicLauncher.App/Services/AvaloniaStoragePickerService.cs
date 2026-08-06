@@ -70,6 +70,31 @@ public sealed class AvaloniaStoragePickerService(MainWindowHolder windowHolder) 
         return files.Count > 0 ? files[0].TryGetLocalPath() : null;
     }
 
+    public async Task<string?> SaveZipFileAsync(string? suggestedFileName = null, string? title = null)
+    {
+        var storage = GetStorageProvider();
+        if (storage is null)
+        {
+            return null;
+        }
+
+        var file = await storage.SaveFilePickerAsync(new FilePickerSaveOptions
+        {
+            Title = title ?? "Save backup",
+            SuggestedFileName = suggestedFileName ?? "relic-backup.zip",
+            DefaultExtension = "zip",
+            FileTypeChoices =
+            [
+                new FilePickerFileType("Zip archive")
+                {
+                    Patterns = ["*.zip"],
+                },
+            ],
+        }).ConfigureAwait(true);
+
+        return file?.TryGetLocalPath();
+    }
+
     private IStorageProvider? GetStorageProvider()
         => windowHolder.Window?.StorageProvider;
 }

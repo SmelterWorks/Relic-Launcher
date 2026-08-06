@@ -5,5 +5,6 @@ public enum TransferJobKind
     Version,
     Mod,
     Runtime,
+    Backup,
     Other,
 }

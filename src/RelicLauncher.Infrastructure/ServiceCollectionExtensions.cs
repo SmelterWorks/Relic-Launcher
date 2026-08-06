@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using RelicLauncher.Core.Abstractions;
 using RelicLauncher.Infrastructure.Auth;
+using RelicLauncher.Infrastructure.Backup;
 using RelicLauncher.Infrastructure.Caching;
 using RelicLauncher.Infrastructure.DotNet;
 using RelicLauncher.Infrastructure.Endpoints;
@@ -44,6 +45,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IInstalledVersionStore, JsonInstalledVersionStore>();
         services.AddSingleton<IGameVersionInstaller, GameVersionInstaller>();
         services.AddSingleton<IGameLaunchService, GameLaunchService>();
+        services.AddSingleton<IBackupService, BackupService>();
         services.AddSingleton<IModDbClient, ModDbClient>();
         services.AddSingleton<IModReleaseResolver, ModReleaseResolver>();
         services.AddSingleton<IModBlocklistService, ModBlocklistService>();

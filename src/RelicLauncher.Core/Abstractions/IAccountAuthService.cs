@@ -12,4 +12,6 @@ public interface IAccountAuthService
     Task<Result> LogoutAsync(CancellationToken cancellationToken = default);
 
     Task<Result> EnsureAuthenticatedAsync(CancellationToken cancellationToken = default);
+
+    Task<Result> ValidateSessionAsync(CancellationToken cancellationToken = default);
 }

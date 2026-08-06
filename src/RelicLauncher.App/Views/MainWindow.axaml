@@ -19,9 +19,10 @@
     <KeyBinding Gesture="Ctrl+1" Command="{Binding NavigateHomeCommand}" />
     <KeyBinding Gesture="Ctrl+2" Command="{Binding NavigateVersionsCommand}" />
     <KeyBinding Gesture="Ctrl+3" Command="{Binding NavigateModsCommand}" />
-    <KeyBinding Gesture="Ctrl+4" Command="{Binding NavigateWikiCommand}" />
-    <KeyBinding Gesture="Ctrl+5" Command="{Binding NavigateSettingsCommand}" />
-    <KeyBinding Gesture="Ctrl+6" Command="{Binding NavigateAboutCommand}" />
+    <KeyBinding Gesture="Ctrl+4" Command="{Binding NavigateBackupCommand}" />
+    <KeyBinding Gesture="Ctrl+5" Command="{Binding NavigateWikiCommand}" />
+    <KeyBinding Gesture="Ctrl+6" Command="{Binding NavigateSettingsCommand}" />
+    <KeyBinding Gesture="Ctrl+7" Command="{Binding NavigateAboutCommand}" />
   </Window.KeyBindings>
 
   <Grid ColumnDefinitions="240,*"
@@ -77,6 +78,15 @@
           <StackPanel Orientation="Horizontal" Spacing="12">
             <i:Icon Value="mdi-puzzle" Width="22" Height="22" />
             <TextBlock Text="Mods" VerticalAlignment="Center" FontSize="16" />
+          </StackPanel>
+        </Button>
+        <Button Classes="nav"
+                Classes.active="{Binding IsBackupActive}"
+                Command="{Binding NavigateBackupCommand}"
+                AutomationProperties.Name="Backup">
+          <StackPanel Orientation="Horizontal" Spacing="12">
+            <i:Icon Value="mdi-archive" Width="22" Height="22" />
+            <TextBlock Text="Backup" VerticalAlignment="Center" FontSize="16" />
           </StackPanel>
         </Button>
         <Button Classes="nav"

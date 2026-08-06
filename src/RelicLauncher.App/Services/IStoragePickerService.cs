@@ -7,4 +7,6 @@ public interface IStoragePickerService
     Task<string?> PickImageFileAsync(string? title = null);
 
     Task<string?> PickZipFileAsync(string? title = null);
+
+    Task<string?> SaveZipFileAsync(string? suggestedFileName = null, string? title = null);
 }

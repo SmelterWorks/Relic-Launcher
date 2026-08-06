@@ -12,17 +12,20 @@ public sealed class GameLaunchService : IGameLaunchService
     private readonly IRuntimePlatform _platform;
     private readonly IClientSettingsSessionWriter _sessionWriter;
     private readonly IDotNetRuntimeProvisioner _runtimeProvisioner;
+    private readonly IAccountAuthService _accountAuth;
 
     public GameLaunchService(
         IProcessRunner processRunner,
         IRuntimePlatform platform,
         IClientSettingsSessionWriter sessionWriter,
-        IDotNetRuntimeProvisioner runtimeProvisioner)
+        IDotNetRuntimeProvisioner runtimeProvisioner,
+        IAccountAuthService accountAuth)
     {
         _processRunner = processRunner;
         _platform = platform;
         _sessionWriter = sessionWriter;
         _runtimeProvisioner = runtimeProvisioner;
+        _accountAuth = accountAuth;
     }
 
     public Task<Result<GameInstallInfo>> ResolveAsync(GameLaunchRequest request, CancellationToken cancellationToken = default)
@@ -67,6 +70,12 @@ public sealed class GameLaunchService : IGameLaunchService
             return Result.Failure("No client executable found for the selected version.");
         }
 
+        var sessionValid = await _accountAuth.ValidateSessionAsync(cancellationToken).ConfigureAwait(false);
+        if (!sessionValid.IsSuccess)
+        {
+            return Result.Failure(sessionValid.Error ?? "Sign in with your Vintage Story game account in Settings.");
+        }
+
         var runtimeMajor = GameDotNetRuntimeRequirements.TryGetRequiredMajor(request.Version);
         if (!runtimeMajor.IsSuccess)
         {
@@ -88,7 +97,11 @@ public sealed class GameLaunchService : IGameLaunchService
         Directory.CreateDirectory(dataPath);
         Directory.CreateDirectory(GameInstallLayout.GetModsDirectory(dataPath));
 
-        _ = await _sessionWriter.ApplySessionAsync(dataPath, cancellationToken).ConfigureAwait(false);
+        var applySession = await _sessionWriter.ApplySessionAsync(dataPath, cancellationToken).ConfigureAwait(false);
+        if (!applySession.IsSuccess)
+        {
+            return Result.Failure(applySession.Error ?? "Could not write the game session before launch.");
+        }
 
         var args = new[] { "--dataPath", dataPath };
         IReadOnlyDictionary<string, string?>? environment = null;
