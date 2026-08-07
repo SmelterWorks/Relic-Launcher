@@ -68,7 +68,7 @@ public partial class ModsViewModel
 
     private async Task<ModDependencyInstallPlan?> BuildInstallPlanAsync(ModReleaseInfo release)
     {
-        var installed = _allInstalledRows.Select(r => r.Info).ToList();
+        var installed = _installedModInfos;
         var gameVersion = _settings.SelectedVersion;
         if (string.IsNullOrWhiteSpace(gameVersion))
         {
@@ -234,7 +234,7 @@ public partial class ModsViewModel
         var enabling = !mod.IsEnabled;
         if (enabling && !string.IsNullOrWhiteSpace(mod.ModId))
         {
-            var installed = _allInstalledRows.Select(r => r.Info).ToList();
+            var installed = _installedModInfos;
             var asEnabled = new LocalModInfo
             {
                 Path = mod.Path,

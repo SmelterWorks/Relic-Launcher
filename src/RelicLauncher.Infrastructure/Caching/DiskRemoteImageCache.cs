@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Net;
 using System.Security.Cryptography;
 using System.Text;
@@ -12,6 +13,9 @@ public sealed class DiskRemoteImageCache : IRemoteImageCache, IDisposable
     private readonly HttpClient _httpClient;
     private readonly string _cacheDir;
     private readonly ILogger<DiskRemoteImageCache> _logger;
+    private readonly ConcurrentDictionary<string, byte[]> _memoryCache = new(StringComparer.OrdinalIgnoreCase);
+    private readonly LinkedList<string> _lru = new();
+    private readonly Lock _lruGate = new();
 
     public DiskRemoteImageCache(IAppPathProvider pathProvider, ILogger<DiskRemoteImageCache> logger)
         : this(pathProvider, logger, CreateHttpClient())
@@ -50,15 +54,28 @@ public sealed class DiskRemoteImageCache : IRemoteImageCache, IDisposable
             return null;
         }
 
+        if (_memoryCache.TryGetValue(normalized, out var cached))
+        {
+            Touch(normalized);
+            return cached;
+        }
+
         try
         {
             var fromDisk = await TryReadDiskAsync(normalized, cancellationToken).ConfigureAwait(false);
             if (fromDisk is not null)
             {
+                Remember(normalized, fromDisk);
                 return fromDisk;
             }
 
-            return await FetchAndStoreAsync(normalized, cancellationToken).ConfigureAwait(false);
+            var fetched = await FetchAndStoreAsync(normalized, cancellationToken).ConfigureAwait(false);
+            if (fetched is not null)
+            {
+                Remember(normalized, fetched);
+            }
+
+            return fetched;
         }
         catch (Exception ex) when (ex is HttpRequestException or IOException or TaskCanceledException)
         {
@@ -68,6 +85,45 @@ public sealed class DiskRemoteImageCache : IRemoteImageCache, IDisposable
     }
 
     public void Dispose() => _httpClient.Dispose();
+
+    private void Remember(string key, byte[] bytes)
+    {
+        if (_memoryCache.TryAdd(key, bytes))
+        {
+            Touch(key);
+            EvictIfNeeded();
+            return;
+        }
+
+        Touch(key);
+    }
+
+    private void Touch(string key)
+    {
+        lock (_lruGate)
+        {
+            _lru.Remove(key);
+            _lru.AddFirst(key);
+        }
+    }
+
+    private void EvictIfNeeded()
+    {
+        lock (_lruGate)
+        {
+            while (_lru.Count > RelicDefaults.RemoteImageMemoryCacheEntries)
+            {
+                var last = _lru.Last;
+                if (last is null)
+                {
+                    break;
+                }
+
+                _lru.RemoveLast();
+                _memoryCache.TryRemove(last.Value, out _);
+            }
+        }
+    }
 
     private async Task<byte[]?> TryReadDiskAsync(string normalized, CancellationToken cancellationToken)
     {

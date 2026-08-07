@@ -57,6 +57,33 @@ public class DiskRemoteImageCacheTests
     }
 
     [Fact]
+    public async Task GetImageBytesAsync_ServesFromMemory_WhenDiskFileRemoved()
+    {
+        using var temp = new TempAppPaths();
+        var payload = Encoding.UTF8.GetBytes("memory-hit");
+        var calls = 0;
+        using var cache = CreateCache(temp, _ =>
+        {
+            calls++;
+            return new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new ByteArrayContent(payload),
+            };
+        });
+
+        var url = "https://example.test/assets/memory.png";
+        (await cache.GetImageBytesAsync(url)).Should().Equal(payload);
+
+        foreach (var file in Directory.GetFiles(Path.Combine(temp.Paths.CacheDirectory, "images")))
+        {
+            File.Delete(file);
+        }
+
+        (await cache.GetImageBytesAsync(url)).Should().Equal(payload);
+        calls.Should().Be(1);
+    }
+
+    [Fact]
     public async Task GetImageBytesAsync_ReadsFromDisk_WhenMemoryEvicted()
     {
         using var temp = new TempAppPaths();

@@ -42,6 +42,7 @@ public partial class ModsViewModel : PageViewModelBase
     private readonly HashSet<string> _selectedTagIds = new(StringComparer.OrdinalIgnoreCase);
     private IReadOnlyList<ModTagInfo> _allTags = [];
     private readonly List<InstalledModRowViewModel> _allInstalledRows = [];
+    private List<LocalModInfo> _installedModInfos = [];
     private readonly Dictionary<string, ModUpdateCandidate> _updateCandidates = new(StringComparer.OrdinalIgnoreCase);
     private bool _viewerOwnsImage;
     private bool _updateCheckScheduled;

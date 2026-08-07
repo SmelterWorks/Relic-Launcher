@@ -138,6 +138,11 @@ public class ModReleaseResolverTests
 
         public Task<Result<ModDetails>> GetModAsync(string modIdOrAlias, CancellationToken cancellationToken = default)
             => Task.FromResult(Result<ModDetails>.Success(details));
+
+        public Task<Result<IReadOnlyList<ModSummary>>> GetCatalogAsync(
+            bool preferCache = true,
+            CancellationToken cancellationToken = default)
+            => Task.FromResult(Result<IReadOnlyList<ModSummary>>.Success(Array.Empty<ModSummary>()));
     }
 
     private sealed class ThrowingModDbClient : IModDbClient
@@ -153,5 +158,10 @@ public class ModReleaseResolverTests
 
         public Task<Result<ModDetails>> GetModAsync(string modIdOrAlias, CancellationToken cancellationToken = default)
             => throw new InvalidOperationException("v1 fallback should not run when v2 succeeds");
+
+        public Task<Result<IReadOnlyList<ModSummary>>> GetCatalogAsync(
+            bool preferCache = true,
+            CancellationToken cancellationToken = default)
+            => throw new InvalidOperationException("catalog not used");
     }
 }

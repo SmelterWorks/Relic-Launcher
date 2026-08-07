@@ -9,6 +9,10 @@ public interface IModDbClient
 
     Task<Result<ModDetails>> GetModAsync(string modIdOrAlias, CancellationToken cancellationToken = default);
 
+    Task<Result<IReadOnlyList<ModSummary>>> GetCatalogAsync(
+        bool preferCache = true,
+        CancellationToken cancellationToken = default);
+
     Task PrefetchCatalogAsync(CancellationToken cancellationToken = default);
 
     Task<Result<IReadOnlyList<ModTagInfo>>> GetTagsAsync(CancellationToken cancellationToken = default);

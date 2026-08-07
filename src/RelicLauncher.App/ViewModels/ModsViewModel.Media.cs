@@ -35,37 +35,79 @@ public partial class ModsViewModel
         }
 
         ClearScreenshotItems();
-        foreach (var shot in details.Screenshots.Take(8))
+        var shots = details.Screenshots.Take(8).ToArray();
+        if (shots.Length == 0)
+        {
+            return;
+        }
+
+        using var gate = new SemaphoreSlim(4);
+        var tasks = new Task<ModImageItemViewModel?>[shots.Length];
+        for (var i = 0; i < shots.Length; i++)
+        {
+            var shot = shots[i];
+            tasks[i] = LoadScreenshotItemAsync(details, shot, gate, cancellationToken);
+        }
+
+        var items = await Task.WhenAll(tasks).ConfigureAwait(true);
+        if (cancellationToken.IsCancellationRequested || !ReferenceEquals(SelectedDetails, details))
+        {
+            foreach (var item in items)
+            {
+                item?.Dispose();
+            }
+
+            return;
+        }
+
+        foreach (var item in items)
+        {
+            if (item is not null)
+            {
+                ScreenshotItems.Add(item);
+            }
+        }
+    }
+
+    private async Task<ModImageItemViewModel?> LoadScreenshotItemAsync(
+        ModDetails details,
+        ModScreenshot shot,
+        SemaphoreSlim gate,
+        CancellationToken cancellationToken)
+    {
+        var thumbUrl = shot.ThumbnailUrl ?? shot.MainUrl;
+        if (string.IsNullOrWhiteSpace(thumbUrl))
+        {
+            return null;
+        }
+
+        await gate.WaitAsync(cancellationToken).ConfigureAwait(true);
+        try
         {
             if (cancellationToken.IsCancellationRequested || !ReferenceEquals(SelectedDetails, details))
             {
-                return;
-            }
-
-            var thumbUrl = shot.ThumbnailUrl ?? shot.MainUrl;
-            if (string.IsNullOrWhiteSpace(thumbUrl))
-            {
-                continue;
+                return null;
             }
 
             var bytes = await _images.GetImageBytesAsync(thumbUrl).ConfigureAwait(true);
             if (cancellationToken.IsCancellationRequested || !ReferenceEquals(SelectedDetails, details))
             {
-                return;
+                return null;
             }
 
             if (bytes is null)
             {
-                continue;
+                return null;
             }
 
             var bitmap = ScaledBitmapLoader.FromBytes(bytes, RelicDefaults.DecodeWidthScreenshotThumb);
-            if (bitmap is null)
-            {
-                continue;
-            }
-
-            ScreenshotItems.Add(new ModImageItemViewModel(bitmap, shot.MainUrl ?? thumbUrl, OpenScreenshotAsync));
+            return bitmap is null
+                ? null
+                : new ModImageItemViewModel(bitmap, shot.MainUrl ?? thumbUrl, OpenScreenshotAsync);
+        }
+        finally
+        {
+            gate.Release();
         }
     }
 

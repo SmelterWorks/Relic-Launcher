@@ -494,11 +494,31 @@ public sealed class ModLibraryService : IModLibraryService
         }
 
         using var archive = ZipFile.OpenRead(zipPath);
+        var entriesByPath = new Dictionary<string, ZipArchiveEntry>(StringComparer.OrdinalIgnoreCase);
+        var entriesByFileName = new Dictionary<string, ZipArchiveEntry>(StringComparer.OrdinalIgnoreCase);
+        foreach (var entry in archive.Entries)
+        {
+            if (entry.Length <= 0)
+            {
+                continue;
+            }
+
+            var fullName = entry.FullName.Replace('\\', '/');
+            entriesByPath.TryAdd(fullName, entry);
+            var fileName = Path.GetFileName(fullName);
+            if (!string.IsNullOrEmpty(fileName))
+            {
+                entriesByFileName.TryAdd(fileName, entry);
+            }
+        }
+
         foreach (var relative in candidates)
         {
-            var entry = archive.Entries.FirstOrDefault(e =>
-                string.Equals(e.FullName.Replace('\\', '/'), relative, StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(Path.GetFileName(e.FullName), Path.GetFileName(relative), StringComparison.OrdinalIgnoreCase));
+            if (!entriesByPath.TryGetValue(relative, out var entry))
+            {
+                entriesByFileName.TryGetValue(Path.GetFileName(relative), out entry);
+            }
+
             if (entry is null || entry.Length <= 0)
             {
                 continue;

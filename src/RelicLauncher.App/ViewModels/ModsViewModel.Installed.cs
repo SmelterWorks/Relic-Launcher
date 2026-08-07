@@ -19,6 +19,7 @@ public partial class ModsViewModel
     {
         InstalledMods.Clear();
         _allInstalledRows.Clear();
+        _installedModInfos.Clear();
         var result = await _modLibrary.ListInstalledAsync(ResolveDataPath()).ConfigureAwait(true);
         if (!result.IsSuccess)
         {
@@ -50,6 +51,7 @@ public partial class ModsViewModel
             }
 
             _allInstalledRows.Add(new InstalledModRowViewModel(mod, summary, _images, _modLibrary, issues));
+            _installedModInfos.Add(mod);
         }
 
         UpdateDuplicateState();
@@ -62,20 +64,13 @@ public partial class ModsViewModel
     private async Task<Dictionary<string, ModSummary>> LoadCatalogIndexAsync()
     {
         var index = new Dictionary<string, ModSummary>(StringComparer.OrdinalIgnoreCase);
-        var result = await _modDb.SearchAsync(new ModSearchQuery
-        {
-            PreferCache = true,
-            Page = 1,
-            PageSize = 50_000,
-            OrderBy = "name",
-            OrderDirection = "asc",
-        }).ConfigureAwait(true);
+        var result = await _modDb.GetCatalogAsync(preferCache: true).ConfigureAwait(true);
         if (!result.IsSuccess || result.Value is null)
         {
             return index;
         }
 
-        foreach (var mod in result.Value.Mods)
+        foreach (var mod in result.Value)
         {
             index[mod.ModId.ToString(System.Globalization.CultureInfo.InvariantCulture)] = mod;
             if (!string.IsNullOrWhiteSpace(mod.UrlAlias))
@@ -159,14 +154,30 @@ public partial class ModsViewModel
 
     private void UpdateDuplicateState()
     {
-        var duplicateGroups = _allInstalledRows
-            .Where(m => !string.IsNullOrWhiteSpace(m.Info.ModId))
-            .GroupBy(m => m.Info.ModId!, StringComparer.OrdinalIgnoreCase)
-            .Where(g => g.Count() > 1)
-            .ToList();
-        HasDuplicateMods = duplicateGroups.Count > 0;
+        var duplicateIds = 0;
+        var counts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        foreach (var row in _allInstalledRows)
+        {
+            if (string.IsNullOrWhiteSpace(row.Info.ModId))
+            {
+                continue;
+            }
+
+            counts.TryGetValue(row.Info.ModId, out var count);
+            counts[row.Info.ModId] = count + 1;
+        }
+
+        foreach (var count in counts.Values)
+        {
+            if (count > 1)
+            {
+                duplicateIds++;
+            }
+        }
+
+        HasDuplicateMods = duplicateIds > 0;
         DuplicateModsMessage = HasDuplicateMods
-            ? $"{duplicateGroups.Count} mod id(s) have multiple installs. Clean duplicates to keep one zip per mod."
+            ? $"{duplicateIds} mod id(s) have multiple installs. Clean duplicates to keep one zip per mod."
             : string.Empty;
     }
 
@@ -228,7 +239,7 @@ public partial class ModsViewModel
 
         var audit = ModDependencyResolver.AuditMod(
             local,
-            _allInstalledRows.Select(r => r.Info).ToList(),
+            _installedModInfos,
             _settings.SelectedVersion);
         foreach (var issue in audit.Issues.Where(i =>
                      string.Equals(i.DependentModId, local.ModId, StringComparison.OrdinalIgnoreCase)))
@@ -250,7 +261,7 @@ public partial class ModsViewModel
 
         var audit = ModDependencyResolver.AuditMod(
             local,
-            _allInstalledRows.Select(r => r.Info).ToList(),
+            _installedModInfos,
             _settings.SelectedVersion);
         foreach (var issue in audit.Issues.Where(i =>
                      string.Equals(i.DependentModId, local.ModId, StringComparison.OrdinalIgnoreCase)))

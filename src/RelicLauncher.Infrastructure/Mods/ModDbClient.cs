@@ -25,6 +25,9 @@ public sealed partial class ModDbClient : IModDbClient
     private IReadOnlyList<ModSummary>? _memoryCatalog;
     private DateTimeOffset _memoryCatalogAt;
     private bool _lastCatalogWasStale;
+    private string? _filteredCacheKey;
+    private List<ModSummary>? _filteredCache;
+    private IReadOnlyList<ModSummary>? _filteredCacheSource;
 
     public ModDbClient(IAppPathProvider pathProvider, IEndpointProvider endpoints, ILogger<ModDbClient> logger)
         : this(pathProvider, endpoints, logger, CreateDefaultClient())
@@ -51,6 +54,24 @@ public sealed partial class ModDbClient : IModDbClient
     public async Task PrefetchCatalogAsync(CancellationToken cancellationToken = default)
     {
         await EnsureCatalogAsync(forceRefresh: false, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<Result<IReadOnlyList<ModSummary>>> GetCatalogAsync(
+        bool preferCache = true,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var catalog = await EnsureCatalogAsync(forceRefresh: !preferCache, cancellationToken).ConfigureAwait(false);
+            return catalog is null
+                ? Result<IReadOnlyList<ModSummary>>.Failure("Could not load mod catalog.")
+                : Result<IReadOnlyList<ModSummary>>.Success(catalog);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException or IOException)
+        {
+            _logger.LogWarning(ex, "ModDB catalog fetch failed");
+            return Result<IReadOnlyList<ModSummary>>.Failure(ex.Message);
+        }
     }
 
     public async Task<Result<IReadOnlyList<ModTagInfo>>> GetTagsAsync(CancellationToken cancellationToken = default)
@@ -100,8 +121,11 @@ public sealed partial class ModDbClient : IModDbClient
                 return Result<ModSearchResult>.Failure(resolved.Error ?? "Mod search failed.");
             }
 
-            var filtered = FilterAndSort(resolved.Value!.Mods, query);
-            var pageItems = filtered.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+            var filtered = GetFilteredMods(resolved.Value!.Mods, query);
+            var offset = (page - 1) * pageSize;
+            var pageItems = offset >= filtered.Count
+                ? []
+                : filtered.GetRange(offset, Math.Min(pageSize, filtered.Count - offset));
             return Result<ModSearchResult>.Success(new ModSearchResult
             {
                 Mods = pageItems,
@@ -212,7 +236,7 @@ public sealed partial class ModDbClient : IModDbClient
     private async Task<IReadOnlyList<ModSummary>?> TryLocalFilterAsync(ModSearchQuery query, CancellationToken cancellationToken)
     {
         var catalog = await EnsureCatalogAsync(forceRefresh: false, cancellationToken).ConfigureAwait(false);
-        return catalog is null ? null : FilterAndSort(catalog, query);
+        return catalog is null ? null : GetFilteredMods(catalog, query);
     }
 
     private async Task<Result<IReadOnlyList<ModSummary>>> FetchRemoteSearchAsync(ModSearchQuery query, CancellationToken cancellationToken)
@@ -251,6 +275,7 @@ public sealed partial class ModDbClient : IModDbClient
                     _lastCatalogWasStale = DateTimeOffset.UtcNow - disk.CachedAt > CatalogTtl;
                     _memoryCatalog = disk.Mods;
                     _memoryCatalogAt = DateTimeOffset.UtcNow;
+                    InvalidateFilterCache();
                     _ = RefreshCatalogInBackgroundAsync();
                     return disk.Mods;
                 }
@@ -304,6 +329,7 @@ public sealed partial class ModDbClient : IModDbClient
             _lastCatalogWasStale = false;
             _memoryCatalog = mods;
             _memoryCatalogAt = DateTimeOffset.UtcNow;
+            InvalidateFilterCache();
             await WriteCatalogCacheAsync(mods, cancellationToken).ConfigureAwait(false);
             _logger.LogInformation("Cached ModDB catalog with {Count} mods", mods.Count);
             return mods;
@@ -323,6 +349,7 @@ public sealed partial class ModDbClient : IModDbClient
             _lastCatalogWasStale = true;
             _memoryCatalog = stale.Mods;
             _memoryCatalogAt = DateTimeOffset.UtcNow;
+            InvalidateFilterCache();
             return stale.Mods;
         }
 
@@ -333,6 +360,49 @@ public sealed partial class ModDbClient : IModDbClient
     {
         using var doc = JsonDocument.Parse(json);
         return doc.RootElement.TryGetProperty("mods", out _);
+    }
+
+    private List<ModSummary> GetFilteredMods(IReadOnlyList<ModSummary> source, ModSearchQuery query)
+    {
+        var key = BuildFilterCacheKey(query);
+        if (_filteredCache is not null &&
+            ReferenceEquals(_filteredCacheSource, source) &&
+            string.Equals(_filteredCacheKey, key, StringComparison.Ordinal))
+        {
+            return _filteredCache;
+        }
+
+        var filtered = FilterAndSort(source, query);
+        _filteredCacheKey = key;
+        _filteredCacheSource = source;
+        _filteredCache = filtered;
+        return filtered;
+    }
+
+    private void InvalidateFilterCache()
+    {
+        _filteredCacheKey = null;
+        _filteredCache = null;
+        _filteredCacheSource = null;
+    }
+
+    private static string BuildFilterCacheKey(ModSearchQuery query)
+    {
+        var tags = query.TagNames is { Count: > 0 }
+            ? string.Join('\n', query.TagNames.OrderBy(t => t, StringComparer.OrdinalIgnoreCase))
+            : string.Empty;
+        var tagIds = query.TagIds is { Count: > 0 }
+            ? string.Join('\n', query.TagIds.OrderBy(t => t, StringComparer.OrdinalIgnoreCase))
+            : string.Empty;
+        return string.Join(
+            '\u001f',
+            query.Text ?? string.Empty,
+            query.Side ?? string.Empty,
+            query.OrderBy ?? string.Empty,
+            query.OrderDirection ?? string.Empty,
+            query.GameVersion ?? string.Empty,
+            tags,
+            tagIds);
     }
 
     private static List<ModSummary> FilterAndSort(IReadOnlyList<ModSummary> source, ModSearchQuery query)
@@ -363,9 +433,8 @@ public sealed partial class ModDbClient : IModDbClient
 
         if (query.TagNames is { Count: > 0 })
         {
-            filtered = filtered.Where(m =>
-                query.TagNames.All(required =>
-                    m.Tags.Any(t => string.Equals(t, required, StringComparison.OrdinalIgnoreCase))));
+            var requiredTags = query.TagNames.ToHashSet(StringComparer.OrdinalIgnoreCase);
+            filtered = filtered.Where(m => requiredTags.All(required => m.Tags.Contains(required, StringComparer.OrdinalIgnoreCase)));
         }
 
         var orderBy = query.OrderBy ?? "downloads";

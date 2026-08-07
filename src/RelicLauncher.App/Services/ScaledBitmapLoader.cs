@@ -1,5 +1,6 @@
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
+using RelicLauncher.Core.Constants;
 
 namespace RelicLauncher.App.Services;
 
@@ -12,7 +13,12 @@ public static class ScaledBitmapLoader
             return new Bitmap(stream);
         }
 
-        return Bitmap.DecodeToWidth(stream, maxWidth, BitmapInterpolationMode.HighQuality);
+        return Bitmap.DecodeToWidth(
+            stream,
+            maxWidth,
+            maxWidth <= RelicDefaults.DecodeWidthScreenshotThumb
+                ? BitmapInterpolationMode.MediumQuality
+                : BitmapInterpolationMode.HighQuality);
     }
 
     public static Bitmap? FromBytes(byte[] bytes, int maxWidth)
