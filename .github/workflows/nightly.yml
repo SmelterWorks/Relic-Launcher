@@ -112,7 +112,7 @@ jobs:
         if: matrix.rid == 'linux-x64'
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends rpm zstd libarchive-tools file flatpak flatpak-builder
+          sudo apt-get install -y --no-install-recommends rpm zstd libarchive-tools file elfutils flatpak flatpak-builder
           flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo
           flatpak install -y --user flathub \
             org.freedesktop.Platform//24.08 \
