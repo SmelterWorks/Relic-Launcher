@@ -84,6 +84,31 @@ jobs:
           retention-days: 14
           if-no-files-found: warn
 
+  self-check:
+    name: self-check (${{ matrix.os }})
+    needs: build-test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Build
+        run: dotnet build src/RelicLauncher.App/RelicLauncher.App.csproj -c Release
+
+      - name: Run self-check
+        env:
+          RELIC_SELF_CHECK_ROOT: ${{ runner.temp }}/relic-self-check
+        run: dotnet run --project src/RelicLauncher.App/RelicLauncher.App.csproj -c Release --no-build -- --self-check
+
   publish-dry:
     name: publish-dry (${{ matrix.rid }})
     needs: build-test

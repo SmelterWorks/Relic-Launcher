@@ -35,6 +35,11 @@ internal static class Program
         AppDomain.CurrentDomain.UnhandledException += OnUnhandledException;
         TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
 
+        if (SelfCheck.SelfCheckHost.TryHandle(args, out var selfCheckExitCode))
+        {
+            return selfCheckExitCode;
+        }
+
         try
         {
             return BuildAvaloniaApp()

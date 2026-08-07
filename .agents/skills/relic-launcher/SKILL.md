@@ -101,6 +101,7 @@ dotnet build RelicLauncher.sln -c Release
 dotnet test RelicLauncher.sln -c Release
 dotnet format RelicLauncher.sln --verify-no-changes
 dotnet run --project src/RelicLauncher.App/RelicLauncher.App.csproj
+dotnet run --project src/RelicLauncher.App/RelicLauncher.App.csproj -- --self-check
 ```
 
 Mutation tests (use mutation solution, not full sln):

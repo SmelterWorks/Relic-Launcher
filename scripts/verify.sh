@@ -16,4 +16,8 @@ dotnet build RelicLauncher.sln -c Release --no-restore
 echo "==> dotnet test"
 dotnet test RelicLauncher.sln -c Release --no-build
 
+echo "==> self-check"
+export RELIC_SELF_CHECK_ROOT="${TMPDIR:-/tmp}/relic-self-check-$$"
+dotnet run --project src/RelicLauncher.App/RelicLauncher.App.csproj -c Release --no-build -- --self-check
+
 echo "All checks passed."
