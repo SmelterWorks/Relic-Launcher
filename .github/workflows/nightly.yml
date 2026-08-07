@@ -115,8 +115,8 @@ jobs:
           sudo apt-get install -y --no-install-recommends rpm zstd libarchive-tools file elfutils flatpak flatpak-builder
           flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo
           flatpak install -y --user flathub \
-            org.freedesktop.Platform//24.08 \
-            org.freedesktop.Sdk//24.08 \
+            org.gnome.Platform//47 \
+            org.gnome.Sdk//47 \
             org.freedesktop.Platform.GL.default//24.08
 
       - name: Package Linux

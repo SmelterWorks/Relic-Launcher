@@ -56,9 +56,9 @@
     </StackPanel>
 
     <Grid>
-      <NativeWebView x:Name="WikiWebView"
-                     IsVisible="{Binding ShowWebView}"
-                     AutomationProperties.Name="Wiki browser" />
+      <Panel x:Name="WikiWebViewHost"
+             IsVisible="{Binding ShowWebView}"
+             AutomationProperties.Name="Wiki browser host" />
 
       <Border Background="{DynamicResource Theme.Bg0}"
               Opacity="0.85"

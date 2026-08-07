@@ -131,7 +131,7 @@ packaging/linux/build-packages.sh \
   --output-dir artifacts/packages
 ```
 
-Requires `flatpak`, `flatpak-builder`, and `elfutils` (for `eu-strip` during debuginfo splitting) with the Freedesktop 24.08 Platform and Sdk from Flathub. Pass `--skip-flatpak` to build only deb, rpm, Arch pkg, and AppImage.
+Requires `flatpak`, `flatpak-builder`, and `elfutils` (for `eu-strip` during debuginfo splitting) with the GNOME 47 Platform and Sdk from Flathub. Pass `--skip-flatpak` to build only deb, rpm, Arch pkg, and AppImage.
 
 ## Config and logs
 

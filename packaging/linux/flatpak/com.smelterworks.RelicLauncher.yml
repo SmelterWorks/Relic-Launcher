@@ -1,7 +1,7 @@
 id: com.smelterworks.RelicLauncher
-runtime: org.freedesktop.Platform
-runtime-version: '24.08'
-sdk: org.freedesktop.Sdk
+runtime: org.gnome.Platform
+runtime-version: '47'
+sdk: org.gnome.Sdk
 command: RelicLauncher.App
 
 finish-args:
@@ -9,6 +9,7 @@ finish-args:
   - --share=ipc
   - --socket=wayland
   - --socket=fallback-x11
+  - --socket=session-bus
   - --device=dri
   - --socket=pulseaudio
   - --talk-name=org.freedesktop.secrets

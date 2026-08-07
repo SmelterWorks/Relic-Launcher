@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using RelicLauncher.App.Services;
 using RelicLauncher.Core.Abstractions;
 using RelicLauncher.Core.Models;
 using RelicLauncher.Core.Wiki;
@@ -49,6 +50,11 @@ public partial class WikiViewModel : PageViewModelBase
         _endpoints = endpoints;
         _urlLauncher = urlLauncher;
         _probe = probe;
+        if (OperatingSystem.IsLinux())
+        {
+            IsWebViewAvailable = LinuxEmbeddedBrowserSupport.IsLikelyAvailable();
+            ShowWebView = IsWebViewAvailable;
+        }
     }
 
     public string WikiBaseUrl => _endpoints.WikiBaseUrl;

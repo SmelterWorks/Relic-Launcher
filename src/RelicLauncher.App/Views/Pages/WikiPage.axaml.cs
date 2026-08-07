@@ -1,9 +1,11 @@
+using System.ComponentModel;
 using System.Globalization;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
+using RelicLauncher.App.Services;
 using RelicLauncher.App.ViewModels;
 using RelicLauncher.Core.Wiki;
 
@@ -11,6 +13,7 @@ namespace RelicLauncher.App.Views.Pages;
 
 public partial class WikiPage : UserControl
 {
+    private Panel? _webViewHost;
     private NativeWebView? _webView;
     private WikiViewModel? _boundVm;
     private TopLevel? _topLevel;
@@ -26,30 +29,7 @@ public partial class WikiPage : UserControl
 
     private void OnAttachedToVisualTree(object? sender, VisualTreeAttachmentEventArgs e)
     {
-        _webView = this.FindControl<NativeWebView>("WikiWebView");
-        if (_webView is null)
-        {
-            return;
-        }
-
-        _webView.Focusable = true;
-        _webView.NavigationStarted -= OnNavigationStarted;
-        _webView.NavigationCompleted -= OnNavigationCompleted;
-        _webView.NewWindowRequested -= OnNewWindowRequested;
-        _webView.AdapterCreated -= OnAdapterCreated;
-        _webView.AdapterDestroyed -= OnAdapterDestroyed;
-
-        _webView.NavigationStarted += OnNavigationStarted;
-        _webView.NavigationCompleted += OnNavigationCompleted;
-        _webView.NewWindowRequested += OnNewWindowRequested;
-        _webView.AdapterCreated += OnAdapterCreated;
-        _webView.AdapterDestroyed += OnAdapterDestroyed;
-
-        // The embedded WebKitGTK fallback (used when WPE is not installed) does not
-        // reliably forward wheel input to the browser engine, so intercept it at the
-        // TopLevel and drive scrolling through script instead. handledEventsToo is
-        // required because the WebView's own input handling may mark the event
-        // handled before it reaches us.
+        _webViewHost = this.FindControl<Panel>("WikiWebViewHost");
         _topLevel = TopLevel.GetTopLevel(this);
         if (_topLevel is not null)
         {
@@ -62,7 +42,7 @@ public partial class WikiPage : UserControl
         }
 
         HookViewModel(DataContext as WikiViewModel);
-        NudgeWebViewLayout();
+        TryEnsureWebView();
     }
 
     private void OnDetachedFromVisualTree(object? sender, VisualTreeAttachmentEventArgs e)
@@ -73,15 +53,7 @@ public partial class WikiPage : UserControl
             _topLevel = null;
         }
 
-        if (_webView is not null)
-        {
-            _webView.NavigationStarted -= OnNavigationStarted;
-            _webView.NavigationCompleted -= OnNavigationCompleted;
-            _webView.NewWindowRequested -= OnNewWindowRequested;
-            _webView.AdapterCreated -= OnAdapterCreated;
-            _webView.AdapterDestroyed -= OnAdapterDestroyed;
-        }
-
+        DestroyWebView();
         UnhookViewModel();
     }
 
@@ -102,12 +74,14 @@ public partial class WikiPage : UserControl
             return;
         }
 
+        vm.PropertyChanged += OnViewModelPropertyChanged;
         vm.NavigateRequested = NavigateTo;
         vm.ReloadRequested = Reload;
         vm.GoBackRequested = GoBack;
         vm.GoForwardRequested = GoForward;
         vm.ClearSiteDataRequested = ClearSiteData;
         vm.NotifyHostReady();
+        TryEnsureWebView();
     }
 
     private void UnhookViewModel()
@@ -117,6 +91,7 @@ public partial class WikiPage : UserControl
             return;
         }
 
+        _boundVm.PropertyChanged -= OnViewModelPropertyChanged;
         _boundVm.NavigateRequested = null;
         _boundVm.ReloadRequested = null;
         _boundVm.GoBackRequested = null;
@@ -125,8 +100,85 @@ public partial class WikiPage : UserControl
         _boundVm = null;
     }
 
+    private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(WikiViewModel.ShowWebView) or nameof(WikiViewModel.IsWebViewAvailable))
+        {
+            if (_boundVm?.ShowWebView == true && _boundVm.IsWebViewAvailable)
+            {
+                TryEnsureWebView();
+            }
+            else
+            {
+                DestroyWebView();
+            }
+        }
+    }
+
+    private void TryEnsureWebView()
+    {
+        if (_webView is not null || _webViewHost is null || _boundVm is null)
+        {
+            return;
+        }
+
+        if (!_boundVm.ShowWebView || !_boundVm.IsWebViewAvailable)
+        {
+            return;
+        }
+
+        if (OperatingSystem.IsLinux() && !LinuxEmbeddedBrowserSupport.IsLikelyAvailable())
+        {
+            _boundVm.ReportWebViewUnavailable(
+                "Embedded browser libraries are not available in this environment. Open the wiki in your browser.");
+            return;
+        }
+
+        try
+        {
+            _webView = new NativeWebView
+            {
+                Focusable = true,
+            };
+            _webView.NavigationStarted += OnNavigationStarted;
+            _webView.NavigationCompleted += OnNavigationCompleted;
+            _webView.NewWindowRequested += OnNewWindowRequested;
+            _webView.AdapterCreated += OnAdapterCreated;
+            _webView.AdapterDestroyed += OnAdapterDestroyed;
+            _webViewHost.Children.Add(_webView);
+            NudgeWebViewLayout();
+        }
+        catch (DllNotFoundException ex)
+        {
+            _boundVm.ReportWebViewUnavailable(ex.Message);
+            DestroyWebView();
+        }
+        catch (Exception)
+        {
+            _boundVm.ReportWebViewUnavailable();
+            DestroyWebView();
+        }
+    }
+
+    private void DestroyWebView()
+    {
+        if (_webView is null)
+        {
+            return;
+        }
+
+        _webView.NavigationStarted -= OnNavigationStarted;
+        _webView.NavigationCompleted -= OnNavigationCompleted;
+        _webView.NewWindowRequested -= OnNewWindowRequested;
+        _webView.AdapterCreated -= OnAdapterCreated;
+        _webView.AdapterDestroyed -= OnAdapterDestroyed;
+        _webViewHost?.Children.Remove(_webView);
+        _webView = null;
+    }
+
     private void NavigateTo(Uri uri)
     {
+        TryEnsureWebView();
         if (_webView is null)
         {
             _boundVm?.ReportWebViewUnavailable();
@@ -364,7 +416,6 @@ public partial class WikiPage : UserControl
             return;
         }
 
-        // NativeWebView can attach with a 1x1 host slot until measure is nudged.
         void Invalidate()
         {
             if (_webView is null)
