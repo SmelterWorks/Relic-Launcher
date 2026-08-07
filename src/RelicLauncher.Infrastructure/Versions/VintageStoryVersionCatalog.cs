@@ -29,6 +29,7 @@ public sealed class VintageStoryVersionCatalog : IGameVersionCatalog
     private DateTimeOffset _memoryAt;
     private string? _latestStableMemory;
     private DateTimeOffset _latestStableAt;
+    private string? _lastCatalogError;
 
     public bool LastCatalogWasStale { get; private set; }
 
@@ -63,7 +64,8 @@ public sealed class VintageStoryVersionCatalog : IGameVersionCatalog
             var versions = await EnsureCatalogAsync(cancellationToken).ConfigureAwait(false);
             if (versions is null)
             {
-                return Result<IReadOnlyList<GameVersionInfo>>.Failure("Could not load version catalog.");
+                return Result<IReadOnlyList<GameVersionInfo>>.Failure(
+                    _lastCatalogError ?? "Could not load version catalog.");
             }
 
             if (channel is not null)
@@ -201,6 +203,7 @@ public sealed class VintageStoryVersionCatalog : IGameVersionCatalog
             var json = await _httpClient.GetStringAsync(_endpoints.VersionCatalogUrl, cancellationToken).ConfigureAwait(false);
             var versions = ParseCatalog(json);
             LastCatalogWasStale = false;
+            _lastCatalogError = null;
             _memory = versions;
             _memoryAt = DateTimeOffset.UtcNow;
             await WriteCatalogCacheAsync(json, cancellationToken).ConfigureAwait(false);
@@ -208,6 +211,7 @@ public sealed class VintageStoryVersionCatalog : IGameVersionCatalog
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException or IOException)
         {
+            _lastCatalogError = ex.Message;
             _logger.LogWarning(ex, "Failed to refresh version catalog");
             return await TryServeStaleCatalogAsync(cancellationToken).ConfigureAwait(false);
         }

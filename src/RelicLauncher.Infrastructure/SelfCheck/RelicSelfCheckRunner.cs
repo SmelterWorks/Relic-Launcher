@@ -310,30 +310,8 @@ public sealed class RelicSelfCheckRunner
         }
     }
 
-    private async Task<SelfCheckItem> CheckVersionCatalogAsync(CancellationToken cancellationToken)
-    {
-        try
-        {
-            using var provider = BuildServiceProvider();
-            var catalog = provider.GetRequiredService<IGameVersionCatalog>();
-            var versions = await catalog.GetVersionsAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
-            if (!versions.IsSuccess || versions.Value!.Count == 0)
-            {
-                return SelfCheckItem.Fail("catalog", "Version catalog", versions.Error ?? "No versions returned");
-            }
-
-            var latest = await catalog.GetLatestStableVersionAsync(cancellationToken).ConfigureAwait(false);
-            var detail = latest.IsSuccess && !string.IsNullOrWhiteSpace(latest.Value)
-                ? $"{versions.Value.Count} versions; latest stable {latest.Value}"
-                : $"{versions.Value.Count} versions";
-
-            return SelfCheckItem.Pass("catalog", "Version catalog", detail);
-        }
-        catch (Exception ex)
-        {
-            return SelfCheckItem.Fail("catalog", "Version catalog", ex.Message);
-        }
-    }
+    private Task<SelfCheckItem> CheckVersionCatalogAsync(CancellationToken cancellationToken)
+        => SelfCheckCatalogProbe.RunAsync(BuildServiceProvider, cancellationToken);
 
     private async Task<SelfCheckItem> CheckHostingFeedAsync(CancellationToken cancellationToken)
     {

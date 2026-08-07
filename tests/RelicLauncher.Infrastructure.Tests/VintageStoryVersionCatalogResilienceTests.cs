@@ -50,7 +50,7 @@ public class VintageStoryVersionCatalogResilienceTests
         var result = await catalog.GetVersionsAsync();
 
         result.IsSuccess.Should().BeFalse();
-        result.Error.Should().Contain("Could not load version catalog");
+        result.Error.Should().Be("offline");
     }
 
     [Fact]
