@@ -70,4 +70,31 @@ public class ModLibraryIconTests
         bytes.Should().NotBeNull();
         bytes!.Length.Should().Be(png.Length);
     }
+
+    [Fact]
+    public void TryReadModIcon_RejectsTraversalIconPath()
+    {
+        using var temp = new TempAppPaths();
+        var modDir = Path.Combine(temp.Paths.RootDirectory, "escapemod");
+        var secretDir = Path.Combine(temp.Paths.RootDirectory, "secret");
+        Directory.CreateDirectory(modDir);
+        Directory.CreateDirectory(secretDir);
+        File.WriteAllText(Path.Combine(modDir, "modinfo.json"), """{"modid":"escapemod","name":"Escape","version":"1.0.0","iconPath":"../secret/leak.png"}""");
+        var png = Convert.FromBase64String(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==");
+        File.WriteAllBytes(Path.Combine(secretDir, "leak.png"), png);
+
+        var service = new ModLibraryService(new FixedPathProvider(temp.Paths), NullLogger<ModLibraryService>.Instance);
+        var info = new LocalModInfo
+        {
+            Path = modDir,
+            FileName = "escapemod",
+            ModId = "escapemod",
+            Name = "Escape",
+            IconPath = "../secret/leak.png",
+            IsDirectory = true,
+        };
+
+        service.TryReadModIcon(info).Should().BeNull();
+    }
 }

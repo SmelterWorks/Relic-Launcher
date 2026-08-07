@@ -64,6 +64,11 @@ public partial class ModsViewModel
 
     private async Task OpenModByKeyAsync(string id)
     {
+        _detailCts?.Cancel();
+        _detailCts?.Dispose();
+        _detailCts = new CancellationTokenSource();
+        var token = _detailCts.Token;
+
         IsLoadingDetails = true;
         SetDetailStatus("Loading details...");
         SelectedDetails = null;
@@ -73,22 +78,46 @@ public partial class ModsViewModel
         DetailLogo = ModIconAssets.Default;
         UpdateSelectedInstalledState();
 
-        var result = await _modDb.GetModAsync(id).ConfigureAwait(true);
-        IsLoadingDetails = false;
-        if (!result.IsSuccess)
+        try
         {
-            SetDetailStatus(result.Error ?? "Could not load mod details.", true);
-            _logger.LogWarning("Mod details failed for {Id}: {Error}", id, result.Error);
-            return;
-        }
+            var result = await _modDb.GetModAsync(id).ConfigureAwait(true);
+            if (token.IsCancellationRequested)
+            {
+                return;
+            }
 
-        SelectedDetails = result.Value!;
-        SelectedRelease = await SelectDefaultReleaseAsync(SelectedDetails).ConfigureAwait(true);
-        SetDetailStatus(string.Empty);
-        RebuildDetailTags(SelectedDetails);
-        UpdateSelectedInstalledState();
-        await RefreshBlocklistWarningAsync(SelectedDetails, SelectedRelease).ConfigureAwait(true);
-        _ = LoadDetailMediaAsync(SelectedDetails);
+            if (!result.IsSuccess)
+            {
+                SetDetailStatus(result.Error ?? "Could not load mod details.", true);
+                _logger.LogWarning("Mod details failed for {Id}: {Error}", id, result.Error);
+                return;
+            }
+
+            SelectedDetails = result.Value!;
+            SelectedRelease = await SelectDefaultReleaseAsync(SelectedDetails).ConfigureAwait(true);
+            if (token.IsCancellationRequested)
+            {
+                return;
+            }
+
+            SetDetailStatus(string.Empty);
+            RebuildDetailTags(SelectedDetails);
+            UpdateSelectedInstalledState();
+            await RefreshBlocklistWarningAsync(SelectedDetails, SelectedRelease).ConfigureAwait(true);
+            if (token.IsCancellationRequested)
+            {
+                return;
+            }
+
+            _ = LoadDetailMediaAsync(SelectedDetails, token);
+        }
+        finally
+        {
+            if (!token.IsCancellationRequested)
+            {
+                IsLoadingDetails = false;
+            }
+        }
     }
 
     private void RebuildDetailTags(ModDetails details)

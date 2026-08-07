@@ -55,8 +55,14 @@ public sealed partial class NewsContentBlockViewModel : ViewModelBase
         }
 
         IsImageLoading = true;
-        Image = await _imageLoader.LoadAsync(url, cancellationToken).ConfigureAwait(true);
-        IsImageLoading = false;
+        try
+        {
+            Image = await _imageLoader.LoadAsync(url, cancellationToken).ConfigureAwait(true);
+        }
+        finally
+        {
+            IsImageLoading = false;
+        }
     }
 
     [RelayCommand]

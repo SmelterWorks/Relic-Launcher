@@ -39,6 +39,25 @@ public class PathValidatorTests
         fullPath.Should().Be(Path.GetFullPath(temp.Path));
     }
 
+    [Fact]
+    public void TryResolveChildPath_RejectsTraversalOutsideRoot()
+    {
+        using var temp = new TempDirectory();
+        var ok = PathValidator.TryResolveChildPath(temp.Path, "../outside.txt", out _);
+
+        ok.Should().BeFalse();
+    }
+
+    [Fact]
+    public void TryResolveChildPath_AllowsFileInsideRoot()
+    {
+        using var temp = new TempDirectory();
+        var ok = PathValidator.TryResolveChildPath(temp.Path, "child/file.txt", out var destination);
+
+        ok.Should().BeTrue();
+        destination.Should().StartWith(Path.GetFullPath(temp.Path));
+    }
+
     private sealed class TempDirectory : IDisposable
     {
         public string Path { get; } = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "RelicLauncherTests", Guid.NewGuid().ToString("N"));

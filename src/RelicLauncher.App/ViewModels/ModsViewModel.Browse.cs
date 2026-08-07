@@ -34,7 +34,7 @@ public partial class ModsViewModel
         }
 
         Page++;
-        await LoadPageAsync(CancellationToken.None).ConfigureAwait(true);
+        await LoadPageAsync(_searchCts?.Token ?? CancellationToken.None).ConfigureAwait(true);
     }
 
     [RelayCommand]
@@ -46,11 +46,13 @@ public partial class ModsViewModel
         }
 
         Page--;
-        await LoadPageAsync(CancellationToken.None).ConfigureAwait(true);
+        await LoadPageAsync(_searchCts?.Token ?? CancellationToken.None).ConfigureAwait(true);
     }
 
     private async Task LoadPageAsync(CancellationToken cancellationToken)
     {
+        var generation = Interlocked.Increment(ref _browseGeneration);
+        var requestedPage = Page;
         IsLoading = true;
         SetStatus(string.Empty);
         ClearBrowseResults();
@@ -70,12 +72,12 @@ public partial class ModsViewModel
                 Side = SelectedSideFilter?.Id,
                 TagIds = _selectedTagIds.ToList(),
                 TagNames = TagChips.Where(t => t.IsSelected).Select(t => t.Name).ToList(),
-                Page = Page,
+                Page = requestedPage,
                 PageSize = DefaultPageSize,
                 PreferCache = true,
             }, cancellationToken).ConfigureAwait(true);
 
-            if (cancellationToken.IsCancellationRequested)
+            if (generation != _browseGeneration || cancellationToken.IsCancellationRequested)
             {
                 return;
             }
@@ -90,7 +92,7 @@ public partial class ModsViewModel
         }
         finally
         {
-            if (!cancellationToken.IsCancellationRequested)
+            if (generation == _browseGeneration && !cancellationToken.IsCancellationRequested)
             {
                 IsLoading = false;
             }

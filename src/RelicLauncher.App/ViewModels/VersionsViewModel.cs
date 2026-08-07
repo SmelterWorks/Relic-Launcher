@@ -286,7 +286,11 @@ public partial class VersionsViewModel : PageViewModelBase
         }
         finally
         {
-            _installCts.Remove(version.Version);
+            if (_installCts.TryGetValue(version.Version, out var current) && ReferenceEquals(current, cts))
+            {
+                _installCts.Remove(version.Version);
+            }
+
             IsInstalling = _installCts.Count > 0;
             await session.DisposeAsync().ConfigureAwait(false);
         }
@@ -331,8 +335,7 @@ public partial class VersionsViewModel : PageViewModelBase
         session.Complete($"Installed {version.Version}");
         await EnsureRuntimeForVersionAsync(version.Version, cancellationToken).ConfigureAwait(true);
 
-        _settings.SelectedVersion = version.Version;
-        await PersistSettingsAsync().ConfigureAwait(true);
+        await SaveSelectedVersionAsync(version.Version, installsRoot).ConfigureAwait(true);
         await RefreshAsync().ConfigureAwait(true);
         SetStatus($"Installed {version.Version}.");
         InstallProgress = 1;
@@ -411,8 +414,7 @@ public partial class VersionsViewModel : PageViewModelBase
 
         if (string.Equals(_settings.SelectedVersion, version, StringComparison.OrdinalIgnoreCase))
         {
-            _settings.SelectedVersion = null;
-            await PersistSettingsAsync().ConfigureAwait(true);
+            await SaveSelectedVersionAsync(null, installsRoot).ConfigureAwait(true);
         }
 
         await RefreshAsync().ConfigureAwait(true);
@@ -421,10 +423,43 @@ public partial class VersionsViewModel : PageViewModelBase
 
     internal async Task SetActiveAsync(string version)
     {
-        _settings.SelectedVersion = version;
-        await PersistSettingsAsync().ConfigureAwait(true);
+        var installsRoot = _settings.InstallsRoot ?? _platform.GetPlatformInfo().DefaultInstallsRoot;
+        await SaveSelectedVersionAsync(version, installsRoot).ConfigureAwait(true);
         await RefreshAsync().ConfigureAwait(true);
         SetStatus($"Active version set to {version}.");
+    }
+
+    private async Task SaveSelectedVersionAsync(string? selectedVersion, string installsRoot)
+    {
+        var loaded = await _settingsStore.LoadAsync().ConfigureAwait(true);
+        if (!loaded.IsSuccess)
+        {
+            _settings.SelectedVersion = selectedVersion;
+            if (!string.IsNullOrWhiteSpace(installsRoot))
+            {
+                _settings.InstallsRoot = installsRoot;
+            }
+
+            await PersistSettingsAsync().ConfigureAwait(true);
+            return;
+        }
+
+        var settings = loaded.Value!;
+        settings.SelectedVersion = selectedVersion;
+        if (!string.IsNullOrWhiteSpace(installsRoot))
+        {
+            settings.InstallsRoot = installsRoot;
+        }
+
+        var save = await _settingsStore.SaveAsync(settings).ConfigureAwait(true);
+        if (!save.IsSuccess)
+        {
+            _logger.LogWarning("Settings save failed: {Error}", save.Error);
+            return;
+        }
+
+        _settings = settings;
+        _onChanged?.Invoke(settings);
     }
 
     private async Task PersistSettingsAsync()

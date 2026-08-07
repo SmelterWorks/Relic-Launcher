@@ -403,26 +403,7 @@ public sealed class BackupService : IBackupService
     }
 
     private static bool TryResolveSafeDestination(string rootDir, string relativeEntryPath, out string destination)
-    {
-        destination = string.Empty;
-        if (string.IsNullOrWhiteSpace(relativeEntryPath))
-        {
-            return false;
-        }
-
-        var normalizedRoot = Path.GetFullPath(rootDir);
-        var candidate = Path.GetFullPath(Path.Combine(normalizedRoot, relativeEntryPath));
-        var withSeparator = normalizedRoot.EndsWith(Path.DirectorySeparatorChar)
-            ? normalizedRoot
-            : normalizedRoot + Path.DirectorySeparatorChar;
-        if (!candidate.StartsWith(withSeparator, StringComparison.Ordinal))
-        {
-            return false;
-        }
-
-        destination = candidate;
-        return true;
-    }
+        => PathValidator.TryResolveChildPath(rootDir, relativeEntryPath, out destination);
 
     private sealed class BackupRestoreProgress
     {

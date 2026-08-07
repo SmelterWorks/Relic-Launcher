@@ -250,6 +250,7 @@ public partial class WikiViewModel : PageViewModelBase
         var probe = await _probe.ProbeAsync(token).ConfigureAwait(true);
         if (token.IsCancellationRequested)
         {
+            IsLoading = false;
             return;
         }
 

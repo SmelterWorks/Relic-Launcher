@@ -35,6 +35,8 @@ public partial class ModsViewModel : PageViewModelBase
     private readonly ILogger<ModsViewModel> _logger;
     private LauncherSettings _settings = new();
     private CancellationTokenSource? _searchCts;
+    private CancellationTokenSource? _detailCts;
+    private int _browseGeneration;
     private int _activeInstalls;
     private bool _ready;
     private readonly HashSet<string> _selectedTagIds = new(StringComparer.OrdinalIgnoreCase);

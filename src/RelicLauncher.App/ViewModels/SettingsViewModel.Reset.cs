@@ -46,7 +46,8 @@ public partial class SettingsViewModel
         AccountError = string.Empty;
         StatusMessage = "Settings restored to defaults.";
         _isBinding = false;
-        await PersistSettingsAsync().ConfigureAwait(true);
+        var generation = Interlocked.Increment(ref _saveGeneration);
+        await PersistSettingsAsync(generation).ConfigureAwait(true);
         SetSaveStatus("Saved defaults");
     }
 

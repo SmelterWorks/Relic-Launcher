@@ -472,7 +472,11 @@ public sealed class ModLibraryService : IModLibraryService
     {
         foreach (var relative in candidates)
         {
-            var full = Path.Combine(directory, relative.Replace('/', Path.DirectorySeparatorChar));
+            if (!PathValidator.TryResolveChildPath(directory, relative.Replace('/', Path.DirectorySeparatorChar), out var full))
+            {
+                continue;
+            }
+
             if (File.Exists(full))
             {
                 return File.ReadAllBytes(full);

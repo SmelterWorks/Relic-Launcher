@@ -14,11 +14,16 @@ namespace RelicLauncher.App.ViewModels;
 
 public partial class ModsViewModel
 {
-    private async Task LoadDetailMediaAsync(ModDetails details)
+    private async Task LoadDetailMediaAsync(ModDetails details, CancellationToken cancellationToken)
     {
         if (!string.IsNullOrWhiteSpace(details.LogoUrl))
         {
             var bytes = await _images.GetImageBytesAsync(details.LogoUrl).ConfigureAwait(true);
+            if (cancellationToken.IsCancellationRequested || !ReferenceEquals(SelectedDetails, details))
+            {
+                return;
+            }
+
             DetailLogo = bytes is null
                 ? ModIconAssets.Default
                 : ScaledBitmapLoader.FromBytes(bytes, RelicDefaults.DecodeWidthModDetailLogo)
@@ -32,6 +37,11 @@ public partial class ModsViewModel
         ClearScreenshotItems();
         foreach (var shot in details.Screenshots.Take(8))
         {
+            if (cancellationToken.IsCancellationRequested || !ReferenceEquals(SelectedDetails, details))
+            {
+                return;
+            }
+
             var thumbUrl = shot.ThumbnailUrl ?? shot.MainUrl;
             if (string.IsNullOrWhiteSpace(thumbUrl))
             {
@@ -39,6 +49,11 @@ public partial class ModsViewModel
             }
 
             var bytes = await _images.GetImageBytesAsync(thumbUrl).ConfigureAwait(true);
+            if (cancellationToken.IsCancellationRequested || !ReferenceEquals(SelectedDetails, details))
+            {
+                return;
+            }
+
             if (bytes is null)
             {
                 continue;
@@ -152,6 +167,9 @@ public partial class ModsViewModel
         }
 
         BrowseResults.Clear();
+        SelectedBrowseMod = null;
+        SelectedDetails = null;
+        SelectedRelease = null;
     }
 
     private void ClearScreenshotItems()

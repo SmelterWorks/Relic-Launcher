@@ -28,6 +28,7 @@ public partial class SettingsViewModel : PageViewModelBase
     private List<string> _modUpdateOptOutModIds = [];
     private CancellationTokenSource? _saveCts;
     private CancellationTokenSource? _savedIndicatorCts;
+    private int _saveGeneration;
     private string? _preLoginToken;
 
     [ObservableProperty]
@@ -320,17 +321,18 @@ public partial class SettingsViewModel : PageViewModelBase
         _saveCts?.Cancel();
         _saveCts = new CancellationTokenSource();
         var token = _saveCts.Token;
-        _ = AutoSaveAsync(token);
+        var generation = Interlocked.Increment(ref _saveGeneration);
+        _ = AutoSaveAsync(token, generation);
     }
 
-    private async Task AutoSaveAsync(CancellationToken cancellationToken)
+    private async Task AutoSaveAsync(CancellationToken cancellationToken, int generation)
     {
         try
         {
             IsSaving = true;
             SetSaveStatus("Saving...");
             await Task.Delay(450, cancellationToken).ConfigureAwait(true);
-            await PersistSettingsAsync().ConfigureAwait(true);
+            await PersistSettingsAsync(generation).ConfigureAwait(true);
             if (cancellationToken.IsCancellationRequested)
             {
                 return;
@@ -368,7 +370,7 @@ public partial class SettingsViewModel : PageViewModelBase
         }
     }
 
-    private async Task PersistSettingsAsync()
+    private async Task PersistSettingsAsync(int generation)
     {
         var platform = _platform.GetPlatformInfo();
         var settings = new LauncherSettings
@@ -414,6 +416,11 @@ public partial class SettingsViewModel : PageViewModelBase
         {
             _logger.LogWarning("Settings save failed: {Error}", save.Error);
             SetSaveStatus(save.Error ?? "Save failed.", true);
+            return;
+        }
+
+        if (generation != _saveGeneration)
+        {
             return;
         }
 

@@ -26,6 +26,7 @@ public partial class HomeViewModel : PageViewModelBase
     private Action<LauncherSettings>? _onChanged;
     private Action<string?>? _navigateToSettings;
     private bool _bindingVersions;
+    private CancellationTokenSource? _articleCts;
 
     [ObservableProperty]
     private bool _canPlay;
@@ -273,37 +274,69 @@ public partial class HomeViewModel : PageViewModelBase
 
     private async Task ShowArticleAsync(NewsArticleViewModel article)
     {
+        _articleCts?.Cancel();
+        _articleCts?.Dispose();
+        _articleCts = new CancellationTokenSource();
+        var token = _articleCts.Token;
+
         IsShowingArticle = true;
         IsLoadingArticle = true;
         SelectedArticleTitle = article.Title;
         SelectedArticlePublished = article.PublishedLabel;
         SelectedArticleBlocks.Clear();
 
-        var result = await _newsService.FetchArticleAsync(article.Url).ConfigureAwait(true);
-        IsLoadingArticle = false;
-
-        if (!result.IsSuccess)
+        try
         {
-            SelectedArticleBlocks.Add(new NewsContentBlockViewModel(
-                new NewsContentBlock
-                {
-                    Kind = NewsContentBlockKind.Text,
-                    Text = result.Error ?? "Could not load article.",
-                },
-                _imageLoader,
-                _urlLauncher));
-            return;
-        }
+            var result = await _newsService.FetchArticleAsync(article.Url).ConfigureAwait(true);
+            if (token.IsCancellationRequested)
+            {
+                return;
+            }
 
-        var detail = result.Value!;
+            if (!result.IsSuccess)
+            {
+                AddArticleErrorBlock(result.Error ?? "Could not load article.");
+                return;
+            }
+
+            ApplyArticleDetail(result.Value!, article, token);
+        }
+        finally
+        {
+            if (!token.IsCancellationRequested)
+            {
+                IsLoadingArticle = false;
+            }
+        }
+    }
+
+    private void AddArticleErrorBlock(string message)
+    {
+        SelectedArticleBlocks.Add(new NewsContentBlockViewModel(
+            new NewsContentBlock
+            {
+                Kind = NewsContentBlockKind.Text,
+                Text = message,
+            },
+            _imageLoader,
+            _urlLauncher));
+    }
+
+    private void ApplyArticleDetail(NewsArticleDetail detail, NewsArticleViewModel article, CancellationToken token)
+    {
         SelectedArticleTitle = detail.Title;
         SelectedArticlePublished = detail.PublishedLabel ?? article.PublishedLabel;
 
         foreach (var block in detail.Blocks)
         {
+            if (token.IsCancellationRequested)
+            {
+                return;
+            }
+
             var blockVm = new NewsContentBlockViewModel(block, _imageLoader, _urlLauncher);
             SelectedArticleBlocks.Add(blockVm);
-            _ = blockVm.LoadImageAsync();
+            _ = blockVm.LoadImageAsync(token);
         }
 
         if (SelectedArticleBlocks.Count == 0 && !string.IsNullOrWhiteSpace(detail.Body))
@@ -318,6 +351,7 @@ public partial class HomeViewModel : PageViewModelBase
     [RelayCommand]
     private void CloseArticle()
     {
+        _articleCts?.Cancel();
         IsShowingArticle = false;
         SelectedArticleBlocks.Clear();
     }

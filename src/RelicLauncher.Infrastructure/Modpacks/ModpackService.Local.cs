@@ -3,6 +3,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using RelicLauncher.Core.Models;
 using RelicLauncher.Core.Mods;
+using RelicLauncher.Core.Paths;
 using RelicLauncher.Core.Results;
 
 namespace RelicLauncher.Infrastructure.Modpacks;
@@ -191,7 +192,12 @@ public sealed partial class ModpackService
             if (entry.FullName.StartsWith(ModsArchivePrefix, StringComparison.OrdinalIgnoreCase)
                 && !string.IsNullOrEmpty(entry.Name))
             {
-                var destPath = Path.Combine(packDir, entry.FullName.Replace('/', Path.DirectorySeparatorChar));
+                var relative = entry.FullName.Replace('/', Path.DirectorySeparatorChar);
+                if (!PathValidator.TryResolveChildPath(packDir, relative, out var destPath))
+                {
+                    continue;
+                }
+
                 Directory.CreateDirectory(Path.GetDirectoryName(destPath)!);
                 entry.ExtractToFile(destPath, overwrite: true);
             }
