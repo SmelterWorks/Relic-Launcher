@@ -1,5 +1,5 @@
-using System.Globalization;
 using System.Diagnostics;
+using System.Globalization;
 using Microsoft.Extensions.Logging;
 using RelicLauncher.Core.Results;
 using RelicLauncher.Core.Sandbox;
