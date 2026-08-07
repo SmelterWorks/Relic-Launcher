@@ -23,6 +23,8 @@ public class JsonLauncherSettingsStoreTests
             HomeBackgroundLogoMode = HomeBackgroundLogoMode.Banner,
             HomeBackgroundCustomLogoPath = "/tmp/logo.png",
             HomeBackgroundLogoOpacity = 0.2,
+            ModUpdateMode = ModUpdateMode.Automatic,
+            ModUpdateOptOutModIds = ["sample", "other"],
         };
 
         var save = await store.SaveAsync(settings);
@@ -36,6 +38,8 @@ public class JsonLauncherSettingsStoreTests
         load.Value.HomeBackgroundLogoMode.Should().Be(HomeBackgroundLogoMode.Banner);
         load.Value.HomeBackgroundCustomLogoPath.Should().Be("/tmp/logo.png");
         load.Value.HomeBackgroundLogoOpacity.Should().Be(0.2);
+        load.Value.ModUpdateMode.Should().Be(ModUpdateMode.Automatic);
+        load.Value.ModUpdateOptOutModIds.Should().BeEquivalentTo(["sample", "other"]);
         load.Value.Endpoints.AccountBaseUrl.Should().Be("https://account.vintagestory.at/");
     }
 

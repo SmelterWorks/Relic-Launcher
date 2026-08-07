@@ -56,6 +56,11 @@ public sealed partial class InstalledModRowViewModel : ViewModelBase
     public string DependencyStatusLabel { get; private set; } = string.Empty;
     public bool HasDependencyProblems { get; private set; }
     public bool ShowDependencyOk => !HasDependencyProblems && !string.IsNullOrWhiteSpace(DependencyStatusLabel);
+    public bool HasUpdateAvailable { get; private set; }
+    public string UpdateStatusLabel { get; private set; } = string.Empty;
+    public bool WasRecentlyUpdated { get; private set; }
+    public string RecentlyUpdatedLabel { get; private set; } = string.Empty;
+    public ModUpdateCandidate? UpdateCandidate { get; private set; }
 
     [ObservableProperty]
     private Bitmap? _logo;
@@ -105,6 +110,41 @@ public sealed partial class InstalledModRowViewModel : ViewModelBase
         }
 
         DependencyStatusLabel = string.Join(", ", parts);
+    }
+
+    public void ApplyUpdateState(ModUpdateCandidate? candidate, bool wasRecentlyUpdated, string? recentlyUpdatedVersion)
+    {
+        UpdateCandidate = candidate;
+        HasUpdateAvailable = candidate is not null;
+        UpdateStatusLabel = candidate is null
+            ? string.Empty
+            : string.IsNullOrWhiteSpace(candidate.AvailableVersion)
+                ? "Update available"
+                : $"Update available ({candidate.AvailableVersion})";
+        WasRecentlyUpdated = wasRecentlyUpdated;
+        RecentlyUpdatedLabel = wasRecentlyUpdated
+            ? string.IsNullOrWhiteSpace(recentlyUpdatedVersion)
+                ? "Updated"
+                : $"Updated ({recentlyUpdatedVersion})"
+            : string.Empty;
+        OnPropertyChanged(nameof(HasUpdateAvailable));
+        OnPropertyChanged(nameof(UpdateStatusLabel));
+        OnPropertyChanged(nameof(WasRecentlyUpdated));
+        OnPropertyChanged(nameof(RecentlyUpdatedLabel));
+        OnPropertyChanged(nameof(UpdateCandidate));
+    }
+
+    public void ClearRecentlyUpdatedIndicator()
+    {
+        if (!WasRecentlyUpdated)
+        {
+            return;
+        }
+
+        WasRecentlyUpdated = false;
+        RecentlyUpdatedLabel = string.Empty;
+        OnPropertyChanged(nameof(WasRecentlyUpdated));
+        OnPropertyChanged(nameof(RecentlyUpdatedLabel));
     }
 
     public void UnloadLogo()

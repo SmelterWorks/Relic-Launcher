@@ -193,6 +193,24 @@
                       IsChecked="{Binding ConfirmBeforeExit}" />
             <CheckBox Content="Warn before installing mods on the official blocklist"
                       IsChecked="{Binding WarnOnBlockedMods}" />
+
+            <StackPanel Spacing="4">
+              <TextBlock Text="Mod updates" Classes="settings-field-label" />
+              <ComboBox ItemsSource="{Binding ModUpdateModeOptions}"
+                        SelectedItem="{Binding SelectedModUpdateModeOption}"
+                        MinWidth="280"
+                        HorizontalAlignment="Left">
+                <ComboBox.ItemTemplate>
+                  <DataTemplate x:DataType="vm:ModUpdateModeOption">
+                    <TextBlock Text="{Binding Label}" />
+                  </DataTemplate>
+                </ComboBox.ItemTemplate>
+              </ComboBox>
+              <TextBlock Text="{Binding SelectedModUpdateModeOption.Description}"
+                         Classes="muted"
+                         TextWrapping="Wrap"
+                         IsVisible="{Binding SelectedModUpdateModeOption, Converter={x:Static ObjectConverters.IsNotNull}}" />
+            </StackPanel>
           </StackPanel>
         </controls:SettingsSection.SectionContent>
       </controls:SettingsSection>

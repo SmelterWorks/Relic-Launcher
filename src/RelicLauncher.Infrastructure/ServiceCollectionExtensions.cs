@@ -53,6 +53,8 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IModLibraryService, ModLibraryService>();
         services.AddSingleton<IModDependencyInstallPlanner, ModDependencyInstallPlanner>();
         services.AddSingleton<IModOriginResolver, ModOriginResolver>();
+        services.AddSingleton<IModUpdateStateStore, JsonModUpdateStateStore>();
+        services.AddSingleton<IModUpdateCheckService, ModUpdateCheckService>();
         services.AddSingleton<IModpackService, ModpackService>();
         services.AddSingleton<ITransferTracker, TransferTracker>();
         services.AddSingleton<IRemoteImageCache, DiskRemoteImageCache>();

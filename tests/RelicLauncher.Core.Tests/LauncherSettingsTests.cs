@@ -16,6 +16,8 @@ public class LauncherSettingsTests
         settings.HomeBackgroundLogoMode.Should().Be(HomeBackgroundLogoMode.Square);
         settings.HomeBackgroundLogoOpacity.Should().Be(RelicDefaults.HomeBackgroundLogoOpacity);
         settings.ConfirmBeforeExit.Should().BeFalse();
+        settings.ModUpdateMode.Should().Be(ModUpdateMode.Prompt);
+        settings.ModUpdateOptOutModIds.Should().BeEmpty();
         settings.GameInstallPath.Should().BeNull();
         settings.InstallsRoot.Should().BeNull();
         settings.SelectedVersion.Should().BeNull();

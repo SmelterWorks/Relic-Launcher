@@ -181,6 +181,18 @@
               <StackPanel Spacing="8" Margin="0,0,0,8">
                 <StackPanel Orientation="Horizontal" Spacing="8">
                   <Button Classes="ghost"
+                          Content="Check for updates"
+                          Command="{Binding CheckForUpdatesCommand}"
+                          IsEnabled="{Binding !IsCheckingUpdates}"
+                          IsVisible="{Binding ShowCheckForUpdates}"
+                          AutomationProperties.Name="Check for mod updates" />
+                  <Button Classes="primary"
+                          Content="Update all"
+                          Command="{Binding UpdateAllCommand}"
+                          IsEnabled="{Binding CanUpdateAll}"
+                          IsVisible="{Binding CanUpdateAll}"
+                          AutomationProperties.Name="Update all mods" />
+                  <Button Classes="ghost"
                           Content="Add folder"
                           Command="{Binding ImportLocalFolderCommand}"
                           AutomationProperties.Name="Import local mod folder" />
@@ -198,6 +210,13 @@
                            Classes="muted"
                            TextWrapping="Wrap"
                            IsVisible="{Binding HasDuplicateMods}" />
+                <TextBlock Text="{Binding UpdateStatusMessage}"
+                           Classes="muted"
+                           TextWrapping="Wrap"
+                           IsVisible="{Binding UpdateStatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                <TextBlock Text="Checking for updates..."
+                           Classes="muted"
+                           IsVisible="{Binding IsCheckingUpdates}" />
                 <TextBlock Text="{Binding EmptyInstalledMessage}"
                            Classes="muted"
                            IsVisible="{Binding !HasInstalledMods}" />
@@ -257,8 +276,24 @@
                                        Classes="muted"
                                        FontSize="12"
                                        IsVisible="{Binding ShowDependencyOk}" />
+                            <TextBlock Text="{Binding UpdateStatusLabel}"
+                                       Classes="muted"
+                                       FontSize="12"
+                                       Foreground="{DynamicResource Theme.Accent}"
+                                       IsVisible="{Binding HasUpdateAvailable}" />
+                            <TextBlock Text="{Binding RecentlyUpdatedLabel}"
+                                       Classes="muted"
+                                       FontSize="12"
+                                       Foreground="{DynamicResource Theme.Accent}"
+                                       IsVisible="{Binding WasRecentlyUpdated}" />
                           </StackPanel>
                           <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6">
+                            <Button Classes="ghost"
+                                    Content="Update"
+                                    IsVisible="{Binding HasUpdateAvailable}"
+                                    Command="{Binding $parent[UserControl].((vm:ModsViewModel)DataContext).UpdateInstalledModCommand}"
+                                    CommandParameter="{Binding}"
+                                    AutomationProperties.Name="Update mod" />
                             <Button Classes="ghost"
                                     Padding="8,6"
                                     ToolTip.Tip="Open mod folder"
@@ -454,6 +489,16 @@
                          Classes="muted"
                          FontWeight="SemiBold"
                          IsVisible="{Binding IsSelectedModInstalled}" />
+              <CheckBox Content="Don't auto-update this mod"
+                        IsChecked="{Binding IsSelectedModOptedOut, Mode=OneWay}"
+                        Command="{Binding ToggleSelectedModUpdateOptOutCommand}"
+                        IsVisible="{Binding IsSelectedModInstalled}" />
+              <Button Classes="primary"
+                      Content="{Binding SelectedUpdateLabel}"
+                      Command="{Binding UpdateSelectedCommand}"
+                      HorizontalAlignment="Stretch"
+                      IsVisible="{Binding HasSelectedModUpdate}"
+                      IsEnabled="{Binding !IsLoadingDetails}" />
               <Button Classes="primary"
                       Content="Install selected release"
                       Command="{Binding InstallSelectedCommand}"

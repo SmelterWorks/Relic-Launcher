@@ -25,6 +25,7 @@ public partial class SettingsViewModel : PageViewModelBase
     private readonly ILogger<SettingsViewModel> _logger;
     private Action<LauncherSettings>? _onChanged;
     private bool _isBinding;
+    private List<string> _modUpdateOptOutModIds = [];
     private CancellationTokenSource? _saveCts;
     private CancellationTokenSource? _savedIndicatorCts;
     private string? _preLoginToken;
@@ -70,6 +71,12 @@ public partial class SettingsViewModel : PageViewModelBase
 
     [ObservableProperty]
     private bool _warnOnBlockedMods = true;
+
+    [ObservableProperty]
+    private ModUpdateMode _modUpdateMode = ModUpdateMode.Prompt;
+
+    [ObservableProperty]
+    private ModUpdateModeOption? _selectedModUpdateModeOption;
 
     [ObservableProperty]
     private HomeBackgroundLogoMode _homeBackgroundLogoMode = HomeBackgroundLogoMode.Square;
@@ -147,6 +154,27 @@ public partial class SettingsViewModel : PageViewModelBase
             new LogoModeOption { Mode = HomeBackgroundLogoMode.Banner, Label = "Vintage Story banner" },
             new LogoModeOption { Mode = HomeBackgroundLogoMode.Custom, Label = "Custom image file" },
         ];
+        ModUpdateModeOptions =
+        [
+            new ModUpdateModeOption
+            {
+                Mode = ModUpdateMode.Off,
+                Label = "Off",
+                Description = "Do not check ModDB for newer releases.",
+            },
+            new ModUpdateModeOption
+            {
+                Mode = ModUpdateMode.Prompt,
+                Label = "Prompt",
+                Description = "Check for updates and show Update available. You choose when to install.",
+            },
+            new ModUpdateModeOption
+            {
+                Mode = ModUpdateMode.Automatic,
+                Label = "Automatic",
+                Description = "Install newer ModDB releases for tracked mods without asking.",
+            },
+        ];
         LogsFolder = new FolderPathRowViewModel(fileExplorer);
         ThemesFolder = new FolderPathRowViewModel(fileExplorer);
         _debugLogBuffer.Changed += (_, _) => OnDebugLogChanged();
@@ -155,6 +183,7 @@ public partial class SettingsViewModel : PageViewModelBase
 
     public IReadOnlyList<ThemeDefinition> Themes { get; }
     public IReadOnlyList<LogoModeOption> LogoModeOptions { get; }
+    public IReadOnlyList<ModUpdateModeOption> ModUpdateModeOptions { get; }
     public FolderPathRowViewModel LogsFolder { get; }
     public FolderPathRowViewModel ThemesFolder { get; }
 
@@ -195,6 +224,18 @@ public partial class SettingsViewModel : PageViewModelBase
 
     partial void OnWarnOnBlockedModsChanged(bool value) => ScheduleAutoSave();
 
+    partial void OnSelectedModUpdateModeOptionChanged(ModUpdateModeOption? value)
+    {
+        if (value is not null)
+        {
+            ModUpdateMode = value.Mode;
+        }
+
+        ScheduleAutoSave();
+    }
+
+    partial void OnModUpdateModeChanged(ModUpdateMode value) => ScheduleAutoSave();
+
     partial void OnHomeBackgroundCustomLogoPathChanged(string value) => ScheduleAutoSave();
 
     partial void OnHomeBackgroundLogoOpacityChanged(double value) => ScheduleAutoSave();
@@ -229,6 +270,10 @@ public partial class SettingsViewModel : PageViewModelBase
         SelectedVersion = settings.SelectedVersion ?? string.Empty;
         ConfirmBeforeExit = settings.ConfirmBeforeExit;
         WarnOnBlockedMods = settings.WarnOnBlockedMods;
+        ModUpdateMode = settings.ModUpdateMode;
+        SelectedModUpdateModeOption = ModUpdateModeOptions.FirstOrDefault(o => o.Mode == settings.ModUpdateMode)
+            ?? ModUpdateModeOptions.FirstOrDefault(o => o.Mode == ModUpdateMode.Prompt);
+        _modUpdateOptOutModIds = settings.ModUpdateOptOutModIds?.ToList() ?? [];
         HomeBackgroundLogoMode = settings.HomeBackgroundLogoMode;
         SelectedLogoModeOption = LogoModeOptions.FirstOrDefault(o => o.Mode == settings.HomeBackgroundLogoMode)
             ?? LogoModeOptions.FirstOrDefault(o => o.Mode == HomeBackgroundLogoMode.Square);
@@ -369,6 +414,9 @@ public partial class SettingsViewModel : PageViewModelBase
         SelectedVersion = string.Empty;
         ConfirmBeforeExit = false;
         WarnOnBlockedMods = true;
+        ModUpdateMode = ModUpdateMode.Prompt;
+        SelectedModUpdateModeOption = ModUpdateModeOptions.FirstOrDefault(o => o.Mode == ModUpdateMode.Prompt);
+        _modUpdateOptOutModIds = [];
         HomeBackgroundLogoMode = HomeBackgroundLogoMode.Square;
         SelectedLogoModeOption = LogoModeOptions.FirstOrDefault(o => o.Mode == HomeBackgroundLogoMode.Square);
         HomeBackgroundCustomLogoPath = string.Empty;
@@ -564,6 +612,8 @@ public partial class SettingsViewModel : PageViewModelBase
             SelectedThemeId = SelectedTheme?.Id ?? LauncherSettings.DefaultThemeId,
             ConfirmBeforeExit = ConfirmBeforeExit,
             WarnOnBlockedMods = WarnOnBlockedMods,
+            ModUpdateMode = SelectedModUpdateModeOption?.Mode ?? ModUpdateMode.Prompt,
+            ModUpdateOptOutModIds = _modUpdateOptOutModIds,
             HomeBackgroundLogoMode = SelectedLogoModeOption?.Mode ?? HomeBackgroundLogoMode.Square,
             HomeBackgroundCustomLogoPath = string.IsNullOrWhiteSpace(HomeBackgroundCustomLogoPath)
                 ? null
