@@ -10,14 +10,13 @@ namespace RelicLauncher.App.ViewModels;
 
 public partial class ServersViewModel : PageViewModelBase
 {
-    internal const string TopSAddress = "tops.vintagestory.at";
-
     private readonly IMasterServerClient _masterServerClient;
     private readonly IGameLaunchService _launchService;
     private readonly IAccountAuthService _accountAuth;
     private readonly IFavoriteServersStore _favorites;
     private readonly IRecentServersStore _recents;
     private readonly IGameServerHost _serverHost;
+    private readonly ILanServerScanner _lanScanner;
     private readonly IRuntimePlatform _platform;
     private readonly ITransferTracker _transfers;
     private readonly IUrlLauncher _urlLauncher;
@@ -120,9 +119,6 @@ public partial class ServersViewModel : PageViewModelBase
     [ObservableProperty]
     private bool _localServerRunning;
 
-    [ObservableProperty]
-    private bool _showTopSQuickJoin;
-
     public ObservableCollection<ServerRowViewModel> BrowseResults { get; } = [];
     public ObservableCollection<string> LocalListenEndpoints { get; } = [];
     public ObservableCollection<string> RecentAddresses { get; } = [];
@@ -149,6 +145,7 @@ public partial class ServersViewModel : PageViewModelBase
         IFavoriteServersStore favorites,
         IRecentServersStore recents,
         IGameServerHost serverHost,
+        ILanServerScanner lanScanner,
         IRuntimePlatform platform,
         ITransferTracker transfers,
         IUrlLauncher urlLauncher,
@@ -160,6 +157,7 @@ public partial class ServersViewModel : PageViewModelBase
         _favorites = favorites;
         _recents = recents;
         _serverHost = serverHost;
+        _lanScanner = lanScanner;
         _platform = platform;
         _transfers = transfers;
         _urlLauncher = urlLauncher;
@@ -181,10 +179,16 @@ public partial class ServersViewModel : PageViewModelBase
             _ready = true;
             _ = LoadCatalogAsync(forceNetwork: refresh);
             _ = LoadFavoritesAndRecentsAsync();
+            RestartCatalogAutoRefresh();
         }
         else if (refresh)
         {
             _ = LoadCatalogAsync(forceNetwork: true);
+        }
+
+        if (IsLanTab)
+        {
+            RestartLanAutoRefresh();
         }
 
         _ = RefreshJoinStateAsync();

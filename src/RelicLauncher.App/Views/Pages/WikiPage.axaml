@@ -5,7 +5,7 @@
              x:Class="RelicLauncher.App.Views.Pages.WikiPage"
              x:DataType="vm:WikiViewModel">
   <DockPanel>
-    <StackPanel DockPanel.Dock="Top" Spacing="10" Margin="0,0,0,12">
+    <StackPanel DockPanel.Dock="Top" Spacing="8" Margin="0,0,0,8">
       <TextBlock Text="Wiki"
                  Classes="brand"
                  FontSize="24"
@@ -14,39 +14,44 @@
                  Classes="muted"
                  TextWrapping="Wrap" />
 
-      <StackPanel Orientation="Horizontal" Spacing="8">
-        <Button Classes="ghost"
-                Command="{Binding NavigateBackCommand}"
-                ToolTip.Tip="Back"
-                AutomationProperties.Name="Wiki back">
-          <i:Icon Value="mdi-arrow-left" Width="18" Height="18" />
-        </Button>
-        <Button Classes="ghost"
-                Command="{Binding NavigateForwardCommand}"
-                ToolTip.Tip="Forward"
-                AutomationProperties.Name="Wiki forward">
-          <i:Icon Value="mdi-arrow-right" Width="18" Height="18" />
-        </Button>
-        <Button Classes="ghost"
-                Command="{Binding ReloadCommand}"
-                ToolTip.Tip="Reload"
-                AutomationProperties.Name="Wiki reload">
-          <i:Icon Value="mdi-refresh" Width="18" Height="18" />
-        </Button>
-        <Button Classes="ghost"
-                Content="Home"
-                Command="{Binding GoHomeCommand}"
-                AutomationProperties.Name="Wiki home" />
-        <Button Classes="ghost"
-                Content="Open in browser"
-                Command="{Binding OpenInBrowserCommand}"
-                AutomationProperties.Name="Open wiki in browser" />
-      </StackPanel>
+      <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
+          <Button Classes="ghost"
+                  Command="{Binding NavigateBackCommand}"
+                  ToolTip.Tip="Back"
+                  AutomationProperties.Name="Wiki back">
+            <i:Icon Value="mdi-arrow-left" Width="18" Height="18" />
+          </Button>
+          <Button Classes="ghost"
+                  Command="{Binding NavigateForwardCommand}"
+                  ToolTip.Tip="Forward"
+                  AutomationProperties.Name="Wiki forward">
+            <i:Icon Value="mdi-arrow-right" Width="18" Height="18" />
+          </Button>
+          <Button Classes="ghost"
+                  Command="{Binding ReloadCommand}"
+                  ToolTip.Tip="Reload"
+                  AutomationProperties.Name="Wiki reload">
+            <i:Icon Value="mdi-refresh" Width="18" Height="18" />
+          </Button>
+          <Button Classes="ghost"
+                  Content="Home"
+                  Command="{Binding GoHomeCommand}"
+                  AutomationProperties.Name="Wiki home" />
+          <Button Classes="ghost"
+                  Content="Open in browser"
+                  Command="{Binding OpenInBrowserCommand}"
+                  AutomationProperties.Name="Open wiki in browser" />
+        </StackPanel>
 
-      <TextBox Text="{Binding CurrentUrl}"
-               IsReadOnly="True"
-               PlaceholderText="Wiki URL"
-               AutomationProperties.Name="Current wiki URL" />
+        <TextBox Grid.Column="1"
+                 Text="{Binding CurrentUrl}"
+                 IsReadOnly="True"
+                 PlaceholderText="Wiki URL"
+                 MinHeight="40"
+                 VerticalContentAlignment="Center"
+                 AutomationProperties.Name="Current wiki URL" />
+      </Grid>
 
       <TextBlock Text="{Binding StatusMessage}"
                  Classes="muted"

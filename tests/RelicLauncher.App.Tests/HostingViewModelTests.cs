@@ -157,13 +157,12 @@ public class HostingViewModelTests
     }
 
     [Fact]
-    public async Task ShowCloudPlanCards_IsHiddenUntilPlansFinishLoading()
+    public async Task ShowCloudPlanCards_AppearsAfterAutoLoadOnCloudSection()
     {
         var vm = CreateViewModel(HostOs.MacOs);
         vm.Bind(new LauncherSettings(), _ => { }, refresh: false);
-        vm.ShowCloudPlanCards.Should().BeFalse();
 
-        await vm.LoadCloudPlansCommand.ExecuteAsync(null);
+        await Task.Delay(50);
 
         vm.ShowCloudPlanCards.Should().BeTrue();
         vm.CloudPlans.Should().ContainSingle();
@@ -175,7 +174,7 @@ public class HostingViewModelTests
         var vm = CreateViewModel(HostOs.MacOs);
         vm.Bind(new LauncherSettings(), _ => { }, refresh: false);
 
-        await vm.LoadCloudPlansCommand.ExecuteAsync(null);
+        await Task.Delay(50);
 
         vm.CloudPlans.Should().ContainSingle();
         vm.CloudPlans[0].Name.Should().Be("Ember");

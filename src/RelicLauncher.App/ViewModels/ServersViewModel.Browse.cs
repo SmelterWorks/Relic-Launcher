@@ -30,6 +30,15 @@ public partial class ServersViewModel
         OnPropertyChanged(nameof(IsBrowseTab));
         OnPropertyChanged(nameof(IsDirectTab));
         OnPropertyChanged(nameof(IsLanTab));
+
+        if (value == 2)
+        {
+            RestartLanAutoRefresh();
+        }
+        else
+        {
+            StopLanAutoRefresh();
+        }
     }
 
     private async Task LoadCatalogAsync(bool forceNetwork)
@@ -63,7 +72,6 @@ public partial class ServersViewModel
         ShowEmptyBrowse = false;
         ShowCatalogError = true;
         CatalogErrorMessage = error ?? "Could not load the public server list.";
-        ShowTopSQuickJoin = false;
         SetStatus(CatalogErrorMessage, true);
         _logger.LogWarning("Server catalog load failed: {Error}", error);
     }
@@ -71,8 +79,6 @@ public partial class ServersViewModel
     private void ApplyCatalogSuccess(MasterServerFetchResult fetch)
     {
         _allServers = fetch.Catalog.Servers;
-        ShowTopSQuickJoin = _allServers.Any(s =>
-            s.ServerAddress.Contains(TopSAddress, StringComparison.OrdinalIgnoreCase));
         ApplyFiltersCore();
 
         if (fetch.FromCache && fetch.IsStale)

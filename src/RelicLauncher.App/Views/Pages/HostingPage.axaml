@@ -181,10 +181,6 @@
 
           <StackPanel Orientation="Horizontal" Spacing="12">
             <Button Classes="ghost"
-                    Content="Refresh plans"
-                    Command="{Binding LoadCloudPlansCommand}"
-                    IsEnabled="{Binding !IsLoadingCloudPlans}" />
-            <Button Classes="ghost"
                     Content="smelterworks.com/hosting"
                     Command="{Binding OpenSmelterWorksHostingCommand}" />
           </StackPanel>
@@ -193,8 +189,12 @@
                      Classes="muted"
                      IsVisible="{Binding IsLoadingCloudPlans}" />
 
-          <Border x:Name="CloudPlansPanel" IsVisible="{Binding ShowCloudPlanCards}">
-            <ItemsControl x:Name="CloudPlansItems" ItemsSource="{Binding CloudPlans}">
+          <Border x:Name="CloudPlansPanel"
+                  IsVisible="{Binding ShowCloudPlanCards}"
+                  HorizontalAlignment="Stretch">
+            <ItemsControl x:Name="CloudPlansItems"
+                          ItemsSource="{Binding CloudPlans}"
+                          HorizontalAlignment="Stretch">
               <ItemsControl.ItemsPanel>
                 <ItemsPanelTemplate>
                   <WrapPanel Orientation="Horizontal" />

@@ -174,10 +174,17 @@ public class ServersViewModelTests
             new JsonFavoriteServersStore(pathProvider, NullLogger<JsonFavoriteServersStore>.Instance),
             new JsonRecentServersStore(pathProvider, NullLogger<JsonRecentServersStore>.Instance),
             serverHost,
+            new FakeLanScanner(),
             new FakeServersPlatform(),
             new TransferTracker(),
             new NoopUrlLauncher(),
             NullLogger<ServersViewModel>.Instance);
+    }
+
+    private sealed class FakeLanScanner : ILanServerScanner
+    {
+        public Task<Result<IReadOnlyList<LanServerSummary>>> ScanAsync(CancellationToken cancellationToken = default)
+            => Task.FromResult(Result<IReadOnlyList<LanServerSummary>>.Success(Array.Empty<LanServerSummary>()));
     }
 
     private sealed class FakeMasterServerClient : IMasterServerClient

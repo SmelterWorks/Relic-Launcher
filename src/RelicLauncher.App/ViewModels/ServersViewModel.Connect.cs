@@ -20,9 +20,6 @@ public partial class ServersViewModel
     }
 
     [RelayCommand]
-    private async Task JoinTopSAsync() => await JoinAddressAsync(TopSAddress, null).ConfigureAwait(true);
-
-    [RelayCommand]
     private async Task DirectConnectAsync()
     {
         DirectValidationError = string.Empty;

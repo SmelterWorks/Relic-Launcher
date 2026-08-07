@@ -185,7 +185,7 @@ public partial class HostingViewModel : PageViewModelBase
             return;
         }
 
-        Dispatcher.UIThread.Post(() => _ = LoadCloudPlansAsync(), DispatcherPriority.Loaded);
+        _ = LoadCloudPlansAsync();
     }
 
     private void NotifyCloudPlansLayoutRefresh()

@@ -13,7 +13,10 @@ public partial class HostingPage : UserControl
         InitializeComponent();
         DataContextChanged += OnDataContextChanged;
         AttachedToVisualTree += OnAttachedToVisualTree;
+        LayoutUpdated += OnLayoutUpdated;
     }
+
+    private bool _cloudPlansLayoutPending;
 
     private void OnAttachedToVisualTree(object? sender, VisualTreeAttachmentEventArgs e)
     {
@@ -28,6 +31,20 @@ public partial class HostingPage : UserControl
             vm.PropertyChanged -= OnViewModelPropertyChanged;
             vm.PropertyChanged += OnViewModelPropertyChanged;
             HookCloudPlansLayoutRefresh();
+        }
+    }
+
+    private void OnLayoutUpdated(object? sender, EventArgs e)
+    {
+        if (!_cloudPlansLayoutPending || DataContext is not HostingViewModel vm || !vm.ShowCloudPlanCards)
+        {
+            return;
+        }
+
+        if (CloudPlanScroll?.Bounds.Width > 0)
+        {
+            _cloudPlansLayoutPending = false;
+            RefreshCloudPlansLayout();
         }
     }
 
@@ -55,6 +72,13 @@ public partial class HostingPage : UserControl
             && vm.IsCloudSection)
         {
             ScheduleCloudPlansLoadAndLayoutRefresh();
+            return;
+        }
+
+        if (string.Equals(e.PropertyName, nameof(HostingViewModel.ShowCloudPlanCards), StringComparison.Ordinal)
+            || string.Equals(e.PropertyName, nameof(HostingViewModel.IsLoadingCloudPlans), StringComparison.Ordinal))
+        {
+            ScheduleCloudPlansLayoutRefresh();
         }
     }
 
@@ -72,13 +96,29 @@ public partial class HostingPage : UserControl
     }
 
     private void ScheduleCloudPlansLayoutRefresh()
-        => Dispatcher.UIThread.Post(RefreshCloudPlansLayout, DispatcherPriority.Loaded);
+    {
+        _cloudPlansLayoutPending = true;
+        Dispatcher.UIThread.Post(RefreshCloudPlansLayout, DispatcherPriority.Loaded);
+        Dispatcher.UIThread.Post(RefreshCloudPlansLayout, DispatcherPriority.Render);
+    }
 
     private void RefreshCloudPlansLayout()
     {
+        if (CloudPlanScroll is not null && CloudPlansItems is not null)
+        {
+            var width = CloudPlanScroll.Bounds.Width;
+            if (width > 0)
+            {
+                CloudPlansItems.Width = width;
+            }
+        }
+
         CloudPlansPanel?.InvalidateMeasure();
+        CloudPlansPanel?.InvalidateArrange();
         CloudPlansItems?.InvalidateMeasure();
+        CloudPlansItems?.InvalidateArrange();
         CloudPlanScroll?.InvalidateMeasure();
+        CloudPlanScroll?.InvalidateArrange();
     }
 
     private void OnCommandKeyDown(object? sender, KeyEventArgs e)

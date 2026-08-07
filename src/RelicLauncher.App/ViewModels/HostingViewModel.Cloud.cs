@@ -1,3 +1,4 @@
+using Avalonia.Threading;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
 
@@ -42,6 +43,7 @@ public partial class HostingViewModel
             IsLoadingCloudPlans = false;
             OnPropertyChanged(nameof(ShowCloudPlanCards));
             NotifyCloudPlansLayoutRefresh();
+            Dispatcher.UIThread.Post(NotifyCloudPlansLayoutRefresh, DispatcherPriority.Render);
         }
     }
 

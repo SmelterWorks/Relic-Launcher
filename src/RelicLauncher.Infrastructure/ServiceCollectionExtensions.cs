@@ -78,6 +78,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IMasterServerClient, MasterServerClient>();
         services.AddSingleton<IFavoriteServersStore, JsonFavoriteServersStore>();
         services.AddSingleton<IRecentServersStore, JsonRecentServersStore>();
+        services.AddSingleton<ILanServerScanner, LanServerScanner>();
     }
 
     private static void AddServerHosting(IServiceCollection services)

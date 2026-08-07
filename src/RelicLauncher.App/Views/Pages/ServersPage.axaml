@@ -24,14 +24,9 @@
                 Command="{Binding SelectLanTabCommand}"
                 AutomationProperties.Name="LAN local tab" />
         <Button Classes="ghost"
-                Content="Refresh"
-                Command="{Binding RefreshCatalogCommand}"
-                IsEnabled="{Binding !IsLoading}"
-                Margin="8,0,0,0"
-                AutomationProperties.Name="Refresh server list" />
-        <Button Classes="ghost"
                 Content="Official web list"
                 Command="{Binding OpenOfficialWebListCommand}"
+                Margin="8,0,0,0"
                 AutomationProperties.Name="Open official web server list" />
         <Button Classes="ghost"
                 Content="Run your own server"
@@ -48,17 +43,8 @@
     </StackPanel>
 
   <Grid Grid.Row="2" IsVisible="{Binding IsBrowseTab}">
-    <Grid RowDefinitions="Auto,*" ColumnDefinitions="*,320">
+    <Grid RowDefinitions="Auto,*" ColumnDefinitions="*,400">
       <StackPanel Grid.Row="0" Grid.ColumnSpan="2" Spacing="8" Margin="0,0,0,8">
-        <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding ShowTopSQuickJoin}">
-          <Border Classes="card" Padding="12" CornerRadius="8">
-            <StackPanel Orientation="Horizontal" Spacing="12">
-              <TextBlock Text="The Official Public Server" FontWeight="SemiBold" VerticalAlignment="Center" />
-              <TextBlock Text="tops.vintagestory.at" Classes="muted" VerticalAlignment="Center" />
-              <Button Classes="primary" Content="Join TOPS" Command="{Binding JoinTopSCommand}" AutomationProperties.Name="Join official public server" />
-            </StackPanel>
-          </Border>
-        </StackPanel>
         <StackPanel Orientation="Horizontal" Spacing="8">
           <TextBox Text="{Binding SearchText}"
                    PlaceholderText="Search servers"
@@ -66,7 +52,6 @@
                    MinWidth="160"
                    Height="40"
                    VerticalContentAlignment="Center"
-                   KeyDown="OnSearchKeyDown"
                    AutomationProperties.Name="Search servers" />
           <ComboBox ItemsSource="{Binding SortOptions}"
                     SelectedItem="{Binding SelectedSortOption}"
@@ -126,28 +111,49 @@
         <ListBox Grid.Row="1"
                  ItemsSource="{Binding BrowseResults}"
                  SelectedItem="{Binding SelectedBrowseServer, Mode=TwoWay}"
+                 Background="Transparent"
+                 BorderThickness="0"
+                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                  IsVisible="{Binding HasBrowseResults}">
+          <ListBox.Styles>
+            <Style Selector="ListBoxItem">
+              <Setter Property="Padding" Value="0" />
+              <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+              <Setter Property="Background" Value="Transparent" />
+            </Style>
+            <Style Selector="ListBoxItem:selected Border.server-row">
+              <Setter Property="BorderBrush" Value="{DynamicResource Theme.Accent}" />
+            </Style>
+          </ListBox.Styles>
           <ListBox.ItemTemplate>
             <DataTemplate x:DataType="vm:ServerRowViewModel">
-              <Grid ColumnDefinitions="*,Auto" Margin="4,6">
-                <StackPanel Grid.Column="0" Spacing="2">
-                  <StackPanel Orientation="Horizontal" Spacing="6">
-                    <TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold" />
-                    <TextBlock Text="Official" Classes="muted" IsVisible="{Binding ShowOfficialBadge}" />
-                    <i:Icon Value="mdi-lock" Width="14" Height="14" IsVisible="{Binding ShowPasswordIcon}" />
-                    <i:Icon Value="mdi-account-lock" Width="14" Height="14" IsVisible="{Binding ShowWhitelistIcon}" />
+              <Border Classes="server-row"
+                      Margin="0,0,0,6"
+                      Padding="12"
+                      Background="{DynamicResource Theme.Surface}"
+                      BorderBrush="{DynamicResource Theme.Border}"
+                      BorderThickness="1"
+                      CornerRadius="{DynamicResource Theme.Radius}">
+                <Grid ColumnDefinitions="*,Auto">
+                  <StackPanel Grid.Column="0" Spacing="2">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                      <TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                      <TextBlock Text="Official" Classes="muted" IsVisible="{Binding ShowOfficialBadge}" />
+                      <i:Icon Value="mdi-lock" Width="14" Height="14" IsVisible="{Binding ShowPasswordIcon}" />
+                      <i:Icon Value="mdi-account-lock" Width="14" Height="14" IsVisible="{Binding ShowWhitelistIcon}" />
+                    </StackPanel>
+                    <TextBlock Text="{Binding PlayersLabel}" Classes="muted" FontSize="12" />
+                    <TextBlock Text="{Binding VersionLabel}" Classes="muted" FontSize="11" />
                   </StackPanel>
-                  <TextBlock Text="{Binding PlayersLabel}" Classes="muted" FontSize="12" />
-                  <TextBlock Text="{Binding VersionLabel}" Classes="muted" FontSize="11" />
-                </StackPanel>
-                <TextBlock Grid.Column="1" Text="{Binding ModCountLabel}" Classes="muted" VerticalAlignment="Center" />
-              </Grid>
+                  <TextBlock Grid.Column="1" Text="{Binding ModCountLabel}" Classes="muted" VerticalAlignment="Center" />
+                </Grid>
+              </Border>
             </DataTemplate>
           </ListBox.ItemTemplate>
         </ListBox>
       </Grid>
 
-      <Border Grid.Row="1" Grid.Column="1" Classes="card" Padding="16" Margin="12,0,0,0">
+      <Border Grid.Row="1" Grid.Column="1" Classes="hosting-panel" Margin="12,0,0,0">
         <Grid>
           <StackPanel Spacing="10" IsVisible="{Binding SelectedBrowseServer, Converter={x:Static ObjectConverters.IsNotNull}}">
             <TextBlock Text="{Binding SelectedBrowseServer.DisplayName}" FontSize="18" FontWeight="SemiBold" TextWrapping="Wrap" />
@@ -155,7 +161,7 @@
             <TextBlock Text="{Binding SelectedDetailAddress}" Classes="muted" />
             <TextBlock Text="{Binding VersionMismatchWarning}" Classes="error" TextWrapping="Wrap"
                        IsVisible="{Binding VersionMismatchWarning, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-            <TextBlock Text="{Binding SelectedDetailDescription}" TextWrapping="Wrap" MaxHeight="200" />
+            <TextBlock Text="{Binding SelectedDetailDescription}" TextWrapping="Wrap" MaxHeight="240" />
             <StackPanel Orientation="Horizontal" Spacing="8">
               <Button Classes="primary"
                       Content="Join"
@@ -191,7 +197,7 @@
   <StackPanel Grid.Row="2" Spacing="12" IsVisible="{Binding IsDirectTab}">
     <TextBlock Text="Connect to a server by address." Classes="muted" />
     <TextBox Text="{Binding DirectAddress}"
-             PlaceholderText="tops.vintagestory.at or 192.168.1.10:42420"
+             PlaceholderText="192.168.1.10:42420"
              AutomationProperties.Name="Direct connect address" />
     <TextBox Text="{Binding DirectPassword}"
              PasswordChar="*"
@@ -203,37 +209,89 @@
     <TextBlock Text="Sign in on the Settings page to join servers." Classes="muted" IsVisible="{Binding !IsSignedIn}" />
   </StackPanel>
 
-  <StackPanel Grid.Row="2" Spacing="12" IsVisible="{Binding IsLanTab}">
-    <TextBlock Text="Join a server on your local network or this PC." Classes="muted" />
-    <StackPanel Orientation="Horizontal" Spacing="8">
-      <Button Classes="ghost" Content="localhost:42420" Command="{Binding JoinLocalhostCommand}" IsEnabled="{Binding CanJoin}" />
+  <Grid Grid.Row="2" IsVisible="{Binding IsLanTab}" RowDefinitions="Auto,*,Auto">
+    <TextBlock Grid.Row="0"
+               Text="Scanning your local network for Vintage Story servers…"
+               Classes="muted"
+               Margin="0,0,0,8"
+               IsVisible="{Binding IsLanScanning}" />
+    <Grid Grid.Row="1" RowDefinitions="Auto,*">
+      <TextBlock Text="{Binding LanEmptyMessage}"
+                 Classes="muted"
+                 Margin="0,8,0,0"
+                 HorizontalAlignment="Center"
+                 TextWrapping="Wrap"
+                 TextAlignment="Center"
+                 IsVisible="{Binding ShowEmptyLan}" />
+      <ListBox Grid.Row="1"
+               ItemsSource="{Binding LanResults}"
+               Background="Transparent"
+               BorderThickness="0"
+               ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+               IsVisible="{Binding HasLanResults}">
+        <ListBox.Styles>
+          <Style Selector="ListBoxItem">
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="Background" Value="Transparent" />
+          </Style>
+        </ListBox.Styles>
+        <ListBox.ItemTemplate>
+          <DataTemplate x:DataType="vm:LanServerRowViewModel">
+            <Border Classes="server-row"
+                    Margin="0,0,0,6"
+                    Padding="12"
+                    Background="{DynamicResource Theme.Surface}"
+                    BorderBrush="{DynamicResource Theme.Border}"
+                    BorderThickness="1"
+                    CornerRadius="{DynamicResource Theme.Radius}">
+              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                <StackPanel Grid.Column="0" Spacing="2">
+                  <StackPanel Orientation="Horizontal" Spacing="6">
+                    <TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                    <TextBlock Text="Relic hosted" Classes="muted" IsVisible="{Binding ShowLocalHostedBadge}" />
+                    <i:Icon Value="mdi-lock" Width="14" Height="14" IsVisible="{Binding ShowPasswordIcon}" />
+                  </StackPanel>
+                  <TextBlock Text="{Binding Address}" Classes="muted" FontSize="12" />
+                  <TextBlock Text="{Binding PlayersLabel}" Classes="muted" FontSize="12" />
+                  <TextBlock Text="{Binding VersionLabel}" Classes="muted" FontSize="11" />
+                  <TextBlock Text="{Binding DisplayDescription}"
+                             Classes="muted"
+                             FontSize="12"
+                             TextWrapping="Wrap"
+                             MaxLines="2"
+                             TextTrimming="CharacterEllipsis"
+                             IsVisible="{Binding DisplayDescription, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                </StackPanel>
+                <Button Grid.Column="1"
+                        Classes="primary"
+                        Content="Join"
+                        VerticalAlignment="Center"
+                        Click="OnJoinLanServerClick"
+                        IsEnabled="{Binding $parent[UserControl].((vm:ServersViewModel)DataContext).CanJoin}"
+                        AutomationProperties.Name="Join LAN server" />
+              </Grid>
+            </Border>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+    </Grid>
+    <StackPanel Grid.Row="2" Spacing="12" Margin="0,16,0,0">
+      <TextBox Text="{Binding LanManualAddress}" PlaceholderText="Manual LAN address" AutomationProperties.Name="Manual LAN address" />
+      <TextBlock Text="{Binding LanValidationError}" Classes="error" IsVisible="{Binding LanValidationError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+      <Button Classes="ghost" Content="Connect manually" Command="{Binding JoinLanManualCommand}" IsEnabled="{Binding CanJoin}" />
+      <TextBlock Text="Recent connections" FontWeight="SemiBold" />
+      <ItemsControl ItemsSource="{Binding RecentAddresses}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="x:String">
+            <Button Classes="ghost"
+                    Content="{Binding}"
+                    Click="OnJoinRecentClick"
+                    Margin="0,4" />
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
     </StackPanel>
-    <TextBlock Text="Relic hosted server endpoints" FontWeight="SemiBold" IsVisible="{Binding LocalServerRunning}" />
-    <ItemsControl ItemsSource="{Binding LocalListenEndpoints}" IsVisible="{Binding LocalServerRunning}">
-      <ItemsControl.ItemTemplate>
-        <DataTemplate x:DataType="x:String">
-          <Button Classes="ghost"
-                  Content="{Binding}"
-                  Click="OnJoinLanEndpointClick"
-                  Margin="0,4" />
-        </DataTemplate>
-      </ItemsControl.ItemTemplate>
-    </ItemsControl>
-    <TextBlock Text="Start a server on the Hosting page to see LAN addresses here." Classes="muted" IsVisible="{Binding !LocalServerRunning}" />
-    <TextBox Text="{Binding LanManualAddress}" PlaceholderText="Manual LAN address" AutomationProperties.Name="Manual LAN address" />
-    <TextBlock Text="{Binding LanValidationError}" Classes="error" IsVisible="{Binding LanValidationError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-    <Button Classes="primary" Content="Connect" Command="{Binding JoinLanManualCommand}" IsEnabled="{Binding CanJoin}" />
-    <TextBlock Text="Recent connections" FontWeight="SemiBold" Margin="0,12,0,0" />
-    <ItemsControl ItemsSource="{Binding RecentAddresses}">
-      <ItemsControl.ItemTemplate>
-        <DataTemplate x:DataType="x:String">
-          <Button Classes="ghost"
-                  Content="{Binding}"
-                  Click="OnJoinRecentClick"
-                  Margin="0,4" />
-        </DataTemplate>
-      </ItemsControl.ItemTemplate>
-    </ItemsControl>
-  </StackPanel>
+  </Grid>
   </Grid>
 </UserControl>
