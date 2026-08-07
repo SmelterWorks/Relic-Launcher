@@ -11,7 +11,10 @@ public class SandboxPolicyBuilderTests
     [Fact]
     public void BuildGameClient_DeniesRelicSecretsPath()
     {
-        var relicRoot = Path.Combine(Path.GetTempPath(), "RelicLauncherTest", Guid.NewGuid().ToString("N"));
+        var relicRoot = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+            ".relic-sandbox-test",
+            Guid.NewGuid().ToString("N"));
         var dataPath = Path.Combine(Path.GetTempPath(), "VSData", Guid.NewGuid().ToString("N"));
         var installs = Path.Combine(Path.GetTempPath(), "Installs", Guid.NewGuid().ToString("N"));
         var policy = SandboxPolicyBuilder.BuildGameClient(
@@ -82,5 +85,6 @@ public class SandboxPolicyBuilderTests
         SandboxPolicyBuilder.IsPathGranted(policy, relicPaths.RootDirectory, PathAccess.ReadWrite).Should().BeTrue();
         SandboxPolicyBuilder.IsPathGranted(policy, Path.GetTempPath(), PathAccess.ReadWrite).Should().BeTrue();
         SandboxPolicyBuilder.IsPathGranted(policy, "/tmp", PathAccess.ReadWrite).Should().BeTrue();
+        SandboxPolicyBuilder.IsPathGranted(policy, "/", PathAccess.ReadExecute).Should().BeTrue();
     }
 }

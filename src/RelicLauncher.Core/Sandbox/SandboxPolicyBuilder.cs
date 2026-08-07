@@ -23,6 +23,12 @@ public static class SandboxPolicyBuilder
 
         AppendSystemReadGrants(grants, platform.Os);
         AppendLinuxCoreRuntimeGrants(grants);
+        if (platform.Os == HostOs.Linux)
+        {
+            // CoreCLR resolves host and framework assemblies through paths that are hard
+            // to enumerate. Read-execute on / keeps writes limited to explicit RW grants.
+            AddIfValid(grants, "/", PathAccess.ReadExecute);
+        }
 
         return new SandboxPolicy
         {
