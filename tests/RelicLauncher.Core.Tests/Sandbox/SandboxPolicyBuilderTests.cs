@@ -80,5 +80,7 @@ public class SandboxPolicyBuilderTests
 
         SandboxPolicyBuilder.IsPathGranted(policy, settings.InstallsRoot!, PathAccess.ReadWrite).Should().BeTrue();
         SandboxPolicyBuilder.IsPathGranted(policy, relicPaths.RootDirectory, PathAccess.ReadWrite).Should().BeTrue();
+        SandboxPolicyBuilder.IsPathGranted(policy, Path.GetTempPath(), PathAccess.ReadWrite).Should().BeTrue();
+        SandboxPolicyBuilder.IsPathGranted(policy, "/tmp", PathAccess.ReadWrite).Should().BeTrue();
     }
 }

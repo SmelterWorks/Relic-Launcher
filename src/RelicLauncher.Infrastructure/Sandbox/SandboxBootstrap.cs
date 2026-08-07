@@ -40,6 +40,14 @@ public static partial class SandboxBootstrap
             StringComparison.Ordinal);
     }
 
+    public static bool ShouldSkipBootstrap()
+    {
+        return string.Equals(
+            Environment.GetEnvironmentVariable(SandboxEnvironment.SkipBootstrap),
+            "1",
+            StringComparison.Ordinal);
+    }
+
     public static async Task<int> RunBrokerAsync(
         string[] args,
         IServiceProvider services,
@@ -77,7 +85,7 @@ public static partial class SandboxBootstrap
         IAppPathProvider pathProvider,
         CancellationToken cancellationToken = default)
     {
-        if (IsSandboxedUi() || ShouldRunBroker(args))
+        if (ShouldSkipBootstrap() || IsSandboxedUi() || ShouldRunBroker(args))
         {
             return -1;
         }

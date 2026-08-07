@@ -22,6 +22,7 @@ public static class SandboxPolicyBuilder
         AddIfValid(grants, installPrefix, PathAccess.ReadExecute);
 
         AppendSystemReadGrants(grants, platform.Os);
+        AppendLinuxCoreRuntimeGrants(grants);
 
         return new SandboxPolicy
         {
@@ -49,6 +50,7 @@ public static class SandboxPolicyBuilder
         AddIfValid(grants, dotNetRoot, PathAccess.ReadExecute);
 
         AppendGpuDeviceGrants(grants);
+        AppendLinuxCoreRuntimeGrants(grants);
 
         var netGrants = new List<NetPortGrant>
         {
@@ -87,6 +89,7 @@ public static class SandboxPolicyBuilder
         AddIfValid(grants, serverDir, PathAccess.ReadExecute);
         AddIfValid(grants, installPrefix, PathAccess.ReadExecute);
         AddIfValid(grants, dotNetRoot, PathAccess.ReadExecute);
+        AppendLinuxCoreRuntimeGrants(grants);
 
         var netGrants = new List<NetPortGrant>
         {
@@ -191,6 +194,30 @@ public static class SandboxPolicyBuilder
         AddIfValid(grants, "/dev/dri", PathAccess.ReadWrite);
         AddIfValid(grants, "/dev/null", PathAccess.ReadWrite);
         AddIfValid(grants, "/dev/urandom", PathAccess.ReadOnly);
+    }
+
+    private static void AppendLinuxCoreRuntimeGrants(List<PathGrant> grants)
+    {
+        if (!OperatingSystem.IsLinux())
+        {
+            return;
+        }
+
+        AddIfValid(grants, Path.GetTempPath(), PathAccess.ReadWrite);
+        AddIfValid(grants, "/tmp", PathAccess.ReadWrite);
+        AddIfValid(grants, "/etc/ssl", PathAccess.ReadOnly);
+        AddIfValid(grants, "/etc/localtime", PathAccess.ReadOnly);
+        AddIfValid(grants, "/etc/resolv.conf", PathAccess.ReadOnly);
+        AddIfValid(grants, "/etc/fonts", PathAccess.ReadOnly);
+        AddIfValid(grants, "/usr/share/fonts", PathAccess.ReadOnly);
+        AddIfValid(grants, "/usr/local/share/fonts", PathAccess.ReadOnly);
+
+        var dotNetRoot = Environment.GetEnvironmentVariable("DOTNET_ROOT");
+        AddIfValid(grants, dotNetRoot, PathAccess.ReadExecute);
+
+        var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        AddIfValid(grants, Path.Combine(home, ".cache"), PathAccess.ReadWrite);
+        AddIfValid(grants, Path.Combine(home, ".fontconfig"), PathAccess.ReadWrite);
     }
 
     private static bool IsUnderPath(string child, string parent)

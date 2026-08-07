@@ -14,7 +14,7 @@ using RelicLauncher.Core.Server;
 
 namespace RelicLauncher.Infrastructure.Sandbox;
 
-public sealed partial class SandboxBrokerHost : IAsyncDisposable
+public sealed partial class SandboxBrokerHost : IAsyncDisposable, IDisposable
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -369,6 +369,11 @@ public sealed partial class SandboxBrokerHost : IAsyncDisposable
     {
         var loaded = await _settingsStore.LoadAsync(cancellationToken).ConfigureAwait(false);
         return loaded.IsSuccess ? loaded.Value! : new LauncherSettings();
+    }
+
+    public void Dispose()
+    {
+        DisposeAsync().AsTask().GetAwaiter().GetResult();
     }
 
     public async ValueTask DisposeAsync()
