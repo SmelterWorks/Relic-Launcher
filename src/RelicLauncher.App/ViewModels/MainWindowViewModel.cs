@@ -18,6 +18,8 @@ public partial class MainWindowViewModel : ViewModelBase
     private readonly IRuntimePlatform _platform;
     private readonly Dictionary<string, ViewModelBase> _pageCache = new(StringComparer.Ordinal);
 
+    public ToastHostViewModel ToastHost { get; }
+
     [ObservableProperty]
     private ViewModelBase? _currentPage;
 
@@ -36,13 +38,15 @@ public partial class MainWindowViewModel : ViewModelBase
         IEndpointProvider endpoints,
         IConfirmDialogService confirmDialog,
         IGameServerHost serverHost,
-        IRuntimePlatform platform)
+        IRuntimePlatform platform,
+        ToastHostViewModel toastHost)
     {
         _services = services;
         _endpoints = endpoints;
         _confirmDialog = confirmDialog;
         _serverHost = serverHost;
         _platform = platform;
+        ToastHost = toastHost;
     }
 
     public LauncherSettings Settings { get; private set; } = new();
@@ -64,6 +68,13 @@ public partial class MainWindowViewModel : ViewModelBase
         _endpoints.Apply(settings);
         NavigateHome();
         ShellOpacity = 1;
+    }
+
+    public void ApplySettings(LauncherSettings settings)
+    {
+        Settings = settings;
+        _endpoints.Apply(settings);
+        OnSettingsChanged(settings);
     }
 
     public Task<bool> ConfirmCloseAsync()
@@ -202,7 +213,15 @@ public partial class MainWindowViewModel : ViewModelBase
     });
 
     [RelayCommand]
-    private void NavigateAbout() => Navigate("about", () => _services.GetRequiredService<AboutViewModel>());
+    private void NavigateAbout() => Navigate("about", () =>
+    {
+        var page = _services.GetRequiredService<AboutViewModel>();
+        page.Bind(Settings, ApplySettings);
+        return page;
+    }, existing =>
+    {
+        ((AboutViewModel)existing).Bind(Settings, ApplySettings);
+    });
 
     private void Navigate(string navId, Func<ViewModelBase> createPage, Action<ViewModelBase>? rebind = null)
     {
@@ -275,6 +294,10 @@ public partial class MainWindowViewModel : ViewModelBase
         else if (CurrentPage is SettingsViewModel settingsPage)
         {
             settingsPage.Bind(settings, OnSettingsChanged);
+        }
+        else if (CurrentPage is AboutViewModel about)
+        {
+            about.Bind(settings, ApplySettings);
         }
     }
 

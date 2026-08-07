@@ -216,6 +216,38 @@
                          TextWrapping="Wrap"
                          IsVisible="{Binding SelectedModUpdateModeOption, Converter={x:Static ObjectConverters.IsNotNull}}" />
             </StackPanel>
+
+            <StackPanel Spacing="4">
+              <TextBlock Text="Launcher updates" Classes="settings-field-label" />
+              <ComboBox ItemsSource="{Binding LauncherUpdateModeOptions}"
+                        SelectedItem="{Binding SelectedLauncherUpdateModeOption}"
+                        MinWidth="280"
+                        HorizontalAlignment="Left">
+                <ComboBox.ItemTemplate>
+                  <DataTemplate x:DataType="vm:LauncherUpdateModeOption">
+                    <TextBlock Text="{Binding Label}" />
+                  </DataTemplate>
+                </ComboBox.ItemTemplate>
+              </ComboBox>
+              <TextBlock Text="{Binding SelectedLauncherUpdateModeOption.Description}"
+                         Classes="muted"
+                         TextWrapping="Wrap"
+                         IsVisible="{Binding SelectedLauncherUpdateModeOption, Converter={x:Static ObjectConverters.IsNotNull}}" />
+              <ComboBox ItemsSource="{Binding LauncherUpdateChannelOptions}"
+                        SelectedItem="{Binding SelectedLauncherUpdateChannelOption}"
+                        MinWidth="280"
+                        HorizontalAlignment="Left">
+                <ComboBox.ItemTemplate>
+                  <DataTemplate x:DataType="vm:LauncherUpdateChannelOption">
+                    <TextBlock Text="{Binding Label}" />
+                  </DataTemplate>
+                </ComboBox.ItemTemplate>
+              </ComboBox>
+              <TextBlock Text="{Binding SelectedLauncherUpdateChannelOption.Description}"
+                         Classes="muted"
+                         TextWrapping="Wrap"
+                         IsVisible="{Binding SelectedLauncherUpdateChannelOption, Converter={x:Static ObjectConverters.IsNotNull}}" />
+            </StackPanel>
           </StackPanel>
         </controls:SettingsSection.SectionContent>
       </controls:SettingsSection>

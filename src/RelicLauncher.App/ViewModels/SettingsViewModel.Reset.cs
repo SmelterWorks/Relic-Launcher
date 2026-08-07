@@ -35,6 +35,12 @@ public partial class SettingsViewModel
         WarnOnBlockedMods = true;
         ModUpdateMode = ModUpdateMode.Prompt;
         SelectedModUpdateModeOption = ModUpdateModeOptions.FirstOrDefault(o => o.Mode == ModUpdateMode.Prompt);
+        LauncherUpdateMode = LauncherUpdateMode.Prompt;
+        SelectedLauncherUpdateModeOption = LauncherUpdateModeOptions.FirstOrDefault(o => o.Mode == LauncherUpdateMode.Prompt);
+        SelectedLauncherUpdateChannelOption = LauncherUpdateChannelOptions.FirstOrDefault(o => o.Channel == LauncherUpdateChannel.Stable);
+        _lastLauncherUpdateCheckUtc = null;
+        _dismissedLauncherUpdateVersion = null;
+        _lastUpdateManifestEtag = null;
         _modUpdateOptOutModIds = [];
         HomeBackgroundLogoMode = HomeBackgroundLogoMode.Square;
         SelectedLogoModeOption = LogoModeOptions.FirstOrDefault(o => o.Mode == HomeBackgroundLogoMode.Square);

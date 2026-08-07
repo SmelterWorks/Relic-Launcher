@@ -29,6 +29,10 @@
 
     <StackPanel Orientation="Horizontal" Spacing="8">
       <Button Classes="ghost"
+              Content="Check for updates"
+              Command="{Binding CheckForUpdatesCommand}"
+              AutomationProperties.Name="Check for launcher updates" />
+      <Button Classes="ghost"
               Content="GitHub"
               Command="{Binding OpenRepositoryCommand}"
               AutomationProperties.Name="Open GitHub repository" />

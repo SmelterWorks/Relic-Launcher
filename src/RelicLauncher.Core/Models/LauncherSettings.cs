@@ -16,6 +16,11 @@ public sealed class LauncherSettings
     public bool ConfirmBeforeExit { get; set; }
     public bool WarnOnBlockedMods { get; set; } = true;
     public ModUpdateMode ModUpdateMode { get; set; } = ModUpdateMode.Prompt;
+    public LauncherUpdateMode LauncherUpdateMode { get; set; } = LauncherUpdateMode.Prompt;
+    public LauncherUpdateChannel LauncherUpdateChannel { get; set; } = LauncherUpdateChannel.Stable;
+    public DateTimeOffset? LastLauncherUpdateCheckUtc { get; set; }
+    public string? DismissedLauncherUpdateVersion { get; set; }
+    public string? LastUpdateManifestEtag { get; set; }
     public IList<string> ModUpdateOptOutModIds { get; set; } = [];
     public HomeBackgroundLogoMode HomeBackgroundLogoMode { get; set; } = HomeBackgroundLogoMode.Square;
     public string? HomeBackgroundCustomLogoPath { get; set; }

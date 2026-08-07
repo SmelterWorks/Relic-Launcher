@@ -1,6 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:RelicLauncher.App.ViewModels"
+        xmlns:controls="using:RelicLauncher.App.Views.Controls"
         xmlns:i="https://github.com/projektanker/icons.avalonia"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -27,19 +28,20 @@
     <KeyBinding Gesture="Ctrl+9" Command="{Binding NavigateAboutCommand}" />
   </Window.KeyBindings>
 
-  <Grid ColumnDefinitions="240,*"
-        Opacity="{Binding ShellOpacity}">
+  <Grid Opacity="{Binding ShellOpacity}">
     <Grid.Transitions>
       <Transitions>
         <DoubleTransition Property="Opacity" Duration="0:0:0.45" />
       </Transitions>
     </Grid.Transitions>
-    <Border Grid.Column="0"
-            Background="{DynamicResource Theme.Bg1}"
-            BorderBrush="{DynamicResource Theme.Border}"
-            BorderThickness="0,0,1,0"
-            Padding="16,12"
-            AutomationProperties.Name="Main navigation">
+
+    <Grid ColumnDefinitions="240,*">
+      <Border Grid.Column="0"
+              Background="{DynamicResource Theme.Bg1}"
+              BorderBrush="{DynamicResource Theme.Border}"
+              BorderThickness="0,0,1,0"
+              Padding="16,12"
+              AutomationProperties.Name="Main navigation">
       <DockPanel LastChildFill="True">
         <StackPanel DockPanel.Dock="Top" Spacing="2" Margin="0,0,0,18">
           <TextBlock Text="Relic" Classes="brand" FontSize="28" />
@@ -154,5 +156,10 @@
                     Content="{Binding CurrentPage}"
                     Padding="{Binding ContentPadding}"
                     AutomationProperties.Name="Page content" />
+    </Grid>
+
+    <controls:ToastHost DataContext="{Binding ToastHost}"
+                        IsHitTestVisible="True"
+                        ZIndex="100" />
   </Grid>
 </Window>

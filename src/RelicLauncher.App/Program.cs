@@ -15,7 +15,7 @@ using Serilog;
 
 namespace RelicLauncher.App;
 
-internal static class Program
+internal static partial class Program
 {
     private static string? _logsDirectory;
 
@@ -41,43 +41,16 @@ internal static class Program
             return selfCheckExitCode;
         }
 
-        if (args.Contains(SandboxBootstrap.BrokerArgument, StringComparer.Ordinal))
+        var brokerExit = TryRunSandboxBroker(args);
+        if (brokerExit >= 0)
         {
-            var brokerServices = BuildServices();
-            try
-            {
-                return SandboxBootstrap.RunBrokerAsync(args, brokerServices).GetAwaiter().GetResult();
-            }
-            finally
-            {
-                brokerServices.DisposeProvider();
-            }
+            return brokerExit;
         }
 
-        try
+        var bootstrapExit = TryRunSandboxBootstrap(args);
+        if (bootstrapExit >= 0)
         {
-            var bootstrapProbe = BuildServices();
-            try
-            {
-                var settingsStore = bootstrapProbe.GetRequiredService<ILauncherSettingsStore>();
-                var pathProvider = bootstrapProbe.GetRequiredService<IAppPathProvider>();
-                var bootstrapExit = SandboxBootstrap.TryBootstrapAsync(
-                    args,
-                    settingsStore,
-                    pathProvider).GetAwaiter().GetResult();
-                if (bootstrapExit >= 0)
-                {
-                    return bootstrapExit;
-                }
-            }
-            finally
-            {
-                bootstrapProbe.DisposeProvider();
-            }
-        }
-        catch
-        {
-            // Continue without bootstrap when probe fails.
+            return bootstrapExit;
         }
 
         try
@@ -185,25 +158,7 @@ internal static class Program
             builder.AddSerilog(Log.Logger, dispose: false);
         });
         services.AddRelicInfrastructure();
-        services.AddSingleton<IThemeCatalog, BuiltInThemeCatalog>();
-        services.AddSingleton<IThemeService, AvaloniaThemeService>();
-        services.AddSingleton<MainWindowHolder>();
-        services.AddSingleton<IStoragePickerService, AvaloniaStoragePickerService>();
-        services.AddSingleton<IConfirmDialogService, AvaloniaConfirmDialogService>();
-        services.AddSingleton<IRemoteNewsImageLoader, RemoteNewsImageLoader>();
-        services.AddSingleton<MainWindowViewModel>();
-        services.AddTransient<HomeViewModel>();
-        services.AddTransient<VersionsViewModel>();
-        services.AddTransient<ModsViewModel>();
-        services.AddSingleton<ModInstallOrchestrator>();
-        services.AddSingleton<ModUpdateStartupService>();
-        services.AddTransient<ModpackPanelViewModel>();
-        services.AddTransient<BackupViewModel>();
-        services.AddTransient<ServersViewModel>();
-        services.AddTransient<HostingViewModel>();
-        services.AddTransient<WikiViewModel>();
-        services.AddTransient<SettingsViewModel>();
-        services.AddTransient<AboutViewModel>();
+        AddAppServices(services);
 
         return services.BuildServiceProvider();
     }

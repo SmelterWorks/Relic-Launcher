@@ -86,6 +86,9 @@ public partial class App : Application
         var mainVm = services.GetRequiredService<MainWindowViewModel>();
         mainVm.Initialize(settings);
         services.GetRequiredService<ModUpdateStartupService>().ScheduleThrottledCheck(settings);
+        services.GetRequiredService<LauncherUpdateStartupService>().ScheduleThrottledCheck(
+            settings,
+            updated => mainVm.ApplySettings(updated));
 
         var windowHolder = services.GetRequiredService<MainWindowHolder>();
         var window = new MainWindow { DataContext = mainVm };

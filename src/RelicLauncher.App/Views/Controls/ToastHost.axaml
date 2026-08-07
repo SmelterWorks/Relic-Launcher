@@ -1,0 +1,54 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:RelicLauncher.App.ViewModels"
+             x:Class="RelicLauncher.App.Views.Controls.ToastHost"
+             x:DataType="vm:ToastHostViewModel">
+  <ItemsControl ItemsSource="{Binding Items}"
+                VerticalAlignment="Bottom"
+                HorizontalAlignment="Right"
+                Margin="0,0,24,24">
+    <ItemsControl.ItemsPanel>
+      <ItemsPanelTemplate>
+        <StackPanel Spacing="10" />
+      </ItemsPanelTemplate>
+    </ItemsControl.ItemsPanel>
+    <ItemsControl.ItemTemplate>
+      <DataTemplate x:DataType="vm:ToastItemViewModel">
+        <Border Classes="toast"
+                Classes.info="{Binding IsInfo}"
+                Classes.success="{Binding IsSuccess}"
+                Classes.warning="{Binding IsWarning}"
+                Classes.error="{Binding IsError}"
+                MinWidth="320"
+                MaxWidth="420">
+          <StackPanel Spacing="8">
+            <TextBlock Text="{Binding Title}"
+                       FontWeight="SemiBold"
+                       TextWrapping="Wrap"
+                       IsVisible="{Binding HasTitle}" />
+            <TextBlock Text="{Binding Message}" TextWrapping="Wrap" />
+            <TextBlock Text="{Binding ProgressText}"
+                       Classes="muted"
+                       TextWrapping="Wrap"
+                       IsVisible="{Binding HasProgress}" />
+            <ItemsControl ItemsSource="{Binding Actions}"
+                          IsVisible="{Binding HasActions}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <StackPanel Orientation="Horizontal" Spacing="8" />
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:ToastActionItemViewModel">
+                  <Button Classes="ghost"
+                          Content="{Binding Label}"
+                          Command="{Binding InvokeCommand}" />
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </Border>
+      </DataTemplate>
+    </ItemsControl.ItemTemplate>
+  </ItemsControl>
+</UserControl>

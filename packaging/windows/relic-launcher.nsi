@@ -4,6 +4,8 @@
 
 !include "MUI2.nsh"
 !include "x64.nsh"
+!include "LogicLib.nsh"
+!include "FileFunc.nsh"
 
 !ifndef VERSION
   !define VERSION "0.0.0"
@@ -88,4 +90,9 @@ Function .onInit
     MessageBox MB_OK|MB_ICONSTOP "Relic Launcher requires 64-bit Windows."
     Abort
   ${EndIf}
+  ${GetParameters} $R0
+  ${GetOptions} $R0 "/S" $R1
+  IfErrors silentdone
+    SetSilent silent
+  silentdone:
 FunctionEnd

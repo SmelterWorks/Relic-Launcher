@@ -288,6 +288,14 @@ public partial class SettingsViewModel : PageViewModelBase
         ModUpdateMode = settings.ModUpdateMode;
         SelectedModUpdateModeOption = ModUpdateModeOptions.FirstOrDefault(o => o.Mode == settings.ModUpdateMode)
             ?? ModUpdateModeOptions.FirstOrDefault(o => o.Mode == ModUpdateMode.Prompt);
+        LauncherUpdateMode = settings.LauncherUpdateMode;
+        SelectedLauncherUpdateModeOption = LauncherUpdateModeOptions.FirstOrDefault(o => o.Mode == settings.LauncherUpdateMode)
+            ?? LauncherUpdateModeOptions.FirstOrDefault(o => o.Mode == LauncherUpdateMode.Prompt);
+        SelectedLauncherUpdateChannelOption = LauncherUpdateChannelOptions.FirstOrDefault(o => o.Channel == settings.LauncherUpdateChannel)
+            ?? LauncherUpdateChannelOptions.FirstOrDefault(o => o.Channel == LauncherUpdateChannel.Stable);
+        _lastLauncherUpdateCheckUtc = settings.LastLauncherUpdateCheckUtc;
+        _dismissedLauncherUpdateVersion = settings.DismissedLauncherUpdateVersion;
+        _lastUpdateManifestEtag = settings.LastUpdateManifestEtag;
         _modUpdateOptOutModIds = settings.ModUpdateOptOutModIds?.ToList() ?? [];
         HomeBackgroundLogoMode = settings.HomeBackgroundLogoMode;
         SelectedLogoModeOption = LogoModeOptions.FirstOrDefault(o => o.Mode == settings.HomeBackgroundLogoMode)
@@ -415,6 +423,7 @@ public partial class SettingsViewModel : PageViewModelBase
             },
             ProcessIsolationEnabled = ProcessIsolationEnabled,
         };
+        ApplyLauncherUpdateSettings(settings);
 
         var themeResult = _themeService.ApplyTheme(settings.SelectedThemeId);
         if (!themeResult.IsSuccess)

@@ -264,4 +264,29 @@
     <Setter Property="TextWrapping" Value="Wrap" />
   </Style>
 
+  <Style Selector="Border.toast">
+    <Setter Property="Background" Value="{DynamicResource Theme.Bg2}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Theme.Border}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="{DynamicResource Theme.Radius}" />
+    <Setter Property="Padding" Value="14,12" />
+    <Setter Property="BoxShadow" Value="0 6 24 0 #40000000" />
+  </Style>
+
+  <Style Selector="Border.toast.info">
+    <Setter Property="BorderBrush" Value="{DynamicResource Theme.AccentMuted}" />
+  </Style>
+
+  <Style Selector="Border.toast.success">
+    <Setter Property="BorderBrush" Value="{DynamicResource Theme.Accent}" />
+  </Style>
+
+  <Style Selector="Border.toast.warning">
+    <Setter Property="BorderBrush" Value="{DynamicResource Theme.Warning}" />
+  </Style>
+
+  <Style Selector="Border.toast.error">
+    <Setter Property="BorderBrush" Value="{DynamicResource Theme.Danger}" />
+  </Style>
+
 </Styles>

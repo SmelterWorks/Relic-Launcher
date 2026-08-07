@@ -23,6 +23,7 @@ using RelicLauncher.Infrastructure.Servers;
 using RelicLauncher.Infrastructure.Settings;
 using RelicLauncher.Infrastructure.Stubs;
 using RelicLauncher.Infrastructure.Transfers;
+using RelicLauncher.Infrastructure.Updates;
 using RelicLauncher.Infrastructure.Versions;
 using RelicLauncher.Infrastructure.Wiki;
 using Serilog;
@@ -42,10 +43,10 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IAccountAuthService>(sp => sp.GetRequiredService<AccountAuthService>());
         services.AddSingleton<IClientSettingsSessionWriter, ClientSettingsSessionWriter>();
         services.AddSingleton<IGameLocator, GameLocatorStub>();
+        AddLauncherUpdateServices(services);
         AddSandboxServices(services);
         services.AddSingleton<IProcessRunner, SandboxedProcessRunner>();
         services.AddSingleton<IDotNetRuntimeProvisioner, DotNetRuntimeProvisioner>();
-        services.AddSingleton<IUpdateCheckService, UpdateCheckServiceStub>();
         services.AddSingleton<IGameVersionCatalog, VintageStoryVersionCatalog>();
         services.AddSingleton<IInstalledVersionStore, JsonInstalledVersionStore>();
         services.AddSingleton<GameVersionInstaller>();
@@ -73,6 +74,15 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<AppLifetime>();
         services.AddSingleton<IAppLifetime>(sp => sp.GetRequiredService<AppLifetime>());
         return services;
+    }
+
+    private static void AddLauncherUpdateServices(IServiceCollection services)
+    {
+        services.AddSingleton<IUpdateCheckService, SmelterWorksLauncherUpdateCheckService>();
+        services.AddSingleton<IInstallKindDetector, InstallKindDetector>();
+        services.AddSingleton<ILauncherUpdateAssetSelector, LauncherUpdateAssetSelector>();
+        services.AddSingleton<LauncherUpdateDownloader>();
+        services.AddSingleton<ILauncherUpdateApplyService, LauncherUpdateApplyService>();
     }
 
     private static void AddSandboxServices(IServiceCollection services)
