@@ -6,6 +6,14 @@ public partial class ServersViewModel
 {
     private void ApplyFiltersCore()
     {
+        lock (_filterGate)
+        {
+            ApplyFiltersCoreUnsynchronized();
+        }
+    }
+
+    private void ApplyFiltersCoreUnsynchronized()
+    {
         if (_allServers.Count == 0)
         {
             BrowseResults.Clear();

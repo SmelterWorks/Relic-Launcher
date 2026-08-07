@@ -25,6 +25,7 @@ public partial class ServersViewModel : PageViewModelBase
     private Action<string>? _navigateToSection;
     private CancellationTokenSource? _filterCts;
     private int _filterGeneration;
+    private readonly object _filterGate = new();
     private IReadOnlyList<PublicServerSummary> _allServers = [];
     private HashSet<string> _favoriteAddresses = new(StringComparer.OrdinalIgnoreCase);
     private bool _ready;

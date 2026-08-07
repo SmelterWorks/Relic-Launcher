@@ -25,7 +25,7 @@ public class ServersViewModelTests
         await WaitForCatalogAsync(vm);
 
         vm.SearchText = "Official";
-        await Task.Delay(250);
+        await WaitForBrowseResultCountAsync(vm, 1);
 
         vm.BrowseResults.Should().ContainSingle();
         vm.BrowseResults[0].DisplayName.Should().Contain("Official");
@@ -98,7 +98,7 @@ public class ServersViewModelTests
         await WaitForCatalogAsync(vm);
 
         vm.FilterHasPlayers = true;
-        await Task.Delay(250);
+        await WaitForBrowseResultCountAsync(vm, 1);
 
         vm.BrowseResults.Should().ContainSingle();
         vm.BrowseResults[0].DisplayName.Should().Be("Busy");
@@ -113,10 +113,36 @@ public class ServersViewModelTests
         await WaitForCatalogAsync(vm);
 
         vm.SearchText = "no-match-xyz";
-        await Task.Delay(250);
+        await WaitForEmptyBrowseAsync(vm);
 
         vm.ShowEmptyBrowse.Should().BeTrue();
         vm.EmptyBrowseMessage.Should().Contain("No servers match your filters");
+    }
+
+    private static async Task WaitForBrowseResultCountAsync(ServersViewModel vm, int expectedCount)
+    {
+        for (var attempt = 0; attempt < 100; attempt++)
+        {
+            if (vm.BrowseResults.Count == expectedCount)
+            {
+                return;
+            }
+
+            await Task.Delay(20).ConfigureAwait(false);
+        }
+    }
+
+    private static async Task WaitForEmptyBrowseAsync(ServersViewModel vm)
+    {
+        for (var attempt = 0; attempt < 100; attempt++)
+        {
+            if (vm.ShowEmptyBrowse)
+            {
+                return;
+            }
+
+            await Task.Delay(20).ConfigureAwait(false);
+        }
     }
 
     private static async Task WaitForCatalogAsync(ServersViewModel vm)
