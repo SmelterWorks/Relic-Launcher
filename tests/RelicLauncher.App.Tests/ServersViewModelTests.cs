@@ -165,7 +165,7 @@ public class ServersViewModelTests
             pathProvider,
             new FakeServersPlatform(),
             NullLogger<DotNetRuntimeProvisioner>.Instance);
-        var serverHost = new GameServerHost(provisioner, NullLogger<GameServerHost>.Instance);
+        var serverHost = SandboxTestHost.CreateGameServerHost(provisioner);
 
         return new ServersViewModel(
             masterServerClient,

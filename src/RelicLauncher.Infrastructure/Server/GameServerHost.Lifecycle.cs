@@ -14,7 +14,7 @@ public sealed partial class GameServerHost
         }
 
         var process = _process;
-        if (process is null)
+        if (process is null && _brokerProcessId is null)
         {
             SetState(ServerProcessState.Stopped);
             RunningVersion = null;
@@ -26,7 +26,13 @@ public sealed partial class GameServerHost
 
         try
         {
-            if (!process.HasExited)
+            if (_brokerProcessId is not null)
+            {
+                await _brokerConsole.WriteInputAsync("stop\n", cancellationToken).ConfigureAwait(false);
+                await Task.Delay(StopGracePeriod, cancellationToken).ConfigureAwait(false);
+                await _brokerConsole.KillAsync(cancellationToken).ConfigureAwait(false);
+            }
+            else if (process is not null && !process.HasExited)
             {
                 await TryGracefulStopAsync(process, cancellationToken).ConfigureAwait(false);
             }
@@ -80,14 +86,17 @@ public sealed partial class GameServerHost
         await AwaitTaskSilentlyAsync(_stdoutTask).ConfigureAwait(false);
         await AwaitTaskSilentlyAsync(_stderrTask).ConfigureAwait(false);
         await AwaitTaskSilentlyAsync(_exitTask).ConfigureAwait(false);
+        await AwaitTaskSilentlyAsync(_brokerPollTask).ConfigureAwait(false);
 
         _readCts?.Dispose();
         _readCts = null;
         _process?.Dispose();
         _process = null;
+        _brokerProcessId = null;
         _stdoutTask = null;
         _stderrTask = null;
         _exitTask = null;
+        _brokerPollTask = null;
     }
 
     private static async Task AwaitTaskSilentlyAsync(Task? task)

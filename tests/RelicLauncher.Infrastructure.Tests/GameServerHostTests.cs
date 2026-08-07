@@ -2,6 +2,7 @@ using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using RelicLauncher.Core.Models;
 using RelicLauncher.Infrastructure.DotNet;
+using RelicLauncher.Infrastructure.Sandbox;
 using RelicLauncher.Infrastructure.Server;
 using RelicLauncher.Testing;
 using Xunit;
@@ -50,6 +51,6 @@ public class GameServerHostTests
             new FixedPathProvider(paths.Paths),
             platform,
             NullLogger<DotNetRuntimeProvisioner>.Instance);
-        return new GameServerHost(provisioner, NullLogger<GameServerHost>.Instance);
+        return SandboxTestHost.CreateGameServerHost(provisioner);
     }
 }

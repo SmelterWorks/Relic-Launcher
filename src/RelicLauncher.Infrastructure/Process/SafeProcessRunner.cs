@@ -37,7 +37,7 @@ public sealed class SafeProcessRunner : IProcessRunner
         return Task.FromResult(StartProcess(validation.Value!, arguments ?? Array.Empty<string>(), environment));
     }
 
-    private static Result<string> Validate(string executablePath, IReadOnlyList<string>? arguments)
+    internal static Result<string> Validate(string executablePath, IReadOnlyList<string>? arguments)
     {
         if (string.IsNullOrWhiteSpace(executablePath))
         {

@@ -282,7 +282,19 @@
                                 Subtitle="Logs, debug output, and a full settings reset."
                                 IsExpanded="False">
         <controls:SettingsSection.SectionContent>
-          <StackPanel Spacing="12">
+            <StackPanel Spacing="12">
+            <StackPanel Spacing="8">
+              <TextBlock Text="Process isolation" Classes="settings-field-label" />
+              <TextBlock Text="Sandboxes Relic, the game client, and local server with separate policies. Changing installs or data paths needs a restart when this is on."
+                         Classes="settings-field-hint"
+                         TextWrapping="Wrap" />
+              <CheckBox Content="Enable process isolation"
+                        IsChecked="{Binding ProcessIsolationEnabled}" />
+              <TextBlock Text="{Binding IsolationStatus}"
+                         Classes="muted"
+                         TextWrapping="Wrap" />
+            </StackPanel>
+
             <controls:FolderPathRow DataContext="{Binding LogsFolder}" />
             <controls:FolderPathRow DataContext="{Binding ThemesFolder}" />
 

@@ -1,13 +1,17 @@
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using RelicLauncher.Infrastructure.Paths;
+using RelicLauncher.Testing;
 using Xunit;
 
 namespace RelicLauncher.Infrastructure.Tests;
 
 public class UrlLauncherTests
 {
-    private readonly UrlLauncher _launcher = new(NullLogger<UrlLauncher>.Instance);
+    private readonly UrlLauncher _launcher = new(
+        new TestSandboxBrokerClient(),
+        new TestSandboxSupport(),
+        NullLogger<UrlLauncher>.Instance);
 
     [Theory]
     [InlineData(null)]

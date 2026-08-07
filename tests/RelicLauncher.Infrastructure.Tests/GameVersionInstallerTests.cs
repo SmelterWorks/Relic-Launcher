@@ -274,6 +274,7 @@ public class GameVersionInstallerTests
             new FixedPathProvider(temp.Paths),
             new JsonInstalledVersionStore(),
             platform ?? new FakeRuntimePlatform(),
+            new RelicLauncher.Testing.TestSandboxBrokerClient(),
             NullLogger<GameVersionInstaller>.Instance,
             new HttpClient(handler));
 

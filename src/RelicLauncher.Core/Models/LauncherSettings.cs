@@ -21,4 +21,6 @@ public sealed class LauncherSettings
     public string? HomeBackgroundCustomLogoPath { get; set; }
     public double HomeBackgroundLogoOpacity { get; set; } = RelicDefaults.HomeBackgroundLogoOpacity;
     public EndpointSettings Endpoints { get; set; } = EndpointSettings.CreateDefaults();
+
+    public bool ProcessIsolationEnabled { get; set; } = true;
 }

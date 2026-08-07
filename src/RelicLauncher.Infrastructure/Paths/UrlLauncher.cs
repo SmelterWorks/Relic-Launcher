@@ -2,15 +2,23 @@ using System.ComponentModel;
 using Microsoft.Extensions.Logging;
 using RelicLauncher.Core.Abstractions;
 using RelicLauncher.Core.Results;
+using RelicLauncher.Infrastructure.Sandbox;
 
 namespace RelicLauncher.Infrastructure.Paths;
 
 public sealed class UrlLauncher : IUrlLauncher
 {
+    private readonly ISandboxBrokerClient _broker;
+    private readonly ISandboxSupport _sandboxSupport;
     private readonly ILogger<UrlLauncher> _logger;
 
-    public UrlLauncher(ILogger<UrlLauncher> logger)
+    public UrlLauncher(
+        ISandboxBrokerClient broker,
+        ISandboxSupport sandboxSupport,
+        ILogger<UrlLauncher> logger)
     {
+        _broker = broker;
+        _sandboxSupport = sandboxSupport;
         _logger = logger;
     }
 
@@ -23,6 +31,11 @@ public sealed class UrlLauncher : IUrlLauncher
 
         try
         {
+            if (_sandboxSupport.IsBrokerConnected)
+            {
+                return _broker.OpenUrlAsync(url).GetAwaiter().GetResult();
+            }
+
             global::System.Diagnostics.Process.Start(new global::System.Diagnostics.ProcessStartInfo(url)
             {
                 UseShellExecute = true,

@@ -22,6 +22,7 @@ public partial class SettingsViewModel : PageViewModelBase
     private readonly IClientSettingsSessionWriter _sessionWriter;
     private readonly IDebugLogBuffer _debugLogBuffer;
     private readonly IConfirmDialogService _confirmDialog;
+    private readonly ISandboxSupport _sandboxSupport;
     private readonly ILogger<SettingsViewModel> _logger;
     private Action<LauncherSettings>? _onChanged;
     private bool _isBinding;
@@ -144,6 +145,7 @@ public partial class SettingsViewModel : PageViewModelBase
         IFileExplorerService fileExplorer,
         IDebugLogBuffer debugLogBuffer,
         IConfirmDialogService confirmDialog,
+        ISandboxSupport sandboxSupport,
         ILogger<SettingsViewModel> logger)
     {
         _settingsStore = settingsStore;
@@ -155,6 +157,7 @@ public partial class SettingsViewModel : PageViewModelBase
         _sessionWriter = sessionWriter;
         _debugLogBuffer = debugLogBuffer;
         _confirmDialog = confirmDialog;
+        _sandboxSupport = sandboxSupport;
         _logger = logger;
         Themes = _themeService.AvailableThemes;
         LogoModeOptions =
@@ -297,6 +300,7 @@ public partial class SettingsViewModel : PageViewModelBase
         var paths = _pathProvider.GetPaths();
         LogsFolder.Bind("Logs folder", paths.LogsDirectory);
         ThemesFolder.Bind("User themes folder", paths.ThemesDirectory);
+        BindSandbox(settings);
         SetSaveStatus(string.Empty);
         StatusMessage = string.Empty;
         StatusIsError = false;
@@ -409,6 +413,7 @@ public partial class SettingsViewModel : PageViewModelBase
                 WikiBaseUrl = TrimOrDefault(WikiBaseUrl, VintageStoryEndpoints.WikiBaseUrl),
                 ServerListUrl = TrimOrDefault(ServerListUrl, RelicLauncherEndpoints.ServerListUrl),
             },
+            ProcessIsolationEnabled = ProcessIsolationEnabled,
         };
 
         var themeResult = _themeService.ApplyTheme(settings.SelectedThemeId);

@@ -16,6 +16,7 @@ public sealed class GameVersionInstaller : IGameVersionInstaller, IDisposable
     private readonly IAppPathProvider _pathProvider;
     private readonly IInstalledVersionStore _installedStore;
     private readonly IRuntimePlatform _platform;
+    private readonly ISandboxBrokerClient _broker;
     private readonly HttpClient _httpClient;
     private readonly ILogger<GameVersionInstaller> _logger;
 
@@ -23,8 +24,9 @@ public sealed class GameVersionInstaller : IGameVersionInstaller, IDisposable
         IAppPathProvider pathProvider,
         IInstalledVersionStore installedStore,
         IRuntimePlatform platform,
+        ISandboxBrokerClient broker,
         ILogger<GameVersionInstaller> logger)
-        : this(pathProvider, installedStore, platform, logger, CreateHttpClient())
+        : this(pathProvider, installedStore, platform, broker, logger, CreateHttpClient())
     {
     }
 
@@ -32,12 +34,14 @@ public sealed class GameVersionInstaller : IGameVersionInstaller, IDisposable
         IAppPathProvider pathProvider,
         IInstalledVersionStore installedStore,
         IRuntimePlatform platform,
+        ISandboxBrokerClient broker,
         ILogger<GameVersionInstaller> logger,
         HttpClient httpClient)
     {
         _pathProvider = pathProvider;
         _installedStore = installedStore;
         _platform = platform;
+        _broker = broker;
         _httpClient = httpClient;
         _logger = logger;
     }
@@ -124,7 +128,12 @@ public sealed class GameVersionInstaller : IGameVersionInstaller, IDisposable
         }
 
         Directory.CreateDirectory(targetDir);
-        var extract = await GamePackageFileOps.ExtractAsync(package, archivePath, targetDir, cancellationToken).ConfigureAwait(false);
+        var extract = await GamePackageFileOps.ExtractAsync(
+            package,
+            archivePath,
+            targetDir,
+            _broker,
+            cancellationToken).ConfigureAwait(false);
         if (!extract.IsSuccess)
         {
             return Result<InstalledGameVersion>.Failure(extract.Error ?? "Extract failed.");

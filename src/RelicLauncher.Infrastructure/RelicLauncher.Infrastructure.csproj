@@ -2,6 +2,7 @@
   <PropertyGroup>
     <RootNamespace>RelicLauncher.Infrastructure</RootNamespace>
     <Description>IO, logging, settings, and process implementations for Relic Launcher.</Description>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <ItemGroup>

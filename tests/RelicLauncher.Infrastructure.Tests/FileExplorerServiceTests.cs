@@ -8,7 +8,10 @@ namespace RelicLauncher.Infrastructure.Tests;
 
 public class FileExplorerServiceTests
 {
-    private readonly FileExplorerService _service = new(NullLogger<FileExplorerService>.Instance);
+    private readonly FileExplorerService _service = new(
+        new TestSandboxBrokerClient(),
+        new TestSandboxSupport(),
+        NullLogger<FileExplorerService>.Instance);
 
     [Theory]
     [InlineData(null)]

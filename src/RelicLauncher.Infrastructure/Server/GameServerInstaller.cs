@@ -13,6 +13,7 @@ public sealed class GameServerInstaller : IGameServerInstaller, IDisposable
     private readonly IInstalledServerStore _installedStore;
     private readonly IRuntimePlatform _platform;
     private readonly GameVersionInstaller _packageInstaller;
+    private readonly ISandboxBrokerClient _broker;
     private readonly ILogger<GameServerInstaller> _logger;
 
     public GameServerInstaller(
@@ -20,12 +21,14 @@ public sealed class GameServerInstaller : IGameServerInstaller, IDisposable
         IInstalledServerStore installedStore,
         IRuntimePlatform platform,
         GameVersionInstaller packageInstaller,
+        ISandboxBrokerClient broker,
         ILogger<GameServerInstaller> logger)
     {
         _pathProvider = pathProvider;
         _installedStore = installedStore;
         _platform = platform;
         _packageInstaller = packageInstaller;
+        _broker = broker;
         _logger = logger;
     }
 
@@ -92,7 +95,12 @@ public sealed class GameServerInstaller : IGameServerInstaller, IDisposable
         }
 
         Directory.CreateDirectory(targetDir);
-        var extract = await GamePackageFileOps.ExtractAsync(package, archivePath, targetDir, cancellationToken)
+        var extract = await GamePackageFileOps.ExtractAsync(
+            package,
+            archivePath,
+            targetDir,
+            _broker,
+            cancellationToken)
             .ConfigureAwait(false);
         if (!extract.IsSuccess)
         {

@@ -88,12 +88,14 @@ public class GameServerInstallerTests
             new FixedPathProvider(paths.Paths),
             new JsonInstalledVersionStore(),
             platform,
+            new TestSandboxBrokerClient(),
             NullLogger<GameVersionInstaller>.Instance);
         return new GameServerInstaller(
             new FixedPathProvider(paths.Paths),
             store,
             platform,
             clientInstaller,
+            new TestSandboxBrokerClient(),
             NullLogger<GameServerInstaller>.Instance);
     }
 

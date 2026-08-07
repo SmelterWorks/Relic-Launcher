@@ -1,5 +1,6 @@
 using System.Formats.Tar;
 using System.IO.Compression;
+using RelicLauncher.Core.Abstractions;
 using RelicLauncher.Core.Models;
 using RelicLauncher.Core.Results;
 
@@ -11,13 +12,18 @@ internal static class GamePackageFileOps
         GameVersionPackage package,
         string archivePath,
         string targetDir,
+        ISandboxBrokerClient? broker,
         CancellationToken cancellationToken)
     {
         return package.Kind switch
         {
             ClientPackageKind.Zip => ExtractZip(archivePath, targetDir),
             ClientPackageKind.TarGz => await ExtractTarGzAsync(archivePath, targetDir, cancellationToken).ConfigureAwait(false),
-            ClientPackageKind.WindowsInstaller => ExtractWindowsInstaller(archivePath, targetDir),
+            ClientPackageKind.WindowsInstaller => await ExtractWindowsInstallerAsync(
+                archivePath,
+                targetDir,
+                broker,
+                cancellationToken).ConfigureAwait(false),
             _ => Result.Failure("Unsupported package kind."),
         };
     }
@@ -77,8 +83,31 @@ internal static class GamePackageFileOps
         }
     }
 
-    private static Result ExtractWindowsInstaller(string archivePath, string targetDir)
+    private static async Task<Result> ExtractWindowsInstallerAsync(
+        string archivePath,
+        string targetDir,
+        ISandboxBrokerClient? broker,
+        CancellationToken cancellationToken)
     {
+        var arguments = new List<string>
+        {
+            "/VERYSILENT",
+            "/NORESTART",
+            $"/DIR=\"{targetDir}\"",
+        };
+
+        if (broker is not null)
+        {
+            var brokerResult = await broker.RunInstallerAsync(archivePath, arguments, cancellationToken)
+                .ConfigureAwait(false);
+            if (!brokerResult.IsSuccess)
+            {
+                return brokerResult;
+            }
+
+            return WaitForInstallerDirectory(targetDir);
+        }
+
         try
         {
             using var process = new global::System.Diagnostics.Process
@@ -86,7 +115,7 @@ internal static class GamePackageFileOps
                 StartInfo = new global::System.Diagnostics.ProcessStartInfo
                 {
                     FileName = archivePath,
-                    Arguments = $"/VERYSILENT /NORESTART /DIR=\"{targetDir}\"",
+                    Arguments = string.Join(' ', arguments),
                     UseShellExecute = false,
                     CreateNoWindow = true,
                 },
@@ -102,11 +131,26 @@ internal static class GamePackageFileOps
                 return Result.Failure($"Windows installer exited with code {process.ExitCode}.");
             }
 
-            return Result.Success();
+            return WaitForInstallerDirectory(targetDir);
         }
         catch (Exception ex) when (ex is IOException or InvalidOperationException)
         {
             return Result.Failure(ex.Message);
         }
+    }
+
+    private static Result WaitForInstallerDirectory(string targetDir)
+    {
+        for (var i = 0; i < 120; i++)
+        {
+            if (Directory.Exists(targetDir) && Directory.EnumerateFileSystemEntries(targetDir).Any())
+            {
+                return Result.Success();
+            }
+
+            Thread.Sleep(500);
+        }
+
+        return Result.Failure("Windows installer did not create the target directory.");
     }
 }

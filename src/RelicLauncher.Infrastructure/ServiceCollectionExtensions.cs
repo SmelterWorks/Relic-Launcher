@@ -16,6 +16,7 @@ using RelicLauncher.Infrastructure.News;
 using RelicLauncher.Infrastructure.Paths;
 using RelicLauncher.Infrastructure.Platform;
 using RelicLauncher.Infrastructure.Process;
+using RelicLauncher.Infrastructure.Sandbox;
 using RelicLauncher.Infrastructure.Security;
 using RelicLauncher.Infrastructure.Server;
 using RelicLauncher.Infrastructure.Servers;
@@ -41,7 +42,8 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IAccountAuthService>(sp => sp.GetRequiredService<AccountAuthService>());
         services.AddSingleton<IClientSettingsSessionWriter, ClientSettingsSessionWriter>();
         services.AddSingleton<IGameLocator, GameLocatorStub>();
-        services.AddSingleton<IProcessRunner, SafeProcessRunner>();
+        AddSandboxServices(services);
+        services.AddSingleton<IProcessRunner, SandboxedProcessRunner>();
         services.AddSingleton<IDotNetRuntimeProvisioner, DotNetRuntimeProvisioner>();
         services.AddSingleton<IUpdateCheckService, UpdateCheckServiceStub>();
         services.AddSingleton<IGameVersionCatalog, VintageStoryVersionCatalog>();
@@ -71,6 +73,21 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<AppLifetime>();
         services.AddSingleton<IAppLifetime>(sp => sp.GetRequiredService<AppLifetime>());
         return services;
+    }
+
+    private static void AddSandboxServices(IServiceCollection services)
+    {
+        services.AddSingleton<LinuxSandboxLauncher>();
+        services.AddSingleton<WindowsAppContainerAclGranter>();
+        services.AddSingleton<WindowsAppContainerLauncher>();
+        services.AddSingleton<WindowsSandboxLauncher>();
+        services.AddSingleton<PassthroughSandboxBrokerClient>();
+        services.AddSingleton<SandboxBrokerClient>();
+        services.AddSingleton<ISandboxBrokerClient>(sp => sp.GetRequiredService<SandboxBrokerClient>());
+        services.AddSingleton<SandboxBrokerHost>();
+        services.AddSingleton<SandboxSupport>();
+        services.AddSingleton<ISandboxSupport>(sp => sp.GetRequiredService<SandboxSupport>());
+        services.AddSingleton<BrokerServerConsole>();
     }
 
     private static void AddServerCatalog(IServiceCollection services)

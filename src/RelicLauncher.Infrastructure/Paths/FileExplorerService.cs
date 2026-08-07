@@ -2,15 +2,23 @@ using Microsoft.Extensions.Logging;
 using RelicLauncher.Core.Abstractions;
 using RelicLauncher.Core.Paths;
 using RelicLauncher.Core.Results;
+using RelicLauncher.Infrastructure.Sandbox;
 
 namespace RelicLauncher.Infrastructure.Paths;
 
 public sealed class FileExplorerService : IFileExplorerService
 {
+    private readonly ISandboxBrokerClient _broker;
+    private readonly ISandboxSupport _sandboxSupport;
     private readonly ILogger<FileExplorerService> _logger;
 
-    public FileExplorerService(ILogger<FileExplorerService> logger)
+    public FileExplorerService(
+        ISandboxBrokerClient broker,
+        ISandboxSupport sandboxSupport,
+        ILogger<FileExplorerService> logger)
     {
+        _broker = broker;
+        _sandboxSupport = sandboxSupport;
         _logger = logger;
     }
 
@@ -28,6 +36,11 @@ public sealed class FileExplorerService : IFileExplorerService
 
         try
         {
+            if (_sandboxSupport.IsBrokerConnected)
+            {
+                return _broker.OpenDirectoryAsync(fullPath).GetAwaiter().GetResult();
+            }
+
             if (OperatingSystem.IsWindows())
             {
                 global::System.Diagnostics.Process.Start(new global::System.Diagnostics.ProcessStartInfo("explorer.exe", fullPath) { UseShellExecute = true });

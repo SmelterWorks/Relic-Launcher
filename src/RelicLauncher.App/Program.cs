@@ -9,6 +9,7 @@ using RelicLauncher.App.ViewModels;
 using RelicLauncher.Core.Abstractions;
 using RelicLauncher.Infrastructure;
 using RelicLauncher.Infrastructure.Paths;
+using RelicLauncher.Infrastructure.Sandbox;
 using RelicLauncher.Themes;
 using Serilog;
 
@@ -38,6 +39,31 @@ internal static class Program
         if (SelfCheck.SelfCheckHost.TryHandle(args, out var selfCheckExitCode))
         {
             return selfCheckExitCode;
+        }
+
+        if (args.Contains(SandboxBootstrap.BrokerArgument, StringComparer.Ordinal))
+        {
+            using var brokerServices = BuildServices();
+            return SandboxBootstrap.RunBrokerAsync(args, brokerServices).GetAwaiter().GetResult();
+        }
+
+        try
+        {
+            using var bootstrapProbe = BuildServices();
+            var settingsStore = bootstrapProbe.GetRequiredService<ILauncherSettingsStore>();
+            var pathProvider = bootstrapProbe.GetRequiredService<IAppPathProvider>();
+            var bootstrapExit = SandboxBootstrap.TryBootstrapAsync(
+                args,
+                settingsStore,
+                pathProvider).GetAwaiter().GetResult();
+            if (bootstrapExit >= 0)
+            {
+                return bootstrapExit;
+            }
+        }
+        catch
+        {
+            // Continue without bootstrap when probe fails.
         }
 
         try
@@ -128,7 +154,7 @@ internal static class Program
         return !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("WAYLAND_DISPLAY"));
     }
 
-    internal static ServiceProvider BuildServices()
+    public static ServiceProvider BuildServices()
     {
         var pathProvider = new AppPathProvider();
         var debugLogBuffer = new RelicLauncher.Infrastructure.Logging.DebugLogBuffer();

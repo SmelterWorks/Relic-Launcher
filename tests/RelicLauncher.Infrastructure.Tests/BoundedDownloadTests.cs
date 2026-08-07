@@ -63,6 +63,7 @@ public class BoundedDownloadTests
             new FixedPathProvider(temp.Paths),
             new FakeInstalledStore(),
             new FakePlatform(),
+            new TestSandboxBrokerClient(),
             NullLogger<GameVersionInstaller>.Instance,
             new HttpClient(handler));
 

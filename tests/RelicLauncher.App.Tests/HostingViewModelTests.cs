@@ -215,12 +215,13 @@ public class HostingViewModelTests
             pathProvider,
             new JsonInstalledVersionStore(),
             platform,
+            new TestSandboxBrokerClient(),
             NullLogger<GameVersionInstaller>.Instance);
         var provisioner = new DotNetRuntimeProvisioner(
             pathProvider,
             platform,
             NullLogger<DotNetRuntimeProvisioner>.Instance);
-        var serverHost = new GameServerHost(provisioner, NullLogger<GameServerHost>.Instance);
+        var serverHost = SandboxTestHost.CreateGameServerHost(provisioner);
 
         return new HostingViewModel(
             platform,
@@ -235,6 +236,7 @@ public class HostingViewModelTests
                 new JsonInstalledServerStore(),
                 platform,
                 clientInstaller,
+                new TestSandboxBrokerClient(),
                 NullLogger<GameServerInstaller>.Instance),
             serverHost,
             new NoopAccountAuth(),

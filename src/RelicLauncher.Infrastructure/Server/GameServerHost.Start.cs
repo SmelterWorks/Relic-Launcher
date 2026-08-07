@@ -41,6 +41,22 @@ public sealed partial class GameServerHost
             return Result.Failure(runtime.Error ?? "Could not provision the required .NET runtime.");
         }
 
+        if (_sandboxSupport.IsBrokerConnected)
+        {
+            var brokerLaunch = await LaunchViaBrokerAsync(
+                request,
+                exe,
+                installPath,
+                runtime.Value!).ConfigureAwait(false);
+            if (!brokerLaunch.IsSuccess)
+            {
+                SetState(ServerProcessState.Stopped);
+                return Result.Failure(brokerLaunch.Error!);
+            }
+
+            return Result.Success();
+        }
+
         var launch = LaunchProcess(request, exe, installPath, runtime.Value!);
         if (!launch.IsSuccess)
         {

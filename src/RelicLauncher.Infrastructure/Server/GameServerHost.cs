@@ -4,6 +4,8 @@ using RelicLauncher.Core.Abstractions;
 using RelicLauncher.Core.Models;
 using RelicLauncher.Core.Results;
 
+using RelicLauncher.Infrastructure.Sandbox;
+
 namespace RelicLauncher.Infrastructure.Server;
 
 public sealed partial class GameServerHost : IGameServerHost, IDisposable
@@ -12,6 +14,9 @@ public sealed partial class GameServerHost : IGameServerHost, IDisposable
     private static readonly TimeSpan StopGracePeriod = TimeSpan.FromSeconds(15);
 
     private readonly IDotNetRuntimeProvisioner _runtimeProvisioner;
+    private readonly ISandboxBrokerClient _broker;
+    private readonly ISandboxSupport _sandboxSupport;
+    private readonly BrokerServerConsole _brokerConsole;
     private readonly ILogger<GameServerHost> _logger;
     private readonly Lock _gate = new();
     private readonly List<string> _outputLines = [];
@@ -23,10 +28,20 @@ public sealed partial class GameServerHost : IGameServerHost, IDisposable
     private Task? _stdoutTask;
     private Task? _stderrTask;
     private Task? _exitTask;
+    private Task? _brokerPollTask;
+    private int? _brokerProcessId;
 
-    public GameServerHost(IDotNetRuntimeProvisioner runtimeProvisioner, ILogger<GameServerHost> logger)
+    public GameServerHost(
+        IDotNetRuntimeProvisioner runtimeProvisioner,
+        ISandboxBrokerClient broker,
+        ISandboxSupport sandboxSupport,
+        BrokerServerConsole brokerConsole,
+        ILogger<GameServerHost> logger)
     {
         _runtimeProvisioner = runtimeProvisioner;
+        _broker = broker;
+        _sandboxSupport = sandboxSupport;
+        _brokerConsole = brokerConsole;
         _logger = logger;
     }
 
@@ -92,18 +107,35 @@ public sealed partial class GameServerHost : IGameServerHost, IDisposable
         return await StartAsync(request, cancellationToken).ConfigureAwait(false);
     }
 
-    public Task<Result> SendCommandAsync(string command, CancellationToken cancellationToken = default)
+    public async Task<Result> SendCommandAsync(string command, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        if (State != ServerProcessState.Running || _process is null)
+        if (State != ServerProcessState.Running)
         {
-            return Task.FromResult(Result.Failure("Server is not running."));
+            return Result.Failure("Server is not running.");
         }
 
         if (string.IsNullOrWhiteSpace(command))
         {
-            return Task.FromResult(Result.Failure("Command is empty."));
+            return Result.Failure("Command is empty.");
+        }
+
+        if (_brokerProcessId is not null)
+        {
+            var line = command.EndsWith('\n') ? command : command + Environment.NewLine;
+            var write = await _brokerConsole.WriteInputAsync(line, cancellationToken).ConfigureAwait(false);
+            if (write.IsSuccess)
+            {
+                AppendLine($"> {command}");
+            }
+
+            return write;
+        }
+
+        if (_process is null)
+        {
+            return Result.Failure("Server is not running.");
         }
 
         try
@@ -112,11 +144,11 @@ public sealed partial class GameServerHost : IGameServerHost, IDisposable
             writer.WriteLine(command);
             writer.Flush();
             AppendLine($"> {command}");
-            return Task.FromResult(Result.Success());
+            return Result.Success();
         }
         catch (Exception ex) when (ex is IOException or InvalidOperationException)
         {
-            return Task.FromResult(Result.Failure(ex.Message));
+            return Result.Failure(ex.Message);
         }
     }
 
