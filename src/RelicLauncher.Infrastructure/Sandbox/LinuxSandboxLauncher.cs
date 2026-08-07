@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 using RelicLauncher.Core.Results;
@@ -100,7 +101,11 @@ public sealed class LinuxSandboxLauncher
             foreach (var line in output.Split('\n', StringSplitOptions.RemoveEmptyEntries))
             {
                 if (line.StartsWith("landlock_abi=", StringComparison.Ordinal)
-                    && int.TryParse(line.AsSpan("landlock_abi=".Length), out var abi))
+                    && int.TryParse(
+                        line.AsSpan("landlock_abi=".Length),
+                        NumberStyles.Integer,
+                        CultureInfo.InvariantCulture,
+                        out var abi))
                 {
                     return abi;
                 }

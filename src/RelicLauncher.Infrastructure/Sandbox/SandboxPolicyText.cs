@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using RelicLauncher.Core.Sandbox;
 
@@ -7,12 +8,13 @@ internal static class SandboxPolicyText
 {
     public static string Serialize(SandboxPolicy policy)
     {
+        var invariant = CultureInfo.InvariantCulture;
         var builder = new StringBuilder();
-        builder.AppendLine($"kind={(int)policy.Kind}");
-        builder.AppendLine($"scope_abstract={(policy.ScopeAbstractUnixSocket ? 1 : 0)}");
-        builder.AppendLine($"scope_signal={(policy.ScopeSignal ? 1 : 0)}");
-        builder.AppendLine($"seccomp={(int)policy.SeccompProfile}");
-        builder.AppendLine($"max_abi={policy.MaxLandlockAbi}");
+        builder.AppendLine(string.Create(invariant, $"kind={(int)policy.Kind}"));
+        builder.AppendLine(string.Create(invariant, $"scope_abstract={(policy.ScopeAbstractUnixSocket ? 1 : 0)}"));
+        builder.AppendLine(string.Create(invariant, $"scope_signal={(policy.ScopeSignal ? 1 : 0)}"));
+        builder.AppendLine(string.Create(invariant, $"seccomp={(int)policy.SeccompProfile}"));
+        builder.AppendLine(string.Create(invariant, $"max_abi={policy.MaxLandlockAbi}"));
 
         foreach (var grant in policy.PathGrants)
         {

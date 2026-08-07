@@ -6,7 +6,7 @@ using RelicLauncher.Core.Sandbox;
 
 namespace RelicLauncher.Infrastructure.Sandbox;
 
-public static class SandboxBootstrap
+public static partial class SandboxBootstrap
 {
     public const string BrokerArgument = "--sandbox-broker";
 
@@ -159,21 +159,7 @@ public static class SandboxBootstrap
             platformInfo,
             AppContext.BaseDirectory);
 
-        var uiExecutable = Environment.ProcessPath ?? "dotnet";
-        var uiArgs = new List<string>();
-        if (string.Equals(uiExecutable, "dotnet", StringComparison.OrdinalIgnoreCase))
-        {
-            uiExecutable = "dotnet";
-            uiArgs.Add(Path.Combine(AppContext.BaseDirectory, "RelicLauncher.App.dll"));
-        }
-
-        foreach (var arg in args)
-        {
-            if (arg != BrokerArgument)
-            {
-                uiArgs.Add(arg);
-            }
-        }
+        var (uiExecutable, uiArgs) = BuildUiLaunchCommand(args);
 
         var env = new Dictionary<string, string?>(StringComparer.Ordinal)
         {
@@ -183,60 +169,94 @@ public static class SandboxBootstrap
 
         if (OperatingSystem.IsLinux() && linuxLauncher.IsHelperAvailable)
         {
-            var start = linuxLauncher.BuildStartInfo(
+            return await LaunchLinuxUiAsync(
+                linuxLauncher,
                 policy,
                 uiExecutable,
                 uiArgs,
                 env,
-                AppContext.BaseDirectory,
-                stdioPassthrough: false);
-            if (!start.IsSuccess)
-            {
-                return 1;
-            }
-
-            using var process = global::System.Diagnostics.Process.Start(start.Value!);
-            if (process is null)
-            {
-                return 1;
-            }
-
-            await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
-            return process.ExitCode;
+                cancellationToken).ConfigureAwait(false);
         }
 
         if (OperatingSystem.IsWindows())
         {
-            var launchRequest = new SandboxLaunchRequest
-            {
-                Kind = SandboxKind.Launcher,
-                ExecutablePath = uiExecutable,
-                Arguments = uiArgs,
-                Environment = env,
-                WorkingDirectory = AppContext.BaseDirectory,
-            };
-
-            var win = await windowsLauncher.LaunchAsync(
+            return await LaunchWindowsUiAsync(
+                windowsLauncher,
                 policy,
-                launchRequest,
+                uiExecutable,
+                uiArgs,
+                env,
                 cancellationToken).ConfigureAwait(false);
-            if (!win.IsSuccess)
-            {
-                return 1;
-            }
-
-            try
-            {
-                using var process = global::System.Diagnostics.Process.GetProcessById(win.Value!.ProcessId);
-                await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
-                return process.ExitCode;
-            }
-            catch (ArgumentException)
-            {
-                return 1;
-            }
         }
 
         return -1;
+    }
+
+    private static async Task<int> LaunchLinuxUiAsync(
+        LinuxSandboxLauncher linuxLauncher,
+        SandboxPolicy policy,
+        string uiExecutable,
+        List<string> uiArgs,
+        Dictionary<string, string?> env,
+        CancellationToken cancellationToken)
+    {
+        var start = linuxLauncher.BuildStartInfo(
+            policy,
+            uiExecutable,
+            uiArgs,
+            env,
+            AppContext.BaseDirectory,
+            stdioPassthrough: false);
+        if (!start.IsSuccess)
+        {
+            return 1;
+        }
+
+        using var process = global::System.Diagnostics.Process.Start(start.Value!);
+        if (process is null)
+        {
+            return 1;
+        }
+
+        await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
+        return process.ExitCode;
+    }
+
+    private static async Task<int> LaunchWindowsUiAsync(
+        WindowsSandboxLauncher windowsLauncher,
+        SandboxPolicy policy,
+        string uiExecutable,
+        List<string> uiArgs,
+        Dictionary<string, string?> env,
+        CancellationToken cancellationToken)
+    {
+        var launchRequest = new SandboxLaunchRequest
+        {
+            Kind = SandboxKind.Launcher,
+            ExecutablePath = uiExecutable,
+            Arguments = uiArgs,
+            Environment = env,
+            WorkingDirectory = AppContext.BaseDirectory,
+        };
+
+        var win = await windowsLauncher.LaunchAsync(
+            policy,
+            launchRequest,
+            cancellationToken).ConfigureAwait(false);
+        if (!win.IsSuccess)
+        {
+            return 1;
+        }
+
+        try
+        {
+            using var process = global::System.Diagnostics.Process.GetProcessById(win.Value!.ProcessId);
+            await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
+            return process.ExitCode;
+        }
+        catch (ArgumentException)
+        {
+            return 1;
+        }
     }
 }

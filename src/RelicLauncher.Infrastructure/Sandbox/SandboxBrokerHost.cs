@@ -11,11 +11,10 @@ using RelicLauncher.Core.Models;
 using RelicLauncher.Core.Results;
 using RelicLauncher.Core.Sandbox;
 using RelicLauncher.Core.Server;
-using RelicLauncher.Core.Server;
 
 namespace RelicLauncher.Infrastructure.Sandbox;
 
-public sealed class SandboxBrokerHost : IAsyncDisposable
+public sealed partial class SandboxBrokerHost : IAsyncDisposable
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -71,7 +70,7 @@ public sealed class SandboxBrokerHost : IAsyncDisposable
 
     private async Task HandleClientAsync(Socket client, CancellationToken cancellationToken)
     {
-        await using var stream = new NetworkStream(client, ownsSocket: true);
+        using var stream = new NetworkStream(client, ownsSocket: true);
         var transport = BrokerPipeTransport.FromStream(stream, _logger);
         try
         {
@@ -203,7 +202,20 @@ public sealed class SandboxBrokerHost : IAsyncDisposable
         var linuxLauncher = new LinuxSandboxLauncher(
             Microsoft.Extensions.Logging.Abstractions.NullLogger<LinuxSandboxLauncher>.Instance);
 
-        ProcessStartInfo startInfo;
+        var startInfo = BuildRedirectedStartInfo(linuxLauncher, policy, request);
+        if (startInfo is null)
+        {
+            return new BrokerResponse { Ok = false, Error = "Could not build redirected start info." };
+        }
+
+        return StartManagedRedirectedProcess(linuxLauncher, startInfo);
+    }
+
+    private static ProcessStartInfo? BuildRedirectedStartInfo(
+        LinuxSandboxLauncher linuxLauncher,
+        SandboxPolicy policy,
+        SandboxLaunchRequest request)
+    {
         if (OperatingSystem.IsLinux() && linuxLauncher.IsHelperAvailable)
         {
             var built = linuxLauncher.BuildStartInfo(
@@ -218,38 +230,44 @@ public sealed class SandboxBrokerHost : IAsyncDisposable
                 stdioPassthrough: true);
             if (!built.IsSuccess)
             {
-                return new BrokerResponse { Ok = false, Error = built.Error };
+                return null;
             }
 
-            startInfo = built.Value!;
-            startInfo.RedirectStandardInput = true;
-            startInfo.RedirectStandardOutput = true;
-            startInfo.RedirectStandardError = true;
+            var linuxStartInfo = built.Value!;
+            linuxStartInfo.RedirectStandardInput = true;
+            linuxStartInfo.RedirectStandardOutput = true;
+            linuxStartInfo.RedirectStandardError = true;
+            return linuxStartInfo;
         }
-        else
+
+        var startInfo = new ProcessStartInfo
         {
-            startInfo = new ProcessStartInfo
-            {
-                FileName = request.ExecutablePath,
-                UseShellExecute = false,
-                WorkingDirectory = request.WorkingDirectory
-                    ?? Path.GetDirectoryName(request.ExecutablePath)
-                    ?? Environment.CurrentDirectory,
-                RedirectStandardInput = true,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-            };
-            foreach (var arg in request.Arguments)
-            {
-                startInfo.ArgumentList.Add(arg);
-            }
-
-            foreach (var pair in request.Environment)
-            {
-                startInfo.Environment[pair.Key] = pair.Value;
-            }
+            FileName = request.ExecutablePath,
+            UseShellExecute = false,
+            WorkingDirectory = request.WorkingDirectory
+                ?? Path.GetDirectoryName(request.ExecutablePath)
+                ?? Environment.CurrentDirectory,
+            RedirectStandardInput = true,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+        };
+        foreach (var arg in request.Arguments)
+        {
+            startInfo.ArgumentList.Add(arg);
         }
 
+        foreach (var pair in request.Environment)
+        {
+            startInfo.Environment[pair.Key] = pair.Value;
+        }
+
+        return startInfo;
+    }
+
+    private BrokerResponse StartManagedRedirectedProcess(
+        LinuxSandboxLauncher linuxLauncher,
+        ProcessStartInfo startInfo)
+    {
         try
         {
             var process = global::System.Diagnostics.Process.Start(startInfo);
@@ -382,94 +400,5 @@ public sealed class SandboxBrokerHost : IAsyncDisposable
 
             offset += read;
         }
-    }
-}
-
-internal sealed class BrokerManagedProcess : IDisposable
-{
-    private readonly global::System.Diagnostics.Process _process;
-    private readonly MemoryStream _stdoutBuffer = new();
-    private readonly MemoryStream _stderrBuffer = new();
-    private readonly object _gate = new();
-
-    public BrokerManagedProcess(global::System.Diagnostics.Process process)
-    {
-        _process = process;
-        _process.OutputDataReceived += (_, e) =>
-        {
-            if (e.Data is null)
-            {
-                return;
-            }
-
-            lock (_gate)
-            {
-                var bytes = Encoding.UTF8.GetBytes(e.Data + Environment.NewLine);
-                _stdoutBuffer.Write(bytes, 0, bytes.Length);
-            }
-        };
-        _process.ErrorDataReceived += (_, e) =>
-        {
-            if (e.Data is null)
-            {
-                return;
-            }
-
-            lock (_gate)
-            {
-                var bytes = Encoding.UTF8.GetBytes(e.Data + Environment.NewLine);
-                _stderrBuffer.Write(bytes, 0, bytes.Length);
-            }
-        };
-        _process.BeginOutputReadLine();
-        _process.BeginErrorReadLine();
-    }
-
-    public byte[] ReadOutput()
-    {
-        lock (_gate)
-        {
-            var stdout = _stdoutBuffer.ToArray();
-            var stderr = _stderrBuffer.ToArray();
-            _stdoutBuffer.SetLength(0);
-            _stderrBuffer.SetLength(0);
-            if (stderr.Length == 0)
-            {
-                return stdout;
-            }
-
-            if (stdout.Length == 0)
-            {
-                return stderr;
-            }
-
-            var combined = new byte[stdout.Length + stderr.Length];
-            Buffer.BlockCopy(stdout, 0, combined, 0, stdout.Length);
-            Buffer.BlockCopy(stderr, 0, combined, stdout.Length, stderr.Length);
-            return combined;
-        }
-    }
-
-    public void WriteInput(byte[] data)
-    {
-        _process.StandardInput.BaseStream.Write(data, 0, data.Length);
-        _process.StandardInput.Flush();
-    }
-
-    public void Dispose()
-    {
-        try
-        {
-            if (!_process.HasExited)
-            {
-                _process.Kill(entireProcessTree: true);
-            }
-        }
-        catch
-        {
-            // Best effort.
-        }
-
-        _process.Dispose();
     }
 }

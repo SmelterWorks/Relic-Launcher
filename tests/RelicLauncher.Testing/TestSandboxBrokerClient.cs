@@ -45,22 +45,3 @@ public sealed class TestSandboxBrokerClient : ISandboxBrokerClient
     public Task<Result> KillProcessAsync(int processId, CancellationToken cancellationToken = default)
         => Task.FromResult(Result.Success());
 }
-
-public sealed class TestSandboxSupport : ISandboxSupport
-{
-    public bool IsIsolationAvailable => false;
-
-    public bool IsRunningSandboxed => false;
-
-    public bool IsBrokerConnected => false;
-
-    public int? LandlockAbi => null;
-
-    public bool SeccompAvailable => false;
-
-    public bool AppContainerAvailable => false;
-
-    public string GetStatusSummary() => "Disabled in tests";
-
-    public SandboxIsolationStatus GetStatus() => new();
-}

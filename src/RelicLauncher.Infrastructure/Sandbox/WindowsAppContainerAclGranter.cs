@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Runtime.Versioning;
 using System.Security.AccessControl;
 using System.Security.Principal;
 using Microsoft.Extensions.Logging;
@@ -71,6 +73,7 @@ public sealed class WindowsAppContainerAclGranter
         }
     }
 
+    [SupportedOSPlatform("windows")]
     private static void GrantDirectory(IdentityReference identity, string path, FileSystemRights rights)
     {
         var info = new DirectoryInfo(path);

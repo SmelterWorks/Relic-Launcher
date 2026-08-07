@@ -209,11 +209,14 @@ public sealed class SandboxBrokerClient : ISandboxBrokerClient
     {
         try
         {
-            await using var transport = _socketPath is not null
+            var transport = _socketPath is not null
                 ? await BrokerPipeTransport.ConnectUnixSocketAsync(_socketPath, cancellationToken).ConfigureAwait(false)
                 : await BrokerPipeTransport.ConnectNamedPipeAsync(_pipeName!, cancellationToken).ConfigureAwait(false);
 
-            return await transport.SendAsync(request, cancellationToken).ConfigureAwait(false);
+            await using (transport.ConfigureAwait(false))
+            {
+                return await transport.SendAsync(request, cancellationToken).ConfigureAwait(false);
+            }
         }
         catch (Exception ex) when (ex is IOException or TimeoutException or EndOfStreamException)
         {
