@@ -1,6 +1,7 @@
 using System.Runtime.InteropServices;
 using RelicLauncher.Core.Abstractions;
 using RelicLauncher.Core.Models;
+using RelicLauncher.Core.Paths;
 
 namespace RelicLauncher.Infrastructure.Platform;
 
@@ -15,7 +16,9 @@ public sealed class RuntimePlatform : IRuntimePlatform
             Os = os,
             Arch = arch,
             ClientPackageKey = ResolveClientPackageKey(os, arch),
+            ServerPackageKey = ResolveServerPackageKey(os),
             DefaultDataPath = ResolveDefaultDataPath(os),
+            DefaultServerDataPath = GameServerInstallLayout.ResolveDefaultServerDataPath(os),
             DefaultInstallsRoot = ResolveDefaultInstallsRoot(os),
         };
     }
@@ -47,6 +50,15 @@ public sealed class RuntimePlatform : IRuntimePlatform
             Architecture.X64 => HostArch.X64,
             Architecture.Arm64 => HostArch.Arm64,
             _ => HostArch.Unknown,
+        };
+    }
+
+    internal static string ResolveServerPackageKey(HostOs os)
+    {
+        return os switch
+        {
+            HostOs.Windows => "windowsserver",
+            _ => "linuxserver",
         };
     }
 

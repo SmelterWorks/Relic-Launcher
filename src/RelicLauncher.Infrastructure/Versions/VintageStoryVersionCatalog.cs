@@ -300,7 +300,7 @@ public sealed class VintageStoryVersionCatalog : IGameVersionCatalog
     private static GameVersionPackage? ParsePackage(JsonProperty platformProperty, ref bool isLatest)
     {
         var platformKey = platformProperty.Name;
-        if (platformKey is "linuxserver" or "windowsserver" or "windowsupdate")
+        if (platformKey is "windowsupdate")
         {
             return null;
         }

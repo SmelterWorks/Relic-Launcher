@@ -18,11 +18,12 @@ Built with C# / .NET 10 and Avalonia 12.1. Targets the same desktop platforms Vi
 - Backup and restore mods, worlds, and installed game versions as a single zip
 - Game news, custom themes, and support for Windows, Linux, and macOS
 - In-app Vintage Story wiki browser (domain locked, URL configurable in Settings)
+- Local dedicated server hosting on Windows and Linux (install, start/stop/restart, live console)
 
 ## Upcoming
 
 - Launcher sandboxing (the app itself, not the game)
-- Server Hosting
+- SmelterWorks managed server hosting
 - Custom fonts support
 - i18n - multi-language support
 

@@ -14,6 +14,8 @@ public partial class MainWindowViewModel : ViewModelBase
     private readonly IServiceProvider _services;
     private readonly IEndpointProvider _endpoints;
     private readonly IConfirmDialogService _confirmDialog;
+    private readonly IGameServerHost _serverHost;
+    private readonly IRuntimePlatform _platform;
     private readonly Dictionary<string, ViewModelBase> _pageCache = new(StringComparer.Ordinal);
 
     [ObservableProperty]
@@ -32,19 +34,25 @@ public partial class MainWindowViewModel : ViewModelBase
     public MainWindowViewModel(
         IServiceProvider services,
         IEndpointProvider endpoints,
-        IConfirmDialogService confirmDialog)
+        IConfirmDialogService confirmDialog,
+        IGameServerHost serverHost,
+        IRuntimePlatform platform)
     {
         _services = services;
         _endpoints = endpoints;
         _confirmDialog = confirmDialog;
+        _serverHost = serverHost;
+        _platform = platform;
     }
 
     public LauncherSettings Settings { get; private set; } = new();
 
+    public bool IsHostingSupported => true;
     public bool IsHomeActive => string.Equals(ActiveNav, "home", StringComparison.Ordinal);
     public bool IsVersionsActive => string.Equals(ActiveNav, "versions", StringComparison.Ordinal);
     public bool IsModsActive => string.Equals(ActiveNav, "mods", StringComparison.Ordinal);
     public bool IsBackupActive => string.Equals(ActiveNav, "backup", StringComparison.Ordinal);
+    public bool IsHostingActive => string.Equals(ActiveNav, "hosting", StringComparison.Ordinal);
     public bool IsWikiActive => string.Equals(ActiveNav, "wiki", StringComparison.Ordinal);
     public bool IsSettingsActive => string.Equals(ActiveNav, "settings", StringComparison.Ordinal);
     public bool IsAboutActive => string.Equals(ActiveNav, "about", StringComparison.Ordinal);
@@ -59,16 +67,26 @@ public partial class MainWindowViewModel : ViewModelBase
 
     public Task<bool> ConfirmCloseAsync()
     {
-        if (!Settings.ConfirmBeforeExit)
+        return ConfirmCloseCoreAsync();
+    }
+
+    private async Task<bool> ConfirmCloseCoreAsync()
+    {
+        if (_serverHost.State is ServerProcessState.Running or ServerProcessState.Starting or ServerProcessState.Stopping)
         {
-            return Task.FromResult(true);
+            await _serverHost.StopAsync().ConfigureAwait(true);
         }
 
-        return _confirmDialog.ConfirmAsync(
+        if (!Settings.ConfirmBeforeExit)
+        {
+            return true;
+        }
+
+        return await _confirmDialog.ConfirmAsync(
             "Exit Relic Launcher",
             "Close Relic Launcher?",
             "Exit",
-            "Stay");
+            "Stay").ConfigureAwait(true);
     }
 
     [RelayCommand]
@@ -113,6 +131,17 @@ public partial class MainWindowViewModel : ViewModelBase
     }, existing =>
     {
         ((BackupViewModel)existing).Bind(Settings, refresh: false);
+    });
+
+    [RelayCommand]
+    private void NavigateHosting() => Navigate("hosting", () =>
+    {
+        var page = _services.GetRequiredService<HostingViewModel>();
+        page.Bind(Settings, OnSettingsChanged);
+        return page;
+    }, existing =>
+    {
+        ((HostingViewModel)existing).Bind(Settings, OnSettingsChanged, refresh: false);
     });
 
     [RelayCommand]
@@ -207,6 +236,10 @@ public partial class MainWindowViewModel : ViewModelBase
         {
             backup.Bind(settings, refresh: false);
         }
+        else if (CurrentPage is HostingViewModel hosting)
+        {
+            hosting.Bind(settings, OnSettingsChanged, refresh: false);
+        }
         else if (CurrentPage is WikiViewModel wiki)
         {
             wiki.Bind(settings, refresh: false);
@@ -229,6 +262,8 @@ public partial class MainWindowViewModel : ViewModelBase
         OnPropertyChanged(nameof(IsVersionsActive));
         OnPropertyChanged(nameof(IsModsActive));
         OnPropertyChanged(nameof(IsBackupActive));
+        OnPropertyChanged(nameof(IsHostingActive));
+        OnPropertyChanged(nameof(IsHostingSupported));
         OnPropertyChanged(nameof(IsWikiActive));
         OnPropertyChanged(nameof(IsSettingsActive));
         OnPropertyChanged(nameof(IsAboutActive));

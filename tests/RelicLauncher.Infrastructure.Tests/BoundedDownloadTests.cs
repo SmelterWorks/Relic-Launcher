@@ -97,7 +97,9 @@ public class BoundedDownloadTests
             Os = HostOs.Linux,
             Arch = HostArch.X64,
             ClientPackageKey = "linux",
+            ServerPackageKey = "linuxserver",
             DefaultDataPath = "/tmp/data",
+            DefaultServerDataPath = "/tmp/server-data",
             DefaultInstallsRoot = "/tmp/installs",
         };
     }

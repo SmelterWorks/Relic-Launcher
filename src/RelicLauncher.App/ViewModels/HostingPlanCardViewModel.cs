@@ -1,0 +1,87 @@
+using RelicLauncher.Core.Models;
+
+
+
+namespace RelicLauncher.App.ViewModels;
+
+
+
+public sealed class HostingPlanCardViewModel
+
+{
+
+    public HostingPlanCardViewModel(HostingPlanInfo plan)
+
+    {
+
+        Name = plan.Name;
+
+        Subtitle = plan.Subtitle ?? string.Empty;
+
+        MonthlyPrice = plan.MonthlyPrice ?? string.Empty;
+
+        AnnualPrice = plan.AnnualPrice ?? string.Empty;
+
+        Highlights = plan.Highlights;
+
+        HasMonthlyPrice = !string.IsNullOrWhiteSpace(MonthlyPrice);
+
+        HasAnnualPrice = !string.IsNullOrWhiteSpace(AnnualPrice);
+
+        HasSubtitle = !string.IsNullOrWhiteSpace(Subtitle);
+
+        PriceSummary = BuildPriceSummary(MonthlyPrice, AnnualPrice, HasMonthlyPrice, HasAnnualPrice);
+
+    }
+
+
+
+    public string Name { get; }
+
+    public string Subtitle { get; }
+
+    public string MonthlyPrice { get; }
+
+    public string AnnualPrice { get; }
+
+    public string PriceSummary { get; }
+
+    public IReadOnlyList<string> Highlights { get; }
+
+    public bool HasMonthlyPrice { get; }
+
+    public bool HasAnnualPrice { get; }
+
+    public bool HasSubtitle { get; }
+
+
+
+    private static string BuildPriceSummary(string monthly, string annual, bool hasMonthly, bool hasAnnual)
+
+    {
+
+        if (hasMonthly && hasAnnual)
+
+        {
+
+            return $"{monthly}  |  {annual}";
+
+        }
+
+
+
+        if (hasMonthly)
+
+        {
+
+            return monthly;
+
+        }
+
+
+
+        return hasAnnual ? annual : string.Empty;
+
+    }
+
+}

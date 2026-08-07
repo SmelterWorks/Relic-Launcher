@@ -17,6 +17,7 @@ using RelicLauncher.Infrastructure.Paths;
 using RelicLauncher.Infrastructure.Platform;
 using RelicLauncher.Infrastructure.Process;
 using RelicLauncher.Infrastructure.Security;
+using RelicLauncher.Infrastructure.Server;
 using RelicLauncher.Infrastructure.Settings;
 using RelicLauncher.Infrastructure.Stubs;
 using RelicLauncher.Infrastructure.Transfers;
@@ -44,8 +45,10 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IUpdateCheckService, UpdateCheckServiceStub>();
         services.AddSingleton<IGameVersionCatalog, VintageStoryVersionCatalog>();
         services.AddSingleton<IInstalledVersionStore, JsonInstalledVersionStore>();
-        services.AddSingleton<IGameVersionInstaller, GameVersionInstaller>();
+        services.AddSingleton<GameVersionInstaller>();
+        services.AddSingleton<IGameVersionInstaller>(sp => sp.GetRequiredService<GameVersionInstaller>());
         services.AddSingleton<IGameLaunchService, GameLaunchService>();
+        AddServerHosting(services);
         services.AddSingleton<IBackupService, BackupService>();
         services.AddSingleton<IModDbClient, ModDbClient>();
         services.AddSingleton<IModReleaseResolver, ModReleaseResolver>();
@@ -66,6 +69,14 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<AppLifetime>();
         services.AddSingleton<IAppLifetime>(sp => sp.GetRequiredService<AppLifetime>());
         return services;
+    }
+
+    private static void AddServerHosting(IServiceCollection services)
+    {
+        services.AddSingleton<IInstalledServerStore, JsonInstalledServerStore>();
+        services.AddSingleton<IGameServerInstaller, GameServerInstaller>();
+        services.AddSingleton<IGameServerHost, GameServerHost>();
+        services.AddSingleton<ISmelterWorksHostingFeedService, SmelterWorksHostingFeedService>();
     }
 
     public static ILoggerFactory CreateSerilogLoggerFactory(IAppPathProvider pathProvider, DebugLogBuffer debugBuffer)

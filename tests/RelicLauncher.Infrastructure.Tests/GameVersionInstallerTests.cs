@@ -296,7 +296,9 @@ public class GameVersionInstallerTests
             Os = os,
             Arch = HostArch.X64,
             ClientPackageKey = packageKey,
+            ServerPackageKey = os == HostOs.Windows ? "windowsserver" : "linuxserver",
             DefaultDataPath = "/tmp/data",
+            DefaultServerDataPath = "/tmp/server-data",
             DefaultInstallsRoot = "/tmp/installs",
         };
 

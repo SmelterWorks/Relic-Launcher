@@ -72,7 +72,7 @@ public class ParserFuzzTests
     [Fact]
     public void ParseCatalog_Throws_OnUnparseableVersionEntries()
     {
-        var json = """{ "1.0.0": { "linuxserver": { "filename": "s.tar.gz", "urls": { "cdn": "x" } } } }""";
+        var json = """{ "1.0.0": { "windowsupdate": { "filename": "u.exe", "urls": { "cdn": "x" } } } }""";
 
         var act = () => VintageStoryVersionCatalog.ParseCatalog(json);
 

@@ -130,7 +130,9 @@ public class DotNetRuntimeProvisionerTests
                 Os = HostOs.Linux,
                 Arch = HostArch.Arm64,
                 ClientPackageKey = "linux-arm64",
+                ServerPackageKey = "linuxserver",
                 DefaultDataPath = "/tmp/data",
+                DefaultServerDataPath = "/tmp/server-data",
                 DefaultInstallsRoot = "/tmp/installs",
             },
         };

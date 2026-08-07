@@ -84,6 +84,72 @@
     <Setter Property="Foreground" Value="{DynamicResource Theme.Accent}" />
   </Style>
 
+  <Style Selector="Button.hosting-tab">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource Theme.TextMuted}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Theme.Border}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="Padding" Value="18,8" />
+    <Setter Property="CornerRadius" Value="{DynamicResource Theme.Radius}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+
+  <Style Selector="Button.hosting-tab.active">
+    <Setter Property="Background" Value="{DynamicResource Theme.Bg2}" />
+    <Setter Property="Foreground" Value="{DynamicResource Theme.Accent}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Theme.Accent}" />
+  </Style>
+
+  <Style Selector="Border.hosting-panel">
+    <Setter Property="Background" Value="{DynamicResource Theme.Surface}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Theme.Border}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="{DynamicResource Theme.Radius}" />
+    <Setter Property="Padding" Value="16" />
+  </Style>
+
+  <Style Selector="Border.hosting-console">
+    <Setter Property="Background" Value="{DynamicResource Theme.Bg2}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Theme.Border}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="{DynamicResource Theme.Radius}" />
+    <Setter Property="ClipToBounds" Value="True" />
+  </Style>
+
+  <Style Selector="Border.hosting-status-pill">
+    <Setter Property="Background" Value="{DynamicResource Theme.Bg2}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Theme.Border}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="{DynamicResource Theme.Radius}" />
+    <Setter Property="MinHeight" Value="36" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+
+  <Style Selector="Border.hosting-status-pill TextBlock">
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="HorizontalAlignment" Value="Center" />
+  </Style>
+
+  <Style Selector="Border.hosting-plan-card">
+    <Setter Property="Background" Value="{DynamicResource Theme.Surface}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Theme.Border}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="{DynamicResource Theme.Radius}" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="ClipToBounds" Value="True" />
+  </Style>
+
+  <Style Selector="Border.hosting-plan-card-header">
+    <Setter Property="Background" Value="{DynamicResource Theme.Bg2}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Theme.Border}" />
+    <Setter Property="BorderThickness" Value="0,0,0,1" />
+    <Setter Property="Padding" Value="16,14" />
+  </Style>
+
+  <Style Selector="Border.hosting-plan-card-body">
+    <Setter Property="Padding" Value="16" />
+  </Style>
+
   <Style Selector="Button:focus-visible /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="BorderBrush" Value="{DynamicResource Theme.Accent}" />
     <Setter Property="BorderThickness" Value="2" />

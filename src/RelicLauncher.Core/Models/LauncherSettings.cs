@@ -11,6 +11,8 @@ public sealed class LauncherSettings
     public string? InstallsRoot { get; set; }
     public string? SelectedVersion { get; set; }
     public string? DataPath { get; set; }
+    public string? SelectedServerVersion { get; set; }
+    public string? ServerDataPath { get; set; }
     public bool ConfirmBeforeExit { get; set; }
     public bool WarnOnBlockedMods { get; set; } = true;
     public ModUpdateMode ModUpdateMode { get; set; } = ModUpdateMode.Prompt;

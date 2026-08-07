@@ -1,0 +1,265 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:RelicLauncher.App.ViewModels"
+             xmlns:controls="using:RelicLauncher.App.Views.Controls"
+             xmlns:i="https://github.com/projektanker/icons.avalonia"
+             x:Class="RelicLauncher.App.Views.Pages.HostingPage"
+             x:DataType="vm:HostingViewModel">
+  <Grid RowDefinitions="Auto,Auto,*">
+    <controls:PageHeader Title="Hosting"
+                         Subtitle="Run a local dedicated server or preview SmelterWorks managed hosting." />
+
+    <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8" Margin="0,16,0,12">
+      <Button Classes="hosting-tab"
+              Classes.active="{Binding IsLocalSection}"
+              Content="Local"
+              Command="{Binding ShowLocalSectionCommand}"
+              IsVisible="{Binding IsLocalHostingSupported}"
+              AutomationProperties.Name="Local hosting" />
+      <Button Classes="hosting-tab"
+              Classes.active="{Binding IsCloudSection}"
+              Content="Cloud"
+              Command="{Binding ShowCloudSectionCommand}"
+              AutomationProperties.Name="Cloud hosting" />
+    </StackPanel>
+
+    <Grid Grid.Row="2">
+      <ScrollViewer IsVisible="{Binding IsLocalSection}" VerticalScrollBarVisibility="Auto">
+        <StackPanel Spacing="16" MaxWidth="920">
+          <TextBlock Text="{Binding EntitlementNote}"
+                     Classes="muted"
+                     TextWrapping="Wrap"
+                     IsVisible="{Binding ShowEntitlementNote}" />
+
+          <Border Classes="hosting-panel" IsVisible="{Binding IsLocalHostingSupported}">
+            <StackPanel Spacing="14">
+              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                <StackPanel Grid.Column="0" Spacing="6">
+                  <TextBlock Text="Server version" Classes="settings-field-label" />
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <ComboBox ItemsSource="{Binding InstalledServerVersions}"
+                              SelectedItem="{Binding SelectedInstalledVersion}"
+                              PlaceholderText="No server installed"
+                              MinWidth="200"
+                              AutomationProperties.Name="Installed server version" />
+                    <Button Classes="ghost"
+                            Width="36"
+                            Height="36"
+                            Padding="0"
+                            ToolTip.Tip="{Binding UpgradeTooltip}"
+                            Command="{Binding UpgradeToLatestCommand}"
+                            IsVisible="{Binding HasUpgradeAvailable}"
+                            IsEnabled="{Binding CanUpgradeToLatest}"
+                            AutomationProperties.Name="Upgrade server version">
+                      <i:Icon Value="mdi-arrow-up-bold-circle-outline" Width="18" Height="18" />
+                    </Button>
+                    <Button Classes="ghost"
+                            Width="36"
+                            Height="36"
+                            Padding="0"
+                            ToolTip.Tip="Uninstall selected server version"
+                            Command="{Binding UninstallSelectedVersionCommand}"
+                            IsVisible="{Binding HasInstalledVersions}"
+                            IsEnabled="{Binding CanUninstallSelected}"
+                            AutomationProperties.Name="Uninstall server version">
+                      <i:Icon Value="mdi-delete-outline" Width="18" Height="18" />
+                    </Button>
+                  </StackPanel>
+                </StackPanel>
+                <StackPanel Grid.Column="1"
+                            Spacing="6"
+                            VerticalAlignment="Bottom"
+                            IsVisible="{Binding HasInstallableServerVersions}">
+                  <TextBlock Text="Install version" Classes="settings-field-label" />
+                  <ComboBox ItemsSource="{Binding CatalogServerVersions}"
+                            SelectedItem="{Binding SelectedCatalogVersion}"
+                            MinWidth="160"
+                            IsVisible="{Binding ShowCatalogVersionPicker}"
+                            AutomationProperties.Name="Server version to install" />
+                  <Button Classes="ghost"
+                          Content="Install"
+                          Command="{Binding InstallSelectedVersionCommand}"
+                          IsEnabled="{Binding !IsBusy}"
+                          IsVisible="{Binding ShowCatalogVersionPicker}"
+                          HorizontalAlignment="Stretch"
+                          AutomationProperties.Name="Install server version" />
+                  <Button Classes="primary"
+                          Content="{Binding InstallLatestLabel}"
+                          Command="{Binding InstallLatestServerCommand}"
+                          IsEnabled="{Binding CanInstallLatestServer}"
+                          IsVisible="{Binding CanInstallLatestServer}"
+                          HorizontalAlignment="Stretch"
+                          AutomationProperties.Name="Install latest server version" />
+                </StackPanel>
+              </Grid>
+
+              <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                <Border Classes="hosting-status-pill" Padding="14,8" VerticalAlignment="Center">
+                  <TextBlock Text="{Binding ServerStateLabel}" FontWeight="SemiBold" />
+                </Border>
+                <Button Classes="primary" Content="Start" Command="{Binding StartServerCommand}" IsEnabled="{Binding CanStart}" />
+                <Button Classes="ghost" Content="Stop" Command="{Binding StopServerCommand}" IsEnabled="{Binding CanStop}" />
+                <Button Classes="ghost" Content="Restart" Command="{Binding RestartServerCommand}" IsEnabled="{Binding CanRestart}" />
+                <Button Classes="ghost" Content="Wiki" Command="{Binding OpenWikiCommand}" />
+                <Button Classes="ghost" Content="Refresh" Command="{Binding RefreshCommand}" IsEnabled="{Binding !IsBusy}" />
+              </StackPanel>
+
+              <StackPanel Spacing="6" IsVisible="{Binding ShowListeningEndpoints}">
+                <TextBlock Text="Listening on" Classes="settings-field-label" />
+                <ItemsControl ItemsSource="{Binding ListeningEndpoints}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                      <TextBlock Text="{Binding}" Classes="muted" FontFamily="Consolas,Courier New,monospace" />
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
+
+              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                <controls:FolderPathRow Grid.Column="0" DataContext="{Binding ServerDataFolder}" />
+                <Button Grid.Column="1"
+                        Classes="ghost"
+                        Content="Browse"
+                        VerticalAlignment="Bottom"
+                        Command="{Binding BrowseServerDataPathCommand}" />
+              </Grid>
+              <controls:FolderPathRow DataContext="{Binding ServerInstallFolder}" />
+
+              <StackPanel Spacing="8">
+                <Grid ColumnDefinitions="*,Auto">
+                  <TextBlock Text="Console" Classes="settings-field-label" VerticalAlignment="Center" />
+                  <Button Grid.Column="1"
+                          Classes="ghost"
+                          Content="Clear"
+                          Command="{Binding ClearConsoleCommand}" />
+                </Grid>
+                <Border Classes="hosting-console" Height="260">
+                  <ScrollViewer x:Name="ConsoleScroll"
+                                VerticalScrollBarVisibility="Auto"
+                                HorizontalScrollBarVisibility="Auto">
+                    <TextBlock Text="{Binding ConsoleText}"
+                               FontFamily="Consolas,Courier New,monospace"
+                               TextWrapping="Wrap"
+                               Margin="10" />
+                  </ScrollViewer>
+                </Border>
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                  <TextBox Grid.Column="0"
+                           Text="{Binding CommandText}"
+                           PlaceholderText="Server command"
+                           KeyDown="OnCommandKeyDown"
+                           AutomationProperties.Name="Server command input" />
+                  <Button Grid.Column="1"
+                          Classes="primary"
+                          Content="Send"
+                          Command="{Binding SendCommandCommand}"
+                          IsEnabled="{Binding CanSendCommand}" />
+                </Grid>
+              </StackPanel>
+
+              <StackPanel Spacing="4" IsVisible="{Binding IsBusy}">
+                <TextBlock Text="{Binding ProgressLabel}" Classes="muted" TextWrapping="Wrap" />
+                <ProgressBar Minimum="0" Maximum="1" Value="{Binding Progress}" Height="6" />
+              </StackPanel>
+            </StackPanel>
+          </Border>
+
+          <TextBlock Text="Local server hosting is available on Windows and Linux."
+                     Classes="muted"
+                     TextWrapping="Wrap"
+                     IsVisible="{Binding !IsLocalHostingSupported}" />
+        </StackPanel>
+      </ScrollViewer>
+
+      <ScrollViewer x:Name="CloudPlanScroll"
+                    IsVisible="{Binding IsCloudSection}"
+                    VerticalScrollBarVisibility="Auto">
+        <StackPanel Spacing="16" MaxWidth="960">
+          <TextBlock Text="SmelterWorks managed Vintage Story servers in the US and Germany."
+                     TextWrapping="Wrap"
+                     Classes="muted" />
+
+          <StackPanel Orientation="Horizontal" Spacing="12">
+            <Button Classes="ghost"
+                    Content="Refresh plans"
+                    Command="{Binding LoadCloudPlansCommand}"
+                    IsEnabled="{Binding !IsLoadingCloudPlans}" />
+            <Button Classes="ghost"
+                    Content="smelterworks.com/hosting"
+                    Command="{Binding OpenSmelterWorksHostingCommand}" />
+          </StackPanel>
+
+          <TextBlock Text="Loading SmelterWorks hosting plans..."
+                     Classes="muted"
+                     IsVisible="{Binding IsLoadingCloudPlans}" />
+
+          <Border x:Name="CloudPlansPanel" IsVisible="{Binding ShowCloudPlanCards}">
+            <ItemsControl x:Name="CloudPlansItems" ItemsSource="{Binding CloudPlans}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <WrapPanel Orientation="Horizontal" />
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:HostingPlanCardViewModel">
+                  <Border Classes="hosting-plan-card" Width="300" MinHeight="320" Margin="0,0,16,16">
+                    <StackPanel>
+                      <Border Classes="hosting-plan-card-header">
+                        <StackPanel Spacing="4">
+                          <TextBlock Text="{Binding Name}" FontSize="24" FontWeight="SemiBold" />
+                          <TextBlock Text="{Binding Subtitle}" Classes="muted" IsVisible="{Binding HasSubtitle}" />
+                        </StackPanel>
+                      </Border>
+                      <Border Classes="hosting-plan-card-body">
+                        <StackPanel Spacing="12">
+                          <TextBlock Text="{Binding PriceSummary}"
+                                     FontSize="18"
+                                     FontWeight="SemiBold"
+                                     IsVisible="{Binding PriceSummary, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                          <Border Height="1" Background="{DynamicResource Theme.Border}" />
+                          <ItemsControl ItemsSource="{Binding Highlights}">
+                            <ItemsControl.ItemTemplate>
+                              <DataTemplate>
+                                <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,0,0,6">
+                                  <i:Icon Value="mdi-check-circle-outline"
+                                          Width="16"
+                                          Height="16"
+                                          Foreground="{DynamicResource Theme.Accent}"
+                                          VerticalAlignment="Top"
+                                          Margin="0,2,0,0" />
+                                  <TextBlock Text="{Binding}"
+                                             Classes="muted"
+                                             TextWrapping="Wrap" />
+                                </StackPanel>
+                              </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                          </ItemsControl>
+                          <Button Classes="ghost"
+                                  Content="Coming soon"
+                                  IsEnabled="False"
+                                  HorizontalAlignment="Stretch"
+                                  Margin="0,4,0,0"
+                                  ToolTip.Tip="In-app purchasing will be available in a future Relic Launcher update." />
+                        </StackPanel>
+                      </Border>
+                    </StackPanel>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </Border>
+        </StackPanel>
+      </ScrollViewer>
+    </Grid>
+
+    <TextBlock Grid.Row="2"
+               VerticalAlignment="Bottom"
+               Text="{Binding StatusMessage}"
+               Classes="muted"
+               Classes.error="{Binding StatusIsError}"
+               TextWrapping="Wrap"
+               Margin="0,0,0,4"
+               AutomationProperties.LiveSetting="Polite"
+               IsVisible="{Binding StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+  </Grid>
+</UserControl>

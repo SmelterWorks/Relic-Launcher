@@ -37,9 +37,10 @@ public class VintageStoryVersionCatalogTests
         versions.Should().ContainSingle();
         versions[0].Version.Should().Be("1.22.6");
         versions[0].IsLatest.Should().BeTrue();
-        versions[0].Packages.Should().HaveCount(2);
+        versions[0].Packages.Should().HaveCount(3);
         versions[0].Packages.Should().Contain(p => p.PlatformKey == "linux" && p.Kind == ClientPackageKind.TarGz);
         versions[0].Packages.Should().Contain(p => p.PlatformKey == "windows" && p.Kind == ClientPackageKind.WindowsInstaller);
+        versions[0].Packages.Should().Contain(p => p.PlatformKey == "linuxserver" && p.Kind == ClientPackageKind.TarGz);
     }
 
     [Fact]

@@ -59,9 +59,9 @@ public class VintageStoryVersionCatalogResilienceTests
         var json = """
         {
           "1.22.6": {
-            "linuxserver": {
-              "filename": "server.tar.gz",
-              "urls": { "cdn": "https://cdn.example/server.tar.gz" }
+            "windowsupdate": {
+              "filename": "update.exe",
+              "urls": { "cdn": "https://cdn.example/update.exe" }
             }
           }
         }
