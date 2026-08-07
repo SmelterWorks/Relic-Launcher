@@ -121,4 +121,9 @@ public static class ServiceCollectionExtensions
     {
         Log.CloseAndFlush();
     }
+
+    public static void DisposeProvider(this ServiceProvider provider)
+    {
+        provider.DisposeAsync().AsTask().GetAwaiter().GetResult();
+    }
 }

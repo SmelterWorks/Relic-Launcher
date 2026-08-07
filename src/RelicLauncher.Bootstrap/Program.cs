@@ -1,4 +1,5 @@
 using RelicLauncher.App;
+using RelicLauncher.Infrastructure;
 using RelicLauncher.Infrastructure.Sandbox;
 
 namespace RelicLauncher.Bootstrap;
@@ -10,7 +11,14 @@ internal static class Program
     {
         Environment.SetEnvironmentVariable(SandboxEnvironment.BrokerRole, SandboxEnvironment.BrokerRoleValue);
 
-        using var services = RelicLauncher.App.Program.BuildServices();
-        return SandboxBootstrap.RunBrokerAsync(args, services).GetAwaiter().GetResult();
+        var services = RelicLauncher.App.Program.BuildServices();
+        try
+        {
+            return SandboxBootstrap.RunBrokerAsync(args, services).GetAwaiter().GetResult();
+        }
+        finally
+        {
+            services.DisposeProvider();
+        }
     }
 }

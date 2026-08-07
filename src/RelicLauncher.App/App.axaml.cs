@@ -108,7 +108,7 @@ public partial class App : Application
         {
             try
             {
-                _services?.Dispose();
+                _services?.DisposeProvider();
             }
             catch (Exception ex)
             {

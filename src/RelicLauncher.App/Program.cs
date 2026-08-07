@@ -43,22 +43,36 @@ internal static class Program
 
         if (args.Contains(SandboxBootstrap.BrokerArgument, StringComparer.Ordinal))
         {
-            using var brokerServices = BuildServices();
-            return SandboxBootstrap.RunBrokerAsync(args, brokerServices).GetAwaiter().GetResult();
+            var brokerServices = BuildServices();
+            try
+            {
+                return SandboxBootstrap.RunBrokerAsync(args, brokerServices).GetAwaiter().GetResult();
+            }
+            finally
+            {
+                brokerServices.DisposeProvider();
+            }
         }
 
         try
         {
-            using var bootstrapProbe = BuildServices();
-            var settingsStore = bootstrapProbe.GetRequiredService<ILauncherSettingsStore>();
-            var pathProvider = bootstrapProbe.GetRequiredService<IAppPathProvider>();
-            var bootstrapExit = SandboxBootstrap.TryBootstrapAsync(
-                args,
-                settingsStore,
-                pathProvider).GetAwaiter().GetResult();
-            if (bootstrapExit >= 0)
+            var bootstrapProbe = BuildServices();
+            try
             {
-                return bootstrapExit;
+                var settingsStore = bootstrapProbe.GetRequiredService<ILauncherSettingsStore>();
+                var pathProvider = bootstrapProbe.GetRequiredService<IAppPathProvider>();
+                var bootstrapExit = SandboxBootstrap.TryBootstrapAsync(
+                    args,
+                    settingsStore,
+                    pathProvider).GetAwaiter().GetResult();
+                if (bootstrapExit >= 0)
+                {
+                    return bootstrapExit;
+                }
+            }
+            finally
+            {
+                bootstrapProbe.DisposeProvider();
             }
         }
         catch
