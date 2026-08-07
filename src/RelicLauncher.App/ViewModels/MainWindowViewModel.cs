@@ -52,6 +52,7 @@ public partial class MainWindowViewModel : ViewModelBase
     public bool IsVersionsActive => string.Equals(ActiveNav, "versions", StringComparison.Ordinal);
     public bool IsModsActive => string.Equals(ActiveNav, "mods", StringComparison.Ordinal);
     public bool IsBackupActive => string.Equals(ActiveNav, "backup", StringComparison.Ordinal);
+    public bool IsServersActive => string.Equals(ActiveNav, "servers", StringComparison.Ordinal);
     public bool IsHostingActive => string.Equals(ActiveNav, "hosting", StringComparison.Ordinal);
     public bool IsWikiActive => string.Equals(ActiveNav, "wiki", StringComparison.Ordinal);
     public bool IsSettingsActive => string.Equals(ActiveNav, "settings", StringComparison.Ordinal);
@@ -132,6 +133,29 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         ((BackupViewModel)existing).Bind(Settings, refresh: false);
     });
+
+    [RelayCommand]
+    private void NavigateServers() => Navigate("servers", () =>
+    {
+        var page = _services.GetRequiredService<ServersViewModel>();
+        page.Bind(Settings, NavigateServersSection);
+        return page;
+    }, existing =>
+    {
+        ((ServersViewModel)existing).Bind(Settings, NavigateServersSection, refresh: false);
+    });
+
+    private void NavigateServersSection(string section)
+    {
+        if (string.Equals(section, "hosting", StringComparison.Ordinal))
+        {
+            NavigateHosting();
+        }
+        else if (string.Equals(section, "settings-account", StringComparison.Ordinal))
+        {
+            NavigateSettingsInternal("account");
+        }
+    }
 
     [RelayCommand]
     private void NavigateHosting() => Navigate("hosting", () =>
@@ -236,6 +260,10 @@ public partial class MainWindowViewModel : ViewModelBase
         {
             backup.Bind(settings, refresh: false);
         }
+        else if (CurrentPage is ServersViewModel servers)
+        {
+            servers.Bind(settings, NavigateServersSection, refresh: false);
+        }
         else if (CurrentPage is HostingViewModel hosting)
         {
             hosting.Bind(settings, OnSettingsChanged, refresh: false);
@@ -262,6 +290,7 @@ public partial class MainWindowViewModel : ViewModelBase
         OnPropertyChanged(nameof(IsVersionsActive));
         OnPropertyChanged(nameof(IsModsActive));
         OnPropertyChanged(nameof(IsBackupActive));
+        OnPropertyChanged(nameof(IsServersActive));
         OnPropertyChanged(nameof(IsHostingActive));
         OnPropertyChanged(nameof(IsHostingSupported));
         OnPropertyChanged(nameof(IsWikiActive));

@@ -103,7 +103,7 @@ public sealed class GameLaunchService : IGameLaunchService
             return Result.Failure(applySession.Error ?? "Could not write the game session before launch.");
         }
 
-        var args = new[] { "--dataPath", dataPath };
+        var args = BuildLaunchArguments(dataPath, request);
         IReadOnlyDictionary<string, string?>? environment = null;
         if (runtime.Value!.IsManagedByRelic)
         {
@@ -115,5 +115,23 @@ public sealed class GameLaunchService : IGameLaunchService
 
         return await _processRunner.StartAsync(info.ExecutablePath, args, environment, cancellationToken)
             .ConfigureAwait(false);
+    }
+
+    private static List<string> BuildLaunchArguments(string dataPath, GameLaunchRequest request)
+    {
+        var args = new List<string> { "--dataPath", dataPath };
+        if (!string.IsNullOrWhiteSpace(request.ConnectAddress))
+        {
+            args.Add("--connect");
+            args.Add(request.ConnectAddress.Trim());
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.ConnectPassword))
+        {
+            args.Add("--pw");
+            args.Add(request.ConnectPassword);
+        }
+
+        return args;
     }
 }

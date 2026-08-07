@@ -20,10 +20,11 @@
     <KeyBinding Gesture="Ctrl+2" Command="{Binding NavigateVersionsCommand}" />
     <KeyBinding Gesture="Ctrl+3" Command="{Binding NavigateModsCommand}" />
     <KeyBinding Gesture="Ctrl+4" Command="{Binding NavigateBackupCommand}" />
-    <KeyBinding Gesture="Ctrl+5" Command="{Binding NavigateHostingCommand}" />
-    <KeyBinding Gesture="Ctrl+6" Command="{Binding NavigateWikiCommand}" />
-    <KeyBinding Gesture="Ctrl+7" Command="{Binding NavigateSettingsCommand}" />
-    <KeyBinding Gesture="Ctrl+8" Command="{Binding NavigateAboutCommand}" />
+    <KeyBinding Gesture="Ctrl+5" Command="{Binding NavigateServersCommand}" />
+    <KeyBinding Gesture="Ctrl+6" Command="{Binding NavigateHostingCommand}" />
+    <KeyBinding Gesture="Ctrl+7" Command="{Binding NavigateWikiCommand}" />
+    <KeyBinding Gesture="Ctrl+8" Command="{Binding NavigateSettingsCommand}" />
+    <KeyBinding Gesture="Ctrl+9" Command="{Binding NavigateAboutCommand}" />
   </Window.KeyBindings>
 
   <Grid ColumnDefinitions="240,*"
@@ -95,9 +96,19 @@
           </StackPanel>
         </Button>
         <Button Classes="nav"
+                Classes.active="{Binding IsServersActive}"
+                Command="{Binding NavigateServersCommand}"
+                ToolTip.Tip="Servers (Ctrl+5)"
+                AutomationProperties.Name="Servers">
+          <StackPanel Orientation="Horizontal" Spacing="12">
+            <i:Icon Value="mdi-earth" Width="22" Height="22" />
+            <TextBlock Text="Servers" VerticalAlignment="Center" FontSize="16" />
+          </StackPanel>
+        </Button>
+        <Button Classes="nav"
                 Classes.active="{Binding IsHostingActive}"
                 Command="{Binding NavigateHostingCommand}"
-                ToolTip.Tip="Hosting (Ctrl+5)"
+                ToolTip.Tip="Hosting (Ctrl+6)"
                 AutomationProperties.Name="Hosting"
                 IsVisible="{Binding IsHostingSupported}">
           <StackPanel Orientation="Horizontal" Spacing="12">
@@ -108,7 +119,7 @@
         <Button Classes="nav"
                 Classes.active="{Binding IsWikiActive}"
                 Command="{Binding NavigateWikiCommand}"
-                ToolTip.Tip="Wiki (Ctrl+6)"
+                ToolTip.Tip="Wiki (Ctrl+7)"
                 AutomationProperties.Name="Wiki">
           <StackPanel Orientation="Horizontal" Spacing="12">
             <i:Icon Value="mdi-book-open-page-variant" Width="22" Height="22" />
@@ -118,7 +129,7 @@
         <Button Classes="nav"
                 Classes.active="{Binding IsSettingsActive}"
                 Command="{Binding NavigateSettingsCommand}"
-                ToolTip.Tip="Settings (Ctrl+7)"
+                ToolTip.Tip="Settings (Ctrl+8)"
                 AutomationProperties.Name="Settings">
           <StackPanel Orientation="Horizontal" Spacing="12">
             <i:Icon Value="mdi-cog" Width="22" Height="22" />
@@ -128,7 +139,7 @@
         <Button Classes="nav"
                 Classes.active="{Binding IsAboutActive}"
                 Command="{Binding NavigateAboutCommand}"
-                ToolTip.Tip="About (Ctrl+8)"
+                ToolTip.Tip="About (Ctrl+9)"
                 AutomationProperties.Name="About">
           <StackPanel Orientation="Horizontal" Spacing="12">
             <i:Icon Value="mdi-information" Width="22" Height="22" />

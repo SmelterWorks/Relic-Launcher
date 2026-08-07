@@ -49,11 +49,13 @@ public sealed class RelicSelfCheckRunner
         if (_includeNetwork)
         {
             items.Add(await CheckVersionCatalogAsync(cancellationToken).ConfigureAwait(false));
+            items.Add(await CheckServerListAsync(cancellationToken).ConfigureAwait(false));
             items.Add(await CheckHostingFeedAsync(cancellationToken).ConfigureAwait(false));
         }
         else
         {
             items.Add(SelfCheckItem.Skip("catalog", "Version catalog", "Skipped with --no-network"));
+            items.Add(SelfCheckItem.Skip("server-list", "Public server list", "Skipped with --no-network"));
             items.Add(SelfCheckItem.Skip("hosting-feed", "Hosting feed", "Skipped with --no-network"));
         }
 
@@ -312,6 +314,29 @@ public sealed class RelicSelfCheckRunner
 
     private Task<SelfCheckItem> CheckVersionCatalogAsync(CancellationToken cancellationToken)
         => SelfCheckCatalogProbe.RunAsync(BuildServiceProvider, cancellationToken);
+
+    private async Task<SelfCheckItem> CheckServerListAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var provider = BuildServiceProvider();
+            var client = provider.GetRequiredService<IMasterServerClient>();
+            var result = await client.FetchCatalogAsync(preferCache: true, cancellationToken).ConfigureAwait(false);
+            if (!result.IsSuccess)
+            {
+                return SelfCheckItem.Fail("server-list", "Public server list", result.Error ?? "Fetch failed");
+            }
+
+            return SelfCheckItem.Pass(
+                "server-list",
+                "Public server list",
+                $"{result.Value!.Catalog.Servers.Count} server(s)");
+        }
+        catch (Exception ex)
+        {
+            return SelfCheckItem.Fail("server-list", "Public server list", ex.Message);
+        }
+    }
 
     private async Task<SelfCheckItem> CheckHostingFeedAsync(CancellationToken cancellationToken)
     {

@@ -159,6 +159,7 @@ internal static class Program
         services.AddSingleton<ModUpdateStartupService>();
         services.AddTransient<ModpackPanelViewModel>();
         services.AddTransient<BackupViewModel>();
+        services.AddTransient<ServersViewModel>();
         services.AddTransient<HostingViewModel>();
         services.AddTransient<WikiViewModel>();
         services.AddTransient<SettingsViewModel>();

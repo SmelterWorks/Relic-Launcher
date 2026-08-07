@@ -15,6 +15,7 @@ public sealed class ViewLocator : IDataTemplate
             VersionsViewModel => new VersionsPage(),
             ModsViewModel => new ModsPage(),
             BackupViewModel => new BackupPage(),
+            ServersViewModel => new ServersPage(),
             HostingViewModel => new HostingPage(),
             WikiViewModel => new WikiPage(),
             SettingsViewModel => new SettingsPage(),

@@ -12,6 +12,7 @@ public interface IEndpointProvider
     string LatestStableUrl { get; }
     string NewsBlogUrl { get; }
     string WikiBaseUrl { get; }
+    string ServerListUrl { get; }
 
     string BuildModDownloadUrl(int fileId);
 

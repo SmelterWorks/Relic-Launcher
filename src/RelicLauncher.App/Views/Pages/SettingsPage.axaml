@@ -265,6 +265,11 @@
               <TextBox Text="{Binding WikiBaseUrl}"
                        PlaceholderText="https://wiki.vintagestory.at/" />
             </StackPanel>
+            <StackPanel Spacing="4">
+              <TextBlock Text="Public server list" Classes="settings-field-label" />
+              <TextBox Text="{Binding ServerListUrl}"
+                       PlaceholderText="https://smelterworks.com/api/v1/servers/list" />
+            </StackPanel>
             <Button Classes="ghost"
                     Content="Reset URLs to defaults"
                     Command="{Binding ResetEndpointUrlsCommand}"

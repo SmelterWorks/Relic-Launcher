@@ -33,6 +33,6 @@ public class SelfCheckHostTests
     {
         var item = ViewNavigationSelfCheck.Verify();
         item.Status.Should().Be(SelfCheckStatus.Pass);
-        item.Detail.Should().Contain("8 routes");
+        item.Detail.Should().Contain("9 routes");
     }
 }

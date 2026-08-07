@@ -17,6 +17,7 @@ public class EndpointProviderTests
         provider.ModDbApiBaseUrl.Should().Be(VintageStoryEndpoints.ModDbApiBaseUrl);
         provider.ModDbDownloadBaseUrl.Should().Be(VintageStoryEndpoints.ModDbDownloadBaseUrl);
         provider.WikiBaseUrl.Should().Be(VintageStoryEndpoints.WikiBaseUrl);
+        provider.ServerListUrl.Should().Be(RelicLauncherEndpoints.ServerListUrl);
         provider.BuildModDownloadUrl(42).Should().Be("https://mods.vintagestory.at/download?fileid=42");
     }
 

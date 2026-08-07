@@ -1,0 +1,29 @@
+{
+  "status": "ok",
+  "data": [
+    {
+      "serverName": "The Official Public Server",
+      "serverIP": "tops.vintagestory.at",
+      "playstyle": { "id": "surviveandbuild", "langCode": "surviveandbuild-bands" },
+      "mods": [],
+      "maxPlayers": "125",
+      "players": 42,
+      "gameVersion": "1.22.3",
+      "hasPassword": false,
+      "whitelisted": false,
+      "gameDescription": "Vanilla server run by the Vintage Story team."
+    },
+    {
+      "serverName": "Test <b>Server</b>",
+      "serverIP": "127.0.0.1:42420",
+      "playstyle": { "id": "surviveandbuild", "langCode": "surviveandbuild-bands" },
+      "mods": [{ "id": "game", "version": "1.22.3" }],
+      "maxPlayers": "8",
+      "players": 2,
+      "gameVersion": "1.22.3",
+      "hasPassword": true,
+      "whitelisted": true,
+      "gameDescription": "Hello<br>world"
+    }
+  ]
+}

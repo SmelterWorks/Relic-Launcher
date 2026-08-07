@@ -12,6 +12,7 @@ public class EndpointSettingsTests
         var settings = EndpointSettings.CreateDefaults();
 
         settings.WikiBaseUrl.Should().Be("https://wiki.vintagestory.at/");
+        settings.ServerListUrl.Should().Be("https://smelterworks.com/api/v1/servers/list");
         settings.ModDbDownloadBaseUrl.Should().Be("https://mods.vintagestory.at/download");
     }
 

@@ -63,6 +63,34 @@ public class GameLaunchServiceTests
     }
 
     [Fact]
+    public async Task LaunchAsync_PassesConnectArguments()
+    {
+        using var temp = new TempAppPaths();
+        var installsRoot = Path.Combine(temp.Paths.RootDirectory, "installs");
+        var versionDir = Path.Combine(installsRoot, "versions", "1.22.6");
+        Directory.CreateDirectory(versionDir);
+        await File.WriteAllTextAsync(Path.Combine(versionDir, "Vintagestory"), "bin");
+        var dataPath = Path.Combine(temp.Paths.RootDirectory, "data");
+
+        var runner = new CapturingProcessRunner();
+        var service = CreateService(runner, new StubRuntimeProvisioner { IsManagedByRelic = false });
+        var result = await service.LaunchAsync(new GameLaunchRequest
+        {
+            InstallsRoot = installsRoot,
+            Version = "1.22.6",
+            DataPath = dataPath,
+            ConnectAddress = "tops.vintagestory.at:42420",
+            ConnectPassword = "secret",
+        });
+
+        result.IsSuccess.Should().BeTrue();
+        runner.LastArguments.Should().Equal(
+            "--dataPath", dataPath,
+            "--connect", "tops.vintagestory.at:42420",
+            "--pw", "secret");
+    }
+
+    [Fact]
     public async Task LaunchAsync_SetsDotNetRoot_WhenRuntimeIsManaged()
     {
         using var temp = new TempAppPaths();

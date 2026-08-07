@@ -18,6 +18,7 @@ using RelicLauncher.Infrastructure.Platform;
 using RelicLauncher.Infrastructure.Process;
 using RelicLauncher.Infrastructure.Security;
 using RelicLauncher.Infrastructure.Server;
+using RelicLauncher.Infrastructure.Servers;
 using RelicLauncher.Infrastructure.Settings;
 using RelicLauncher.Infrastructure.Stubs;
 using RelicLauncher.Infrastructure.Transfers;
@@ -48,6 +49,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<GameVersionInstaller>();
         services.AddSingleton<IGameVersionInstaller>(sp => sp.GetRequiredService<GameVersionInstaller>());
         services.AddSingleton<IGameLaunchService, GameLaunchService>();
+        AddServerCatalog(services);
         AddServerHosting(services);
         services.AddSingleton<IBackupService, BackupService>();
         services.AddSingleton<IModDbClient, ModDbClient>();
@@ -69,6 +71,13 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<AppLifetime>();
         services.AddSingleton<IAppLifetime>(sp => sp.GetRequiredService<AppLifetime>());
         return services;
+    }
+
+    private static void AddServerCatalog(IServiceCollection services)
+    {
+        services.AddSingleton<IMasterServerClient, MasterServerClient>();
+        services.AddSingleton<IFavoriteServersStore, JsonFavoriteServersStore>();
+        services.AddSingleton<IRecentServersStore, JsonRecentServersStore>();
     }
 
     private static void AddServerHosting(IServiceCollection services)

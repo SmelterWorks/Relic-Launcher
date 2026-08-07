@@ -12,6 +12,7 @@ internal static class ViewNavigationSelfCheck
         (typeof(VersionsViewModel), typeof(VersionsPage)),
         (typeof(ModsViewModel), typeof(ModsPage)),
         (typeof(BackupViewModel), typeof(BackupPage)),
+        (typeof(ServersViewModel), typeof(ServersPage)),
         (typeof(HostingViewModel), typeof(HostingPage)),
         (typeof(WikiViewModel), typeof(WikiPage)),
         (typeof(SettingsViewModel), typeof(SettingsPage)),

@@ -113,6 +113,9 @@ public partial class SettingsViewModel : PageViewModelBase
     private string _wikiBaseUrl = VintageStoryEndpoints.WikiBaseUrl;
 
     [ObservableProperty]
+    private string _serverListUrl = RelicLauncherEndpoints.ServerListUrl;
+
+    [ObservableProperty]
     private string _saveStatusMessage = string.Empty;
 
     [ObservableProperty]
@@ -263,6 +266,8 @@ public partial class SettingsViewModel : PageViewModelBase
 
     partial void OnWikiBaseUrlChanged(string value) => ScheduleAutoSave();
 
+    partial void OnServerListUrlChanged(string value) => ScheduleAutoSave();
+
     partial void OnSaveStatusMessageChanged(string value) => OnPropertyChanged(nameof(IsSaveStatusVisible));
 
     partial void OnAccountErrorChanged(string value) => OnPropertyChanged(nameof(HasAccountError));
@@ -310,6 +315,7 @@ public partial class SettingsViewModel : PageViewModelBase
         LatestStableUrl = endpoints.LatestStableUrl;
         NewsBlogUrl = endpoints.NewsBlogUrl;
         WikiBaseUrl = endpoints.WikiBaseUrl;
+        ServerListUrl = endpoints.ServerListUrl;
     }
     private void ScheduleAutoSave()
     {
@@ -401,6 +407,7 @@ public partial class SettingsViewModel : PageViewModelBase
                 LatestStableUrl = TrimOrDefault(LatestStableUrl, VintageStoryEndpoints.LatestStableUrl),
                 NewsBlogUrl = TrimOrDefault(NewsBlogUrl, VintageStoryEndpoints.NewsBlogUrl),
                 WikiBaseUrl = TrimOrDefault(WikiBaseUrl, VintageStoryEndpoints.WikiBaseUrl),
+                ServerListUrl = TrimOrDefault(ServerListUrl, RelicLauncherEndpoints.ServerListUrl),
             },
         };
 

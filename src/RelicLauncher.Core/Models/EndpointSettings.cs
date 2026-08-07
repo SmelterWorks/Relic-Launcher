@@ -12,6 +12,7 @@ public sealed class EndpointSettings
     public string LatestStableUrl { get; set; } = VintageStoryEndpoints.LatestStableUrl;
     public string NewsBlogUrl { get; set; } = VintageStoryEndpoints.NewsBlogUrl;
     public string WikiBaseUrl { get; set; } = VintageStoryEndpoints.WikiBaseUrl;
+    public string ServerListUrl { get; set; } = RelicLauncherEndpoints.ServerListUrl;
 
     public static EndpointSettings CreateDefaults() => new();
 
@@ -26,5 +27,6 @@ public sealed class EndpointSettings
             LatestStableUrl = LatestStableUrl,
             NewsBlogUrl = NewsBlogUrl,
             WikiBaseUrl = WikiBaseUrl,
+            ServerListUrl = ServerListUrl,
         };
 }

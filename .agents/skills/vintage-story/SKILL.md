@@ -98,7 +98,6 @@ Press kit assets: "Game Logo - Square", "Game Logo - Banner". See [references/br
 
 - Official Relic or VS REST endpoints for versions, mods, or auth
 - Steam App ID workflows unless explicitly added to the repo
-- Server browser or multiplayer APIs (out of scope unless requested)
 - Account Manager internals (proprietary downloader)
 - Feature claims for version management, mod install, or backups (not shipped yet)
 

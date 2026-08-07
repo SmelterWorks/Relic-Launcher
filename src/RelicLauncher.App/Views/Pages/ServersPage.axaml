@@ -1,0 +1,239 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:RelicLauncher.App.ViewModels"
+             xmlns:controls="using:RelicLauncher.App.Views.Controls"
+             xmlns:i="https://github.com/projektanker/icons.avalonia"
+             x:Class="RelicLauncher.App.Views.Pages.ServersPage"
+             x:DataType="vm:ServersViewModel">
+  <Grid RowDefinitions="Auto,Auto,*">
+    <controls:PageHeader Title="Servers"
+                         Subtitle="Browse public worlds or connect directly." />
+
+    <StackPanel Grid.Row="1" Spacing="8" Margin="0,12,0,8">
+      <StackPanel Orientation="Horizontal" Spacing="8">
+        <Button Classes="ghost"
+                Content="Browse"
+                Command="{Binding SelectBrowseTabCommand}"
+                AutomationProperties.Name="Browse servers tab" />
+        <Button Classes="ghost"
+                Content="Direct connect"
+                Command="{Binding SelectDirectTabCommand}"
+                AutomationProperties.Name="Direct connect tab" />
+        <Button Classes="ghost"
+                Content="LAN / local"
+                Command="{Binding SelectLanTabCommand}"
+                AutomationProperties.Name="LAN local tab" />
+        <Button Classes="ghost"
+                Content="Refresh"
+                Command="{Binding RefreshCatalogCommand}"
+                IsEnabled="{Binding !IsLoading}"
+                Margin="8,0,0,0"
+                AutomationProperties.Name="Refresh server list" />
+        <Button Classes="ghost"
+                Content="Official web list"
+                Command="{Binding OpenOfficialWebListCommand}"
+                AutomationProperties.Name="Open official web server list" />
+        <Button Classes="ghost"
+                Content="Run your own server"
+                Command="{Binding NavigateHostingCommand}"
+                AutomationProperties.Name="Navigate to hosting" />
+      </StackPanel>
+
+      <TextBlock Text="{Binding StatusMessage}"
+                 Classes="muted"
+                 Classes.error="{Binding StatusIsError}"
+                 TextWrapping="Wrap"
+                 AutomationProperties.LiveSetting="Polite"
+                 IsVisible="{Binding StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+    </StackPanel>
+
+  <Grid Grid.Row="2" IsVisible="{Binding IsBrowseTab}">
+    <Grid RowDefinitions="Auto,*" ColumnDefinitions="*,320">
+      <StackPanel Grid.Row="0" Grid.ColumnSpan="2" Spacing="8" Margin="0,0,0,8">
+        <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding ShowTopSQuickJoin}">
+          <Border Classes="card" Padding="12" CornerRadius="8">
+            <StackPanel Orientation="Horizontal" Spacing="12">
+              <TextBlock Text="The Official Public Server" FontWeight="SemiBold" VerticalAlignment="Center" />
+              <TextBlock Text="tops.vintagestory.at" Classes="muted" VerticalAlignment="Center" />
+              <Button Classes="primary" Content="Join TOPS" Command="{Binding JoinTopSCommand}" AutomationProperties.Name="Join official public server" />
+            </StackPanel>
+          </Border>
+        </StackPanel>
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <TextBox Text="{Binding SearchText}"
+                   PlaceholderText="Search servers"
+                   Width="220"
+                   MinWidth="160"
+                   Height="40"
+                   VerticalContentAlignment="Center"
+                   KeyDown="OnSearchKeyDown"
+                   AutomationProperties.Name="Search servers" />
+          <ComboBox ItemsSource="{Binding SortOptions}"
+                    SelectedItem="{Binding SelectedSortOption}"
+                    MinWidth="160"
+                    VerticalAlignment="Center">
+            <ComboBox.ItemTemplate>
+              <DataTemplate x:DataType="vm:ServerSortOption">
+                <TextBlock Text="{Binding Label}" />
+              </DataTemplate>
+            </ComboBox.ItemTemplate>
+          </ComboBox>
+          <ComboBox ItemsSource="{Binding VersionFilterOptions}"
+                    SelectedItem="{Binding SelectedVersionFilter}"
+                    MinWidth="140"
+                    VerticalAlignment="Center">
+            <ComboBox.ItemTemplate>
+              <DataTemplate x:DataType="vm:ServerVersionFilterOption">
+                <TextBlock Text="{Binding Label}" />
+              </DataTemplate>
+            </ComboBox.ItemTemplate>
+          </ComboBox>
+        </StackPanel>
+        <StackPanel Orientation="Horizontal" Spacing="12">
+          <CheckBox Content="Has players" IsChecked="{Binding FilterHasPlayers}" />
+          <CheckBox Content="No password" IsChecked="{Binding FilterNoPassword}" />
+          <CheckBox Content="Not whitelisted" IsChecked="{Binding FilterNotWhitelisted}" />
+          <CheckBox Content="Vanilla" IsChecked="{Binding FilterVanilla}" />
+          <CheckBox Content="Favorites only" IsChecked="{Binding FilterFavoritesOnly}" />
+        </StackPanel>
+      </StackPanel>
+
+      <Grid Grid.Row="1" Grid.Column="0" RowDefinitions="Auto,*">
+        <TextBlock Text="Loading public servers…"
+                   Classes="muted"
+                   Margin="0,24,0,0"
+                   HorizontalAlignment="Center"
+                   IsVisible="{Binding IsLoading}" />
+        <Border IsVisible="{Binding ShowCatalogError}"
+                Padding="24"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Center">
+          <StackPanel Spacing="12" HorizontalAlignment="Center" MaxWidth="480">
+            <TextBlock Text="{Binding CatalogErrorMessage}" TextWrapping="Wrap" TextAlignment="Center" />
+            <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
+              <Button Classes="primary" Content="Retry" Command="{Binding RetryCatalogCommand}" />
+              <Button Classes="ghost" Content="Direct connect" Command="{Binding SelectDirectTabCommand}" />
+            </StackPanel>
+          </StackPanel>
+        </Border>
+        <TextBlock Text="{Binding EmptyBrowseMessage}"
+                   Classes="muted"
+                   Margin="0,24,0,0"
+                   HorizontalAlignment="Center"
+                   TextWrapping="Wrap"
+                   TextAlignment="Center"
+                   IsVisible="{Binding ShowEmptyBrowse}" />
+        <ListBox Grid.Row="1"
+                 ItemsSource="{Binding BrowseResults}"
+                 SelectedItem="{Binding SelectedBrowseServer, Mode=TwoWay}"
+                 IsVisible="{Binding HasBrowseResults}">
+          <ListBox.ItemTemplate>
+            <DataTemplate x:DataType="vm:ServerRowViewModel">
+              <Grid ColumnDefinitions="*,Auto" Margin="4,6">
+                <StackPanel Grid.Column="0" Spacing="2">
+                  <StackPanel Orientation="Horizontal" Spacing="6">
+                    <TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold" />
+                    <TextBlock Text="Official" Classes="muted" IsVisible="{Binding ShowOfficialBadge}" />
+                    <i:Icon Value="mdi-lock" Width="14" Height="14" IsVisible="{Binding ShowPasswordIcon}" />
+                    <i:Icon Value="mdi-account-lock" Width="14" Height="14" IsVisible="{Binding ShowWhitelistIcon}" />
+                  </StackPanel>
+                  <TextBlock Text="{Binding PlayersLabel}" Classes="muted" FontSize="12" />
+                  <TextBlock Text="{Binding VersionLabel}" Classes="muted" FontSize="11" />
+                </StackPanel>
+                <TextBlock Grid.Column="1" Text="{Binding ModCountLabel}" Classes="muted" VerticalAlignment="Center" />
+              </Grid>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </Grid>
+
+      <Border Grid.Row="1" Grid.Column="1" Classes="card" Padding="16" Margin="12,0,0,0">
+        <Grid>
+          <StackPanel Spacing="10" IsVisible="{Binding SelectedBrowseServer, Converter={x:Static ObjectConverters.IsNotNull}}">
+            <TextBlock Text="{Binding SelectedBrowseServer.DisplayName}" FontSize="18" FontWeight="SemiBold" TextWrapping="Wrap" />
+            <TextBlock Text="{Binding SelectedDetailMeta}" Classes="muted" TextWrapping="Wrap" />
+            <TextBlock Text="{Binding SelectedDetailAddress}" Classes="muted" />
+            <TextBlock Text="{Binding VersionMismatchWarning}" Classes="error" TextWrapping="Wrap"
+                       IsVisible="{Binding VersionMismatchWarning, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+            <TextBlock Text="{Binding SelectedDetailDescription}" TextWrapping="Wrap" MaxHeight="200" />
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <Button Classes="primary"
+                      Content="Join"
+                      Command="{Binding JoinSelectedCommand}"
+                      IsEnabled="{Binding CanJoin}"
+                      AutomationProperties.Name="Join selected server" />
+              <Button Classes="ghost"
+                      Content="{Binding FavoriteButtonLabel}"
+                      Command="{Binding ToggleFavoriteCommand}" />
+              <Button Classes="ghost"
+                      Content="Copy address"
+                      Click="OnCopyAddressClick"
+                      AutomationProperties.Name="Copy server address" />
+            </StackPanel>
+            <TextBlock Text="Sign in on the Settings page to join servers."
+                       Classes="muted"
+                       IsVisible="{Binding !IsSignedIn}" />
+            <Button Classes="ghost"
+                    Content="Open account settings"
+                    Command="{Binding NavigateAccountSettingsCommand}"
+                    IsVisible="{Binding !IsSignedIn}" />
+          </StackPanel>
+          <TextBlock Text="Select a server to see details."
+                     Classes="muted"
+                     VerticalAlignment="Center"
+                     HorizontalAlignment="Center"
+                     IsVisible="{Binding SelectedBrowseServer, Converter={x:Static ObjectConverters.IsNull}}" />
+        </Grid>
+      </Border>
+    </Grid>
+  </Grid>
+
+  <StackPanel Grid.Row="2" Spacing="12" IsVisible="{Binding IsDirectTab}">
+    <TextBlock Text="Connect to a server by address." Classes="muted" />
+    <TextBox Text="{Binding DirectAddress}"
+             PlaceholderText="tops.vintagestory.at or 192.168.1.10:42420"
+             AutomationProperties.Name="Direct connect address" />
+    <TextBox Text="{Binding DirectPassword}"
+             PasswordChar="*"
+             PlaceholderText="Password (optional)"
+             AutomationProperties.Name="Direct connect password" />
+    <TextBlock Text="{Binding DirectValidationError}" Classes="error" IsVisible="{Binding DirectValidationError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+    <Button Classes="primary" Content="Connect" Command="{Binding DirectConnectCommand}" IsEnabled="{Binding CanJoin}" />
+    <Button Classes="ghost" Content="Multiplayer guide" Command="{Binding OpenMultiplayerGuideCommand}" />
+    <TextBlock Text="Sign in on the Settings page to join servers." Classes="muted" IsVisible="{Binding !IsSignedIn}" />
+  </StackPanel>
+
+  <StackPanel Grid.Row="2" Spacing="12" IsVisible="{Binding IsLanTab}">
+    <TextBlock Text="Join a server on your local network or this PC." Classes="muted" />
+    <StackPanel Orientation="Horizontal" Spacing="8">
+      <Button Classes="ghost" Content="localhost:42420" Command="{Binding JoinLocalhostCommand}" IsEnabled="{Binding CanJoin}" />
+    </StackPanel>
+    <TextBlock Text="Relic hosted server endpoints" FontWeight="SemiBold" IsVisible="{Binding LocalServerRunning}" />
+    <ItemsControl ItemsSource="{Binding LocalListenEndpoints}" IsVisible="{Binding LocalServerRunning}">
+      <ItemsControl.ItemTemplate>
+        <DataTemplate x:DataType="x:String">
+          <Button Classes="ghost"
+                  Content="{Binding}"
+                  Click="OnJoinLanEndpointClick"
+                  Margin="0,4" />
+        </DataTemplate>
+      </ItemsControl.ItemTemplate>
+    </ItemsControl>
+    <TextBlock Text="Start a server on the Hosting page to see LAN addresses here." Classes="muted" IsVisible="{Binding !LocalServerRunning}" />
+    <TextBox Text="{Binding LanManualAddress}" PlaceholderText="Manual LAN address" AutomationProperties.Name="Manual LAN address" />
+    <TextBlock Text="{Binding LanValidationError}" Classes="error" IsVisible="{Binding LanValidationError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+    <Button Classes="primary" Content="Connect" Command="{Binding JoinLanManualCommand}" IsEnabled="{Binding CanJoin}" />
+    <TextBlock Text="Recent connections" FontWeight="SemiBold" Margin="0,12,0,0" />
+    <ItemsControl ItemsSource="{Binding RecentAddresses}">
+      <ItemsControl.ItemTemplate>
+        <DataTemplate x:DataType="x:String">
+          <Button Classes="ghost"
+                  Content="{Binding}"
+                  Click="OnJoinRecentClick"
+                  Margin="0,4" />
+        </DataTemplate>
+      </ItemsControl.ItemTemplate>
+    </ItemsControl>
+  </StackPanel>
+  </Grid>
+</UserControl>
