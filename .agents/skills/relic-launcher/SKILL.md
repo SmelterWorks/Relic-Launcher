@@ -40,7 +40,7 @@ Test projects: `RelicLauncher.Core.Tests`, `RelicLauncher.Infrastructure.Tests`,
 3. **Expected failures use `Result` / `Result<T>`**: do not throw across UI boundaries for normal errors.
 4. **Stubs are intentional**: `GameLocatorStub`, `UpdateCheckServiceStub` are placeholders until real version/mod flows exist. Do not pretend they are complete.
 5. **Reuse before duplicating**: `PathValidator`, `VintageStoryExecutableLocator`, `PageViewModelBase`, `PageHeader`, `FolderPathRow`, `HomeBackgroundLogoResolver`, `RelicLauncher.Testing` helpers.
-6. **No god files**: split new features into services/controls/ViewModels. Home page already combines launch + news + logo; extend via extracted services, not more logic in one class.
+6. **No god files**: keep `.cs` files under ~400 lines when a split is clear. Use `partial class` files named `TypeName.Concern.cs` (see `ModpackService`, `ModsViewModel`, `ModDbClient`, `SettingsViewModel`). Extract services instead of stuffing ViewModels.
 7. **Comments**: only non-obvious why. No TODO markers. No emdashes in comments or docs.
 
 ## App data paths (Relic Launcher)

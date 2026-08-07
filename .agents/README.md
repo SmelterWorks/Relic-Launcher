@@ -1,5 +1,7 @@
 # Agent context for Relic Launcher
 
+**Repo root:** [AGENTS.md](../AGENTS.md) (quick start for humans and agents).
+
 Load the skills in `.agents/skills/` before making changes. They contain verified project facts, official Vintage Story URLs, and conventions that are not obvious from code alone.
 
 | Skill | Use when |

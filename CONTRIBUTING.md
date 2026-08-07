@@ -37,7 +37,7 @@
 
 ## Agent context
 
-Skills for AI agents are in `.agents/skills/`. See `.agents/README.md` for the index. Load `relic-launcher` for repo work and `vintage-story` for game URLs, paths, and branding.
+Skills for AI agents are in `.agents/skills/`. See [AGENTS.md](AGENTS.md) and [.agents/README.md](.agents/README.md). Load `relic-launcher` for repo work and `vintage-story` for game URLs, paths, and branding.
 
 ## AI Prose
 

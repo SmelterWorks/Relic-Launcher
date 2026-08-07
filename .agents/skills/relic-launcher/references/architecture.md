@@ -39,9 +39,9 @@ Layout: `{InstallsRoot}/versions/{version}/`, mods in `{DataPath}/Mods/`.
 |-----------|------|
 | `HomeViewModel` | Play via `IGameLaunchService`, news |
 | `VersionsViewModel` | Catalog + install/uninstall/set active |
-| `ModsViewModel` | Browse ModDB + manage installed |
+| `ModsViewModel` | Mods page (partials under `ViewModels/ModsViewModel.*.cs`) |
 | `WikiViewModel` | Domain-locked wiki `NativeWebView` + reachability probe |
-| `SettingsViewModel` | Account sign-in, paths, theme |
+| `SettingsViewModel` | Account sign-in, paths, theme (partials under `ViewModels/SettingsViewModel.*.cs`) |
 | `AboutViewModel` | Build metadata |
 
 ## Architecture notes
@@ -53,3 +53,47 @@ Layout: `{InstallsRoot}/versions/{version}/`, mods in `{DataPath}/Mods/`.
 - Linux/macOS prefer `.tar.gz` client archives
 - Launch args include `--dataPath`
 - `Namespace RelicLauncher.Infrastructure.Process` conflicts with `System.Diagnostics.Process`; use `global::` prefix
+
+## Partial class layout (maintainability)
+
+When a type grows past ~400 lines, split by concern. Match existing naming: `TypeName.Concern.cs`, all `partial`, same namespace.
+
+### `ModsViewModel` (`RelicLauncher.App/ViewModels/`)
+
+| File | Responsibility |
+|------|----------------|
+| `ModsViewModel.cs` | Fields, observable state, ctor, `Bind`, paging hooks, `PersistSettingsAsync`, transfers |
+| `ModsViewModel.Browse.cs` | ModDB search, pagination |
+| `ModsViewModel.Installed.cs` | Installed list, filters, duplicates, dependency rows |
+| `ModsViewModel.Updates.cs` | Update check, apply, opt-out |
+| `ModsViewModel.Details.cs` | Open mod, releases, blocklist warning |
+| `ModsViewModel.Media.cs` | Logos, screenshots, image viewer |
+| `ModsViewModel.Install.cs` | Install plan, uninstall, toggle, import |
+| `ModsViewModel.Tags.cs` | Tag chips and filters |
+| `ModsViewModel.Navigation.cs` | Open folder, ModDB page, URLs |
+
+`ModpackPanelViewModel` stays separate (embedded in Mods page).
+
+### `ModDbClient` (`RelicLauncher.Infrastructure/Mods/`)
+
+| File | Responsibility |
+|------|----------------|
+| `ModDbClient.cs` | HTTP, catalog refresh, search orchestration, filtering |
+| `ModDbClient.Parse.cs` | JSON parse helpers (`ParseSearch`, `ParseDetails`, etc.) |
+| `ModDbClient.Cache.cs` | Disk cache read/write |
+
+### `SettingsViewModel` (`RelicLauncher.App/ViewModels/`)
+
+| File | Responsibility |
+|------|----------------|
+| `SettingsViewModel.cs` | State, `Bind`, autosave, `PersistSettingsAsync` |
+| `SettingsViewModel.Paths.cs` | Folder/image pickers |
+| `SettingsViewModel.Account.cs` | Sign-in, sign-out, session status |
+| `SettingsViewModel.Reset.cs` | Reset settings and endpoint URLs |
+| `SettingsViewModel.Debug.cs` | In-app debug log viewer |
+
+### `ModpackService` (`RelicLauncher.Infrastructure/Modpacks/`)
+
+Already split: `ModpackService.cs`, `.Apply`, `.Export`, `.Local`.
+
+Agent entry point for this index: [AGENTS.md](../../../../AGENTS.md) at repo root.
