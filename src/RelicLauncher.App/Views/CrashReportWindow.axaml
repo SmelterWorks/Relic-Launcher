@@ -33,10 +33,15 @@
              ScrollViewer.HorizontalScrollBarVisibility="Auto" />
 
     <StackPanel Grid.Row="2"
-                Orientation="Horizontal"
-                HorizontalAlignment="Right"
-                Spacing="10"
+                Spacing="8"
                 Margin="0,16,0,0">
+      <TextBlock Text="{Binding CopyStatusMessage}"
+                 Classes="muted"
+                 HorizontalAlignment="Right"
+                 IsVisible="{Binding CopyStatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+      <StackPanel Orientation="Horizontal"
+                  HorizontalAlignment="Right"
+                  Spacing="10">
       <Button Classes="ghost"
               Content="Open logs folder"
               Command="{Binding OpenLogsCommand}" />
@@ -46,6 +51,7 @@
       <Button Classes="primary"
               Content="Close"
               Command="{Binding CloseCommand}" />
+      </StackPanel>
     </StackPanel>
   </Grid>
 </Window>

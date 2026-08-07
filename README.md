@@ -37,6 +37,12 @@ Built with C# / .NET 10 and Avalonia 12.1. Targets the same desktop platforms Vi
 
 ## Build and run
 
+Quick local verify (restore, format, build, test):
+
+```bash
+./scripts/verify.sh
+```
+
 ```bash
 dotnet restore RelicLauncher.sln
 dotnet build RelicLauncher.sln -c Release
@@ -64,7 +70,21 @@ Uses `RelicLauncher.Mutation.sln` (Core and Infrastructure only, no Avalonia UI 
 Format check:
 
 ```bash
-dotnet format RelicLauncher.sln --verify-no-changes
+dotnet format RelicLauncher.sln --verify-no-changes --severity error
+```
+
+### Linux troubleshooting
+
+If the window is blank or rendering misbehaves, try these environment variables before launching:
+
+- `RELIC_USE_WAYLAND=1` use native Wayland when `XDG_SESSION_TYPE=wayland`
+- `RELIC_FORCE_SOFTWARE=1` force software rendering
+- `RELIC_USE_GLX=1` prefer GLX over EGL on X11
+
+Example:
+
+```bash
+RELIC_FORCE_SOFTWARE=1 dotnet run --project src/RelicLauncher.App/RelicLauncher.App.csproj
 ```
 
 ## Publish RIDs
@@ -143,6 +163,16 @@ To add a built-in pack: create an `.axaml` resource dictionary with the same key
 | `RelicLauncher.Infrastructure` | Settings, logging, process runner, stubs |
 | `RelicLauncher.Themes` | Built-in theme resources |
 | `RelicLauncher.App` | Avalonia UI, DI composition, exception bridge |
+
+Test projects:
+
+| Project | Role |
+|---|---|
+| `RelicLauncher.Core.Tests` | Core unit tests |
+| `RelicLauncher.Infrastructure.Tests` | Infrastructure unit tests |
+| `RelicLauncher.App.Tests` | App services and row view model tests |
+| `RelicLauncher.Themes.Tests` | Theme catalog tests |
+| `RelicLauncher.Testing` | Shared fixtures (`TempAppPaths`, `VintageStoryNewsHtml`, etc.) |
 
 ## Contributing
 

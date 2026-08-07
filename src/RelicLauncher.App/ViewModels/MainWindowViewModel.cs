@@ -75,11 +75,11 @@ public partial class MainWindowViewModel : ViewModelBase
     private void NavigateHome() => Navigate("home", () =>
     {
         var page = _services.GetRequiredService<HomeViewModel>();
-        page.Bind(Settings, OnSettingsChanged, NavigateSettings);
+        page.Bind(Settings, OnSettingsChanged, section => NavigateSettingsInternal(section));
         return page;
     }, existing =>
     {
-        ((HomeViewModel)existing).Bind(Settings, OnSettingsChanged, NavigateSettings, refresh: false);
+        ((HomeViewModel)existing).Bind(Settings, OnSettingsChanged, section => NavigateSettingsInternal(section), refresh: false);
     });
 
     [RelayCommand]
@@ -127,14 +127,25 @@ public partial class MainWindowViewModel : ViewModelBase
     });
 
     [RelayCommand]
-    private void NavigateSettings() => Navigate("settings", () =>
+    private void NavigateSettings() => NavigateSettingsInternal(null);
+
+    private void NavigateSettingsInternal(string? focusSection) => Navigate("settings", () =>
     {
         var page = _services.GetRequiredService<SettingsViewModel>();
         page.Bind(Settings, OnSettingsChanged);
+        if (string.Equals(focusSection, "account", StringComparison.Ordinal))
+        {
+            page.RequestFocusAccount();
+        }
+
         return page;
     }, existing =>
     {
         ((SettingsViewModel)existing).Bind(Settings, OnSettingsChanged);
+        if (string.Equals(focusSection, "account", StringComparison.Ordinal))
+        {
+            ((SettingsViewModel)existing).RequestFocusAccount();
+        }
     });
 
     [RelayCommand]
@@ -182,7 +193,7 @@ public partial class MainWindowViewModel : ViewModelBase
         _endpoints.Apply(settings);
         if (CurrentPage is HomeViewModel home)
         {
-            home.Bind(settings, OnSettingsChanged, NavigateSettings, refresh: false);
+            home.Bind(settings, OnSettingsChanged, section => NavigateSettingsInternal(section), refresh: false);
         }
         else if (CurrentPage is VersionsViewModel versions)
         {

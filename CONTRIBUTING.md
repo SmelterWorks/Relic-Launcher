@@ -2,8 +2,8 @@
 
 ## Before you open a PR
 
-1. Run `dotnet test RelicLauncher.sln -c Release`
-2. Run `dotnet format RelicLauncher.sln --verify-no-changes`
+1. Run `./scripts/verify.sh` (or `dotnet test RelicLauncher.sln -c Release` and `dotnet format RelicLauncher.sln --verify-no-changes --severity error`)
+2. CI also runs mutation tests on Core and Infrastructure (`dotnet tool restore` then `dotnet stryker --config-file stryker.core.json` and `stryker.infrastructure.json`). Local Stryker runs are optional but slow.
 3. Keep `RelicLauncher.Core` free of Avalonia and filesystem calls
 4. Put IO and process work in `RelicLauncher.Infrastructure` behind Core interfaces
 5. Do not commit secrets, tokens, or personal paths

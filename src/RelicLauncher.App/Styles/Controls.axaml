@@ -19,6 +19,10 @@
     <Setter Property="Foreground" Value="{DynamicResource Theme.TextMuted}" />
   </Style>
 
+  <Style Selector="TextBlock.error">
+    <Setter Property="Foreground" Value="{DynamicResource Theme.Danger}" />
+  </Style>
+
   <Style Selector="Button.primary">
     <Setter Property="Background" Value="{DynamicResource Theme.Accent}" />
     <Setter Property="Foreground" Value="{DynamicResource Theme.Bg0}" />
@@ -83,6 +87,31 @@
   <Style Selector="Button:focus-visible /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="BorderBrush" Value="{DynamicResource Theme.Accent}" />
     <Setter Property="BorderThickness" Value="2" />
+  </Style>
+
+  <Style Selector="TextBox:focus-visible /template/ Border#PART_BorderElement">
+    <Setter Property="BorderBrush" Value="{DynamicResource Theme.Accent}" />
+    <Setter Property="BorderThickness" Value="2" />
+  </Style>
+
+  <Style Selector="CheckBox:focus-visible /template/ Border#NormalRectangle">
+    <Setter Property="BorderBrush" Value="{DynamicResource Theme.Accent}" />
+    <Setter Property="BorderThickness" Value="2" />
+  </Style>
+
+  <Style Selector="ComboBox:focus-visible /template/ Border#Background">
+    <Setter Property="BorderBrush" Value="{DynamicResource Theme.Accent}" />
+    <Setter Property="BorderThickness" Value="2" />
+  </Style>
+
+  <Style Selector="ListBoxItem:focus-visible">
+    <Setter Property="BorderBrush" Value="{DynamicResource Theme.Accent}" />
+    <Setter Property="BorderThickness" Value="2" />
+  </Style>
+
+  <Style Selector="TabItem:focus-visible">
+    <Setter Property="BorderBrush" Value="{DynamicResource Theme.Accent}" />
+    <Setter Property="BorderThickness" Value="0,0,0,2" />
   </Style>
 
   <Style Selector="TextBox">

@@ -60,6 +60,7 @@
 
         <TextBlock Text="{Binding StatusMessage}"
                    Classes="muted"
+                   Classes.error="{Binding StatusIsError}"
                    TextWrapping="Wrap"
                    AutomationProperties.LiveSetting="Polite"
                    IsVisible="{Binding StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />

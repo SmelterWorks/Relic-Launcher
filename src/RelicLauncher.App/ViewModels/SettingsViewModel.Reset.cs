@@ -47,7 +47,7 @@ public partial class SettingsViewModel
         StatusMessage = "Settings restored to defaults.";
         _isBinding = false;
         await PersistSettingsAsync().ConfigureAwait(true);
-        SaveStatusMessage = "Saved defaults";
+        SetSaveStatus("Saved defaults");
     }
 
     [RelayCommand]

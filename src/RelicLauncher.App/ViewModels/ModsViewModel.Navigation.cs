@@ -27,14 +27,14 @@ public partial class ModsViewModel
             : Path.GetDirectoryName(mod.Path);
         if (string.IsNullOrWhiteSpace(target))
         {
-            StatusMessage = "Could not resolve mod folder.";
+            SetStatus("Could not resolve mod folder.", true);
             return;
         }
 
         var result = _fileExplorer.OpenFolder(target);
         if (!result.IsSuccess)
         {
-            StatusMessage = result.Error ?? "Could not open mod folder.";
+            SetStatus(result.Error ?? "Could not open mod folder.", true);
         }
     }
 
@@ -50,12 +50,9 @@ public partial class ModsViewModel
         _urlLauncher.OpenUrl(url);
     }
 
-    private void UpdateSelectedTagsLabel()
+    private void UpdateTagFilterState()
     {
         HasSelectedTags = _selectedTagIds.Count > 0;
-        SelectedTagsLabel = HasSelectedTags
-            ? $"{_selectedTagIds.Count} tag filter(s)"
-            : string.Empty;
         OnPropertyChanged(nameof(TagsMenuLabel));
     }
 

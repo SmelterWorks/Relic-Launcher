@@ -56,6 +56,7 @@
           <Button Classes="nav"
                   Classes.active="{Binding IsHomeActive}"
                   Command="{Binding NavigateHomeCommand}"
+                  ToolTip.Tip="Home (Ctrl+1)"
                   AutomationProperties.Name="Home">
             <StackPanel Orientation="Horizontal" Spacing="12">
               <i:Icon Value="mdi-home" Width="22" Height="22" />
@@ -65,6 +66,7 @@
           <Button Classes="nav"
                   Classes.active="{Binding IsVersionsActive}"
                   Command="{Binding NavigateVersionsCommand}"
+                  ToolTip.Tip="Versions (Ctrl+2)"
                   AutomationProperties.Name="Versions">
             <StackPanel Orientation="Horizontal" Spacing="12">
               <i:Icon Value="mdi-package-variant" Width="22" Height="22" />
@@ -74,6 +76,7 @@
         <Button Classes="nav"
                 Classes.active="{Binding IsModsActive}"
                 Command="{Binding NavigateModsCommand}"
+                ToolTip.Tip="Mods (Ctrl+3)"
                 AutomationProperties.Name="Mods">
           <StackPanel Orientation="Horizontal" Spacing="12">
             <i:Icon Value="mdi-puzzle" Width="22" Height="22" />
@@ -83,6 +86,7 @@
         <Button Classes="nav"
                 Classes.active="{Binding IsBackupActive}"
                 Command="{Binding NavigateBackupCommand}"
+                ToolTip.Tip="Backup (Ctrl+4)"
                 AutomationProperties.Name="Backup">
           <StackPanel Orientation="Horizontal" Spacing="12">
             <i:Icon Value="mdi-archive" Width="22" Height="22" />
@@ -92,6 +96,7 @@
         <Button Classes="nav"
                 Classes.active="{Binding IsWikiActive}"
                 Command="{Binding NavigateWikiCommand}"
+                ToolTip.Tip="Wiki (Ctrl+5)"
                 AutomationProperties.Name="Wiki">
           <StackPanel Orientation="Horizontal" Spacing="12">
             <i:Icon Value="mdi-book-open-page-variant" Width="22" Height="22" />
@@ -101,6 +106,7 @@
         <Button Classes="nav"
                 Classes.active="{Binding IsSettingsActive}"
                 Command="{Binding NavigateSettingsCommand}"
+                ToolTip.Tip="Settings (Ctrl+6)"
                 AutomationProperties.Name="Settings">
           <StackPanel Orientation="Horizontal" Spacing="12">
             <i:Icon Value="mdi-cog" Width="22" Height="22" />
@@ -110,6 +116,7 @@
         <Button Classes="nav"
                 Classes.active="{Binding IsAboutActive}"
                 Command="{Binding NavigateAboutCommand}"
+                ToolTip.Tip="About (Ctrl+7)"
                 AutomationProperties.Name="About">
           <StackPanel Orientation="Horizontal" Spacing="12">
             <i:Icon Value="mdi-information" Width="22" Height="22" />

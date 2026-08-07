@@ -122,7 +122,7 @@ public partial class VersionsViewModel : PageViewModelBase
     private async Task RefreshAsync()
     {
         IsLoading = true;
-        StatusMessage = string.Empty;
+        SetStatus(string.Empty);
         Versions.Clear();
 
         var latest = await _catalog.GetLatestStableVersionAsync().ConfigureAwait(true);
@@ -131,7 +131,7 @@ public partial class VersionsViewModel : PageViewModelBase
         var remote = await _catalog.GetVersionsAsync(cancellationToken: default).ConfigureAwait(true);
         if (!remote.IsSuccess)
         {
-            StatusMessage = remote.Error ?? "Could not load version catalog.";
+            SetStatus(remote.Error ?? "Could not load version catalog.", true);
             _logger.LogWarning("Version catalog failed: {Error}", remote.Error);
             IsLoading = false;
             HasVersions = false;
@@ -158,9 +158,9 @@ public partial class VersionsViewModel : PageViewModelBase
         IsLoading = false;
         if (string.IsNullOrWhiteSpace(StatusMessage))
         {
-            StatusMessage = _catalog.LastCatalogWasStale
+            SetStatus(_catalog.LastCatalogWasStale
                 ? "Showing saved catalog while offline."
-                : $"Loaded {_allRows.Count} versions.";
+                : $"Loaded {_allRows.Count} versions.");
         }
     }
 
@@ -282,7 +282,7 @@ public partial class VersionsViewModel : PageViewModelBase
         catch (OperationCanceledException)
         {
             session.Cancel();
-            StatusMessage = $"Install of {version.Version} canceled.";
+            SetStatus($"Install of {version.Version} canceled.");
         }
         finally
         {
@@ -302,7 +302,7 @@ public partial class VersionsViewModel : PageViewModelBase
         IsInstalling = true;
         InstallProgress = 0;
         InstallProgressLabel = $"Downloading {version.Version}...";
-        StatusMessage = string.Empty;
+        SetStatus(string.Empty);
 
         var progress = new Progress<double>(value =>
         {
@@ -323,7 +323,7 @@ public partial class VersionsViewModel : PageViewModelBase
         if (!result.IsSuccess)
         {
             session.Fail(result.Error ?? "Install failed.");
-            StatusMessage = result.Error ?? "Install failed.";
+            SetStatus(result.Error ?? "Install failed.", true);
             _logger.LogWarning("Install failed: {Error}", result.Error);
             return;
         }
@@ -334,7 +334,7 @@ public partial class VersionsViewModel : PageViewModelBase
         _settings.SelectedVersion = version.Version;
         await PersistSettingsAsync().ConfigureAwait(true);
         await RefreshAsync().ConfigureAwait(true);
-        StatusMessage = $"Installed {version.Version}.";
+        SetStatus($"Installed {version.Version}.");
         InstallProgress = 1;
         InstallProgressLabel = StatusMessage;
     }
@@ -371,7 +371,7 @@ public partial class VersionsViewModel : PageViewModelBase
             if (!ensured.IsSuccess)
             {
                 session.Fail(ensured.Error ?? "Runtime download failed.");
-                StatusMessage = ensured.Error ?? "Runtime download failed.";
+                SetStatus(ensured.Error ?? "Runtime download failed.", true);
                 _logger.LogWarning("Runtime provision failed for {Version}: {Error}", version, ensured.Error);
                 return;
             }
@@ -405,7 +405,7 @@ public partial class VersionsViewModel : PageViewModelBase
         var result = await _installer.UninstallAsync(installsRoot, version).ConfigureAwait(true);
         if (!result.IsSuccess)
         {
-            StatusMessage = result.Error ?? "Uninstall failed.";
+            SetStatus(result.Error ?? "Uninstall failed.", true);
             return;
         }
 
@@ -416,7 +416,7 @@ public partial class VersionsViewModel : PageViewModelBase
         }
 
         await RefreshAsync().ConfigureAwait(true);
-        StatusMessage = $"Uninstalled {version}.";
+        SetStatus($"Uninstalled {version}.");
     }
 
     internal async Task SetActiveAsync(string version)
@@ -424,7 +424,7 @@ public partial class VersionsViewModel : PageViewModelBase
         _settings.SelectedVersion = version;
         await PersistSettingsAsync().ConfigureAwait(true);
         await RefreshAsync().ConfigureAwait(true);
-        StatusMessage = $"Active version set to {version}.";
+        SetStatus($"Active version set to {version}.");
     }
 
     private async Task PersistSettingsAsync()

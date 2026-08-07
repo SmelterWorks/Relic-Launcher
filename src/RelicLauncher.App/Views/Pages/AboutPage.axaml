@@ -5,6 +5,7 @@
              xmlns:services="using:RelicLauncher.App.Services"
              x:Class="RelicLauncher.App.Views.Pages.AboutPage"
              x:DataType="vm:AboutViewModel">
+  <ScrollViewer>
   <StackPanel Spacing="14" MaxWidth="640">
     <Image Source="{x:Static services:AppBranding.AboutLogoUri}"
            Width="96"
@@ -49,4 +50,5 @@
                IsVisible="{Binding StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
     <TextBlock Text="License: 0BSD" Classes="muted" />
   </StackPanel>
+  </ScrollViewer>
 </UserControl>

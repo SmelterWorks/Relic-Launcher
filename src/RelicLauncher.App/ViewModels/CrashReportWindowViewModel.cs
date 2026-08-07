@@ -31,6 +31,9 @@ public partial class CrashReportWindowViewModel : ObservableObject
 
     public string ReportText { get; }
 
+    [ObservableProperty]
+    private string _copyStatusMessage = string.Empty;
+
     public event EventHandler? RequestClose;
 
     [RelayCommand]
@@ -48,6 +51,7 @@ public partial class CrashReportWindowViewModel : ObservableObject
         }
 
         await clipboard.SetTextAsync(_reportText).ConfigureAwait(true);
+        CopyStatusMessage = "Copied to clipboard.";
     }
 
     [RelayCommand]

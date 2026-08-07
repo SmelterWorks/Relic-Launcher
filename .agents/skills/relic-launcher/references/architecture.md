@@ -40,6 +40,8 @@ Layout: `{InstallsRoot}/versions/{version}/`, mods in `{DataPath}/Mods/`.
 | `HomeViewModel` | Play via `IGameLaunchService`, news |
 | `VersionsViewModel` | Catalog + install/uninstall/set active |
 | `ModsViewModel` | Mods page (partials under `ViewModels/ModsViewModel.*.cs`) |
+| `ModpackPanelViewModel` | Modpacks tab on Mods page |
+| `BackupViewModel` | Backup and restore zip archives |
 | `WikiViewModel` | Domain-locked wiki `NativeWebView` + reachability probe |
 | `SettingsViewModel` | Account sign-in, paths, theme (partials under `ViewModels/SettingsViewModel.*.cs`) |
 | `AboutViewModel` | Build metadata |
@@ -71,6 +73,8 @@ When a type grows past ~400 lines, split by concern. Match existing naming: `Typ
 | `ModsViewModel.Install.cs` | Install plan, uninstall, toggle, import |
 | `ModsViewModel.Tags.cs` | Tag chips and filters |
 | `ModsViewModel.Navigation.cs` | Open folder, ModDB page, URLs |
+| `ModsViewModel.Selection.cs` | Browse/installed list selection |
+| `ModsViewModel.Status.cs` | Status message error flags |
 
 `ModpackPanelViewModel` stays separate (embedded in Mods page).
 

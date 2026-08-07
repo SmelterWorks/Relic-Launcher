@@ -53,7 +53,7 @@ public partial class ModsViewModel
         {
             SelectedDetails = null;
             SelectedRelease = null;
-            DetailStatus = "This local mod is not linked to ModDB.";
+            SetDetailStatus("This local mod is not linked to ModDB.", true);
             UpdateSelectedInstalledState();
             RefreshDependencyRowsForLocal(row.Info);
             return;
@@ -65,7 +65,7 @@ public partial class ModsViewModel
     private async Task OpenModByKeyAsync(string id)
     {
         IsLoadingDetails = true;
-        DetailStatus = "Loading details...";
+        SetDetailStatus("Loading details...");
         SelectedDetails = null;
         SelectedRelease = null;
         CloseImageViewer();
@@ -77,14 +77,14 @@ public partial class ModsViewModel
         IsLoadingDetails = false;
         if (!result.IsSuccess)
         {
-            DetailStatus = result.Error ?? "Could not load mod details.";
+            SetDetailStatus(result.Error ?? "Could not load mod details.", true);
             _logger.LogWarning("Mod details failed for {Id}: {Error}", id, result.Error);
             return;
         }
 
         SelectedDetails = result.Value!;
         SelectedRelease = await SelectDefaultReleaseAsync(SelectedDetails).ConfigureAwait(true);
-        DetailStatus = string.Empty;
+        SetDetailStatus(string.Empty);
         RebuildDetailTags(SelectedDetails);
         UpdateSelectedInstalledState();
         await RefreshBlocklistWarningAsync(SelectedDetails, SelectedRelease).ConfigureAwait(true);

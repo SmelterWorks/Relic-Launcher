@@ -11,7 +11,12 @@ public partial class ConfirmDialogViewModel : ObservableObject
         Message = message;
         ConfirmText = confirmText;
         CancelText = cancelText;
+        IsDestructive = IsDestructiveConfirmText(confirmText);
     }
+
+    public bool IsDestructive { get; }
+
+    public bool ConfirmIsDefault => !IsDestructive;
 
     public string Title { get; }
 
@@ -37,5 +42,16 @@ public partial class ConfirmDialogViewModel : ObservableObject
     {
         Confirmed = false;
         RequestClose?.Invoke(this, EventArgs.Empty);
+    }
+
+    private static bool IsDestructiveConfirmText(string confirmText)
+    {
+        var text = confirmText.ToLowerInvariant();
+        return text.Contains("uninstall", StringComparison.Ordinal)
+            || text.Contains("delete", StringComparison.Ordinal)
+            || text.Contains("reset", StringComparison.Ordinal)
+            || text.Contains("restore", StringComparison.Ordinal)
+            || text.Contains("clean", StringComparison.Ordinal)
+            || text.Contains("exit", StringComparison.Ordinal);
     }
 }

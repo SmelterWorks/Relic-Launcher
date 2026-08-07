@@ -24,7 +24,7 @@ public partial class HomeViewModel : PageViewModelBase
     private readonly ILogger<HomeViewModel> _logger;
     private LauncherSettings _settings = new();
     private Action<LauncherSettings>? _onChanged;
-    private Action? _navigateToSettings;
+    private Action<string?>? _navigateToSettings;
     private bool _bindingVersions;
 
     [ObservableProperty]
@@ -44,6 +44,11 @@ public partial class HomeViewModel : PageViewModelBase
 
     [ObservableProperty]
     private string _newsStatusMessage = string.Empty;
+
+    [ObservableProperty]
+    private bool _newsStatusIsError;
+
+    public string PlayButtonText => IsLaunching ? "Launching..." : "Play";
 
     [ObservableProperty]
     private bool _showBackgroundLogo;
@@ -101,13 +106,13 @@ public partial class HomeViewModel : PageViewModelBase
         _accountAuth = accountAuth;
         _transfers = transfers;
         _logger = logger;
-        StatusMessage = "Install a Vintage Story version on the Versions page to enable Play.";
+        SetStatus("Install a Vintage Story version on the Versions page to enable Play.", true);
     }
 
     public void Bind(
         LauncherSettings settings,
         Action<LauncherSettings>? onChanged = null,
-        Action? navigateToSettings = null,
+        Action<string?>? navigateToSettings = null,
         bool refresh = true)
     {
         _settings = settings;
@@ -125,7 +130,7 @@ public partial class HomeViewModel : PageViewModelBase
     }
 
     [RelayCommand]
-    private void GoToSignIn() => _navigateToSettings?.Invoke();
+    private void GoToSignIn() => _navigateToSettings?.Invoke("account");
 
     private async Task RefreshAccountStatusAsync()
     {
@@ -155,7 +160,7 @@ public partial class HomeViewModel : PageViewModelBase
         var save = await _settingsStore.SaveAsync(_settings).ConfigureAwait(true);
         if (!save.IsSuccess)
         {
-            StatusMessage = save.Error ?? "Could not save selected version.";
+            SetStatus(save.Error ?? "Could not save selected version.", true);
             return;
         }
 
@@ -193,7 +198,7 @@ public partial class HomeViewModel : PageViewModelBase
 
         if (string.IsNullOrWhiteSpace(version))
         {
-            StatusMessage = "Install and select a version on the Versions page.";
+            SetStatus("Install and select a version on the Versions page.", true);
             return;
         }
 
@@ -206,27 +211,27 @@ public partial class HomeViewModel : PageViewModelBase
 
         if (!resolved.IsSuccess)
         {
-            StatusMessage = resolved.Error ?? "Install path not ready.";
+            SetStatus(resolved.Error ?? "Install path not ready.", true);
             return;
         }
 
         var info = resolved.Value!;
         if (!info.ExecutableFound)
         {
-            StatusMessage = $"Version {version} is installed but no client executable was found.";
+            SetStatus($"Version {version} is installed but no client executable was found.", true);
             return;
         }
 
         var status = await _accountAuth.GetStatusAsync().ConfigureAwait(true);
         if (!status.IsSuccess || status.Value is not { IsSignedIn: true })
         {
-            StatusMessage = "Sign in with your Vintage Story account in Settings to enable Play.";
+            SetStatus("Sign in with your Vintage Story account in Settings to enable Play.", true);
             return;
         }
 
         CanPlay = true;
         _logger.LogDebug("Play ready for {Version} at {Path}", version, info.InstallPath);
-        StatusMessage = string.Empty;
+        SetStatus(string.Empty);
     }
 
     private async Task LoadNewsAsync()
@@ -245,12 +250,14 @@ public partial class HomeViewModel : PageViewModelBase
             if (!hadArticles)
             {
                 NewsStatusMessage = result.Error ?? "Could not load Vintage Story news.";
+                NewsStatusIsError = true;
             }
 
             return;
         }
 
         NewsStatusMessage = string.Empty;
+        NewsStatusIsError = false;
         NewsArticles.Clear();
         foreach (var article in result.Value!)
         {
@@ -260,6 +267,7 @@ public partial class HomeViewModel : PageViewModelBase
         if (NewsArticles.Count == 0)
         {
             NewsStatusMessage = "No news entries were found.";
+            NewsStatusIsError = false;
         }
     }
 
@@ -323,7 +331,7 @@ public partial class HomeViewModel : PageViewModelBase
     private async Task PlayAsync()
     {
         IsLaunching = true;
-        StatusMessage = "Launching...";
+        SetStatus("Launching...");
         var version = _settings.SelectedVersion ?? string.Empty;
         var runtimeMajor = GameDotNetRuntimeRequirements.TryGetRequiredMajor(version);
         var runtimeLabel = runtimeMajor.IsSuccess
@@ -341,9 +349,9 @@ public partial class HomeViewModel : PageViewModelBase
             var progress = new Progress<double>(value =>
             {
                 session.Report(value);
-                StatusMessage = value < 1.0
+                SetStatus(value < 1.0
                     ? $"Preparing {runtimeLabel}... {value:P0}"
-                    : "Launching...";
+                    : "Launching...");
             });
 
             var result = await _launchService.LaunchAsync(new GameLaunchRequest
@@ -358,20 +366,20 @@ public partial class HomeViewModel : PageViewModelBase
             {
                 session.Fail(result.Error ?? "Launch failed.");
                 _logger.LogWarning("Play failed: {Error}", result.Error);
-                StatusMessage = result.Error ?? "Launch failed.";
+                SetStatus(result.Error ?? "Launch failed.", true);
                 await RefreshAccountStatusAsync().ConfigureAwait(true);
                 await RefreshStatusAsync().ConfigureAwait(true);
             }
             else
             {
                 session.Complete($"Ready for {version}");
-                StatusMessage = $"Launched {version}.";
+                SetStatus($"Launched {version}.");
             }
         }
         catch (OperationCanceledException)
         {
             session.Cancel();
-            StatusMessage = "Launch canceled.";
+            SetStatus("Launch canceled.");
         }
         finally
         {
@@ -382,7 +390,11 @@ public partial class HomeViewModel : PageViewModelBase
 
     partial void OnCanPlayChanged(bool value) => PlayCommand.NotifyCanExecuteChanged();
 
-    partial void OnIsLaunchingChanged(bool value) => PlayCommand.NotifyCanExecuteChanged();
+    partial void OnIsLaunchingChanged(bool value)
+    {
+        PlayCommand.NotifyCanExecuteChanged();
+        OnPropertyChanged(nameof(PlayButtonText));
+    }
 
     private void ApplyLogoSettings(LauncherSettings settings)
     {

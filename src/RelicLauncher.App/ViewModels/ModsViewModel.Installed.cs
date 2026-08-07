@@ -22,7 +22,7 @@ public partial class ModsViewModel
         var result = await _modLibrary.ListInstalledAsync(ResolveDataPath()).ConfigureAwait(true);
         if (!result.IsSuccess)
         {
-            StatusMessage = result.Error ?? "Could not list installed mods.";
+            SetStatus(result.Error ?? "Could not list installed mods.", true);
             HasInstalledMods = false;
             HasDuplicateMods = false;
             DuplicateModsMessage = string.Empty;

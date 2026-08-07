@@ -17,7 +17,7 @@ Large types use **partial classes** split by concern. Do not grow a single `.cs`
 
 | Type | Partials |
 |------|----------|
-| `ModsViewModel` | `.cs` (state, ctor, bind), `.Browse`, `.Installed`, `.Updates`, `.Details`, `.Media`, `.Install`, `.Tags`, `.Navigation` |
+| `ModsViewModel` | `.cs` (state, ctor, bind), `.Browse`, `.Installed`, `.Updates`, `.Details`, `.Media`, `.Install`, `.Tags`, `.Navigation`, `.Selection`, `.Status` |
 | `ModDbClient` | `.cs` (HTTP, catalog, search), `.Parse`, `.Cache` |
 | `SettingsViewModel` | `.cs` (state, bind, autosave), `.Paths`, `.Account`, `.Reset`, `.Debug` |
 | `ModpackService` | `.cs`, `.Apply`, `.Export`, `.Local` |

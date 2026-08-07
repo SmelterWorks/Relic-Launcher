@@ -24,7 +24,7 @@
         <TextBlock Text="Launch" Classes="brand" FontSize="28" />
         <StackPanel Orientation="Horizontal" Spacing="12">
           <Button Classes="primary"
-                  Content="Play"
+                  Content="{Binding PlayButtonText}"
                   Command="{Binding PlayCommand}"
                   MinWidth="120"
                   AutomationProperties.Name="Play Vintage Story" />
@@ -48,6 +48,7 @@
                    TextWrapping="Wrap" />
         <TextBlock Text="{Binding StatusMessage}"
                    Classes="muted"
+                   Classes.error="{Binding StatusIsError}"
                    TextWrapping="Wrap"
                    AutomationProperties.LiveSetting="Polite" />
       </StackPanel>
@@ -71,6 +72,7 @@
 
             <TextBlock Text="{Binding NewsStatusMessage}"
                        Classes="muted"
+                       Classes.error="{Binding NewsStatusIsError}"
                        TextWrapping="Wrap"
                        AutomationProperties.LiveSetting="Polite"
                        IsVisible="{Binding NewsStatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />

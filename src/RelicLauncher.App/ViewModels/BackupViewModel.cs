@@ -96,7 +96,7 @@ public partial class BackupViewModel : PageViewModelBase
         var selectedVersions = InstalledVersions.Where(v => v.IsSelected).Select(v => v.Version).ToList();
         if (!IncludeMods && !IncludeWorlds && selectedVersions.Count == 0)
         {
-            StatusMessage = "Select at least one thing to back up.";
+            SetStatus("Select at least one thing to back up.", true);
             return;
         }
 
@@ -114,7 +114,7 @@ public partial class BackupViewModel : PageViewModelBase
     {
         var session = _transfers.Begin($"backup-{Guid.NewGuid():N}", "Creating backup", TransferJobKind.Backup);
         IsBusy = true;
-        StatusMessage = string.Empty;
+        SetStatus(string.Empty);
         try
         {
             await session.StartAsync().ConfigureAwait(true);
@@ -142,13 +142,13 @@ public partial class BackupViewModel : PageViewModelBase
             if (!result.IsSuccess)
             {
                 session.Fail(result.Error ?? "Backup failed.");
-                StatusMessage = result.Error ?? "Backup failed.";
+                SetStatus(result.Error ?? "Backup failed.", true);
                 _logger.LogWarning("Backup creation failed: {Error}", result.Error);
                 return;
             }
 
             session.Complete("Backup created");
-            StatusMessage = $"Created backup with {result.Value!.FileCount} file(s), {FormatBytes(result.Value.TotalBytes)} at {destination}.";
+            SetStatus($"Created backup with {result.Value!.FileCount} file(s), {FormatBytes(result.Value.TotalBytes)} at {destination}.");
             var folder = Path.GetDirectoryName(destination);
             if (!string.IsNullOrWhiteSpace(folder))
             {
@@ -174,7 +174,7 @@ public partial class BackupViewModel : PageViewModelBase
         var manifest = await _backupService.ReadManifestAsync(source).ConfigureAwait(true);
         if (!manifest.IsSuccess)
         {
-            StatusMessage = manifest.Error ?? "Could not read backup.";
+            SetStatus(manifest.Error ?? "Could not read backup.", true);
             return;
         }
 
@@ -196,7 +196,7 @@ public partial class BackupViewModel : PageViewModelBase
     {
         var session = _transfers.Begin($"restore-{Guid.NewGuid():N}", "Restoring backup", TransferJobKind.Backup);
         IsBusy = true;
-        StatusMessage = string.Empty;
+        SetStatus(string.Empty);
         try
         {
             await session.StartAsync().ConfigureAwait(true);
@@ -221,13 +221,13 @@ public partial class BackupViewModel : PageViewModelBase
             if (!result.IsSuccess)
             {
                 session.Fail(result.Error ?? "Restore failed.");
-                StatusMessage = result.Error ?? "Restore failed.";
+                SetStatus(result.Error ?? "Restore failed.", true);
                 _logger.LogWarning("Backup restore failed: {Error}", result.Error);
                 return;
             }
 
             session.Complete("Backup restored");
-            StatusMessage = $"Restored {result.Value!.FileCount} file(s).";
+            SetStatus($"Restored {result.Value!.FileCount} file(s).");
             await RefreshInstalledVersionsAsync().ConfigureAwait(true);
         }
         finally

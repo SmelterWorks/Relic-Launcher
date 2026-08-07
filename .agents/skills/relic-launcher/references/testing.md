@@ -6,7 +6,7 @@
 |---------|-------|
 | `RelicLauncher.Core.Tests` | `Result`, `PathValidator`, `VintageStoryExecutableLocator`, `BuildMetadata`, `LauncherSettings` |
 | `RelicLauncher.Infrastructure.Tests` | Settings store, news parser, game locator, process runner, file explorer, URL launcher |
-| `RelicLauncher.App.Tests` | `HomeBackgroundLogoResolver` |
+| `RelicLauncher.App.Tests` | `HomeBackgroundLogoResolver`, `ModInstallOrchestrator`, `TransferJobRowViewModel`, `ConfirmDialogService`, `CrashReportFormatter`, `ModInstallResult` |
 | `RelicLauncher.Themes.Tests` | `BuiltInThemeCatalog` |
 | `RelicLauncher.Testing` | Shared `TempAppPaths`, `FixedPathProvider`, `VintageStoryNewsHtml` fixtures (not a test project) |
 

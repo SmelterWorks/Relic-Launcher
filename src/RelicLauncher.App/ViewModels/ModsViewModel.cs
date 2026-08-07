@@ -138,9 +138,6 @@ public partial class ModsViewModel : PageViewModelBase
     private bool _hasSelectedTags;
 
     [ObservableProperty]
-    private string _selectedTagsLabel = string.Empty;
-
-    [ObservableProperty]
     private string _blocklistWarning = string.Empty;
 
     [ObservableProperty]
@@ -177,6 +174,12 @@ public partial class ModsViewModel : PageViewModelBase
     public string TagsMenuLabel => HasSelectedTags
         ? $"Tags ({_selectedTagIds.Count})"
         : "Tags";
+
+    public bool CanFilterByActiveVersion => !string.IsNullOrWhiteSpace(_settings.SelectedVersion);
+
+    public string FilterByActiveVersionHint => CanFilterByActiveVersion
+        ? string.Empty
+        : "Set an active version on the Versions page.";
     public IReadOnlyList<ModSortOption> SortOptions { get; } =
     [
         new ModSortOption { Id = "downloads", Label = "Most downloads" },
@@ -250,6 +253,8 @@ public partial class ModsViewModel : PageViewModelBase
         _ready = true;
         OnPropertyChanged(nameof(ShowCheckForUpdates));
         OnPropertyChanged(nameof(CanUpdateAll));
+        OnPropertyChanged(nameof(CanFilterByActiveVersion));
+        OnPropertyChanged(nameof(FilterByActiveVersionHint));
         ModpackPanel.Bind(settings, refresh);
         _ = RefreshInstalledAsync();
         if (refresh)
@@ -319,7 +324,7 @@ public partial class ModsViewModel : PageViewModelBase
         var save = await _settingsStore.SaveAsync(_settings).ConfigureAwait(true);
         if (!save.IsSuccess)
         {
-            StatusMessage = save.Error ?? "Could not save settings.";
+            SetStatus(save.Error ?? "Could not save settings.", true);
         }
     }
 

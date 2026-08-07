@@ -18,6 +18,7 @@ public partial class SettingsViewModel
     {
         IsSigningIn = true;
         StatusMessage = string.Empty;
+        StatusIsError = false;
         AccountError = string.Empty;
         AccountStatus = RequiresTotp ? "Checking access code..." : "Signing in...";
         try
@@ -34,7 +35,7 @@ public partial class SettingsViewModel
             {
                 var error = result.Error ?? "Sign-in failed.";
                 AccountError = error;
-                StatusMessage = error;
+                SetStatus(error, true);
                 IsSignedIn = false;
                 AccountStatus = "Not signed in";
                 _logger.LogWarning("Settings game sign-in failed: {Error}", error);
@@ -50,7 +51,7 @@ public partial class SettingsViewModel
                 AccountError = string.IsNullOrWhiteSpace(AccountTotpCode)
                     ? string.Empty
                     : "Wrong access code. Try again.";
-                StatusMessage = AccountStatus;
+                SetStatus(AccountStatus);
                 return;
             }
 
@@ -64,7 +65,7 @@ public partial class SettingsViewModel
             AccountStatus = string.IsNullOrWhiteSpace(result.Value.PlayerName)
                 ? $"Signed in as {result.Value.Email}"
                 : $"Signed in as {result.Value.PlayerName}";
-            StatusMessage = "Signed in. Relic will pass this session to the game on Play.";
+            SetStatus("Signed in. Relic will pass this session to the game on Play.");
             _logger.LogInformation("Settings game sign-in succeeded for {Email}", AccountEmail);
         }
         finally
@@ -88,7 +89,7 @@ public partial class SettingsViewModel
         AccountPassword = string.Empty;
         AccountStatus = "Not signed in";
         AccountError = string.Empty;
-        StatusMessage = "Signed out.";
+        SetStatus("Signed out.");
     }
     private async Task RefreshAccountStatusAsync()
     {

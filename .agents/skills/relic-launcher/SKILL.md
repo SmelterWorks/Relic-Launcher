@@ -56,7 +56,7 @@ This is **Relic** config, not Vintage Story game data.
 
 Implemented:
 
-- Sidebar nav: Home, Versions, Mods, Wiki, Settings, About
+- Sidebar nav: Home, Versions, Mods, Backup, Wiki, Settings, About
 - Home: play (active managed version), Vintage Story blog news, optional background logo
 - Versions: catalog from api.vintagestory.at, install/uninstall/set active under InstallsRoot
 - Mods: ModDB browse/install (tags, blocklist warn) plus local import/enable/disable/uninstall, dependency audit/transitive install, and modpack save/export/import/apply (online and offline `.relicmodpack` format)

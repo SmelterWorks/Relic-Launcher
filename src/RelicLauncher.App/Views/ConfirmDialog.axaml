@@ -22,13 +22,18 @@
                 Orientation="Horizontal"
                 HorizontalAlignment="Right"
                 Spacing="10">
-      <Button Classes="ghost"
+      <Button x:Name="CancelButton"
+              Classes="ghost"
               Content="{Binding CancelText}"
               Command="{Binding CancelCommand}"
+              IsCancel="True"
+              IsDefault="{Binding IsDestructive}"
               AutomationProperties.Name="{Binding CancelText}" />
-      <Button Classes="primary"
+      <Button x:Name="ConfirmButton"
+              Classes="primary"
               Content="{Binding ConfirmText}"
               Command="{Binding ConfirmCommand}"
+              IsDefault="{Binding ConfirmIsDefault}"
               AutomationProperties.Name="{Binding ConfirmText}" />
     </StackPanel>
   </Grid>

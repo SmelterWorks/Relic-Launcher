@@ -57,6 +57,7 @@
 
     <Grid>
       <NativeWebView x:Name="WikiWebView"
+                     IsVisible="{Binding ShowWebView}"
                      AutomationProperties.Name="Wiki browser" />
 
       <Border Background="{DynamicResource Theme.Bg0}"

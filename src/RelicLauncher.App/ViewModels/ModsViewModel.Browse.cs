@@ -52,7 +52,7 @@ public partial class ModsViewModel
     private async Task LoadPageAsync(CancellationToken cancellationToken)
     {
         IsLoading = true;
-        StatusMessage = string.Empty;
+        SetStatus(string.Empty);
         ClearBrowseResults();
         HasBrowseResults = false;
         try
@@ -99,7 +99,7 @@ public partial class ModsViewModel
 
     private void ApplySearchFailure(string? error)
     {
-        StatusMessage = error ?? "Mod search failed.";
+        SetStatus(error ?? "Mod search failed.", true);
         _logger.LogWarning("Mod search failed: {Error}", error);
         ClearBrowseResults();
         HasBrowseResults = false;
@@ -126,9 +126,9 @@ public partial class ModsViewModel
 
         if (page.FromCache && string.IsNullOrWhiteSpace(StatusMessage) && TotalCount > 0)
         {
-            StatusMessage = page.IsStale
+            SetStatus(page.IsStale
                 ? "Showing saved ModDB catalog while offline."
-                : $"Showing {TotalCount:N0} mods.";
+                : $"Showing {TotalCount:N0} mods.");
         }
     }
 

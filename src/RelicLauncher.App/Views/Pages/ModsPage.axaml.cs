@@ -13,12 +13,27 @@ public partial class ModsPage : UserControl
     public ModsPage()
     {
         InitializeComponent();
+        Focusable = true;
         AttachedToVisualTree += (_, _) =>
         {
             _browseDetailGrid = this.FindControl<Grid>("BrowseDetailGrid");
             UpdateLayoutMode(Bounds.Width);
         };
         SizeChanged += OnSizeChanged;
+    }
+
+    private void OnImageViewerKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Escape || DataContext is not ModsViewModel vm || !vm.IsImageViewerOpen)
+        {
+            return;
+        }
+
+        if (vm.CloseImageViewerCommand.CanExecute(null))
+        {
+            vm.CloseImageViewerCommand.Execute(null);
+            e.Handled = true;
+        }
     }
 
     private void OnSizeChanged(object? sender, SizeChangedEventArgs e)

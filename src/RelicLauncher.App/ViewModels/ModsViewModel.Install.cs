@@ -19,13 +19,13 @@ public partial class ModsViewModel
     {
         if (SelectedDetails is null)
         {
-            DetailStatus = "Select a mod first.";
+            SetDetailStatus("Select a mod first.", true);
             return;
         }
 
         if (IsSelectedModInstalled && !HasSelectedModUpdate)
         {
-            DetailStatus = SelectedInstalledLabel;
+            SetDetailStatus(SelectedInstalledLabel);
             return;
         }
 
@@ -38,7 +38,7 @@ public partial class ModsViewModel
         var release = SelectedRelease ?? SelectedDetails.Releases.FirstOrDefault();
         if (release is null)
         {
-            DetailStatus = "No releases available.";
+            SetDetailStatus("No releases available.", true);
             return;
         }
 
@@ -72,15 +72,15 @@ public partial class ModsViewModel
         var gameVersion = _settings.SelectedVersion;
         if (string.IsNullOrWhiteSpace(gameVersion))
         {
-            DetailStatus = "Set an active game version before installing with dependencies.";
+            SetDetailStatus("Set an active game version before installing with dependencies.", true);
             return null;
         }
 
-        DetailStatus = "Resolving dependencies...";
+        SetDetailStatus("Resolving dependencies...");
         var planResult = await _dependencyPlanner.PlanAsync(release, gameVersion, installed).ConfigureAwait(true);
         if (!planResult.IsSuccess)
         {
-            DetailStatus = planResult.Error ?? "Could not resolve dependencies.";
+            SetDetailStatus(planResult.Error ?? "Could not resolve dependencies.", true);
             return null;
         }
 
@@ -95,7 +95,7 @@ public partial class ModsViewModel
         var confirmed = await _installOrchestrator.ConfirmDependencyPlanAsync(plan).ConfigureAwait(true);
         if (!confirmed)
         {
-            DetailStatus = "Install canceled.";
+            SetDetailStatus("Install canceled.");
         }
 
         return confirmed;
@@ -107,7 +107,7 @@ public partial class ModsViewModel
         var confirmed = await _installOrchestrator.ConfirmBlockedReleaseAsync(_settings, modId, release).ConfigureAwait(true);
         if (!confirmed)
         {
-            DetailStatus = "Install canceled.";
+            SetDetailStatus("Install canceled.");
         }
 
         return confirmed;
@@ -128,7 +128,7 @@ public partial class ModsViewModel
 
             if (!result.Success)
             {
-                DetailStatus = result.Message ?? "Install failed.";
+                SetDetailStatus(result.Message ?? "Install failed.", true);
             }
 
             await RefreshInstalledAsync().ConfigureAwait(true);
@@ -154,27 +154,27 @@ public partial class ModsViewModel
             _activeInstalls++;
             InstallProgress = 0;
             InstallProgressLabel = $"Downloading {displayName}...";
-            DetailStatus = InstallProgressLabel;
+            SetDetailStatus(InstallProgressLabel);
 
             var progress = new Progress<double>(value =>
             {
                 InstallProgress = value;
                 session.Report(value);
                 InstallProgressLabel = $"Downloading {displayName}... {value:P0}";
-                DetailStatus = InstallProgressLabel;
+                SetDetailStatus(InstallProgressLabel);
             });
 
             var result = await _modLibrary.InstallAsync(ResolveDataPath(), release, progress).ConfigureAwait(true);
             if (!result.IsSuccess)
             {
                 session.Fail(result.Error ?? "Install failed.");
-                DetailStatus = result.Error ?? "Install failed.";
+                SetDetailStatus(result.Error ?? "Install failed.", true);
                 _logger.LogWarning("Mod install failed: {Error}", result.Error);
                 return;
             }
 
             session.Complete($"Installed {result.Value!.FileName}");
-            DetailStatus = $"Installed {result.Value.FileName}";
+            SetDetailStatus($"Installed {result.Value.FileName}");
             InstallProgress = 1;
             InstallProgressLabel = DetailStatus;
             if (refreshInstalled)
@@ -185,7 +185,7 @@ public partial class ModsViewModel
         catch (OperationCanceledException)
         {
             session.Cancel();
-            DetailStatus = "Install canceled.";
+            SetDetailStatus("Install canceled.");
         }
         finally
         {
@@ -216,7 +216,7 @@ public partial class ModsViewModel
         var result = await _modLibrary.UninstallAsync(mod).ConfigureAwait(true);
         if (!result.IsSuccess)
         {
-            StatusMessage = result.Error ?? "Uninstall failed.";
+            SetStatus(result.Error ?? "Uninstall failed.", true);
             return;
         }
 
@@ -274,7 +274,7 @@ public partial class ModsViewModel
         var result = await _modLibrary.SetEnabledAsync(mod, enabling).ConfigureAwait(true);
         if (!result.IsSuccess)
         {
-            StatusMessage = result.Error ?? "Could not change mod state.";
+            SetStatus(result.Error ?? "Could not change mod state.", true);
             return;
         }
 
@@ -297,13 +297,13 @@ public partial class ModsViewModel
         var result = await _modLibrary.CleanDuplicateModsAsync(ResolveDataPath()).ConfigureAwait(true);
         if (!result.IsSuccess)
         {
-            StatusMessage = result.Error ?? "Could not clean duplicate mods.";
+            SetStatus(result.Error ?? "Could not clean duplicate mods.", true);
             return;
         }
 
-        StatusMessage = result.Value == 0
+        SetStatus(result.Value == 0
             ? "No duplicate mods found."
-            : $"Removed {result.Value} duplicate mod file(s).";
+            : $"Removed {result.Value} duplicate mod file(s).");
         await RefreshInstalledAsync().ConfigureAwait(true);
     }
 
@@ -336,11 +336,11 @@ public partial class ModsViewModel
         var result = await _modLibrary.ImportLocalAsync(ResolveDataPath(), path).ConfigureAwait(true);
         if (!result.IsSuccess)
         {
-            StatusMessage = result.Error ?? "Could not import local mod.";
+            SetStatus(result.Error ?? "Could not import local mod.", true);
             return;
         }
 
-        StatusMessage = $"Imported {result.Value!.FileName}";
+        SetStatus($"Imported {result.Value!.FileName}");
         await RefreshInstalledAsync().ConfigureAwait(true);
     }
 }

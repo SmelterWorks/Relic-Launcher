@@ -115,6 +115,12 @@ public partial class SettingsViewModel : PageViewModelBase
     private string _saveStatusMessage = string.Empty;
 
     [ObservableProperty]
+    private bool _saveStatusIsError;
+
+    [ObservableProperty]
+    private bool _isAccountSectionExpanded = true;
+
+    [ObservableProperty]
     private bool _isSaving;
 
     [ObservableProperty]
@@ -285,8 +291,9 @@ public partial class SettingsViewModel : PageViewModelBase
         var paths = _pathProvider.GetPaths();
         LogsFolder.Bind("Logs folder", paths.LogsDirectory);
         ThemesFolder.Bind("User themes folder", paths.ThemesDirectory);
-        SaveStatusMessage = string.Empty;
+        SetSaveStatus(string.Empty);
         StatusMessage = string.Empty;
+        StatusIsError = false;
         _isBinding = false;
         _ = RefreshAccountStatusAsync();
         RefreshDebugLog();
@@ -321,7 +328,7 @@ public partial class SettingsViewModel : PageViewModelBase
         try
         {
             IsSaving = true;
-            SaveStatusMessage = "Saving...";
+            SetSaveStatus("Saving...");
             await Task.Delay(450, cancellationToken).ConfigureAwait(true);
             await PersistSettingsAsync().ConfigureAwait(true);
             if (cancellationToken.IsCancellationRequested)
@@ -329,7 +336,7 @@ public partial class SettingsViewModel : PageViewModelBase
                 return;
             }
 
-            SaveStatusMessage = "Saved";
+            SetSaveStatus("Saved");
             _savedIndicatorCts?.Cancel();
             _savedIndicatorCts = new CancellationTokenSource();
             _ = ClearSavedIndicatorAsync(_savedIndicatorCts.Token);
@@ -353,7 +360,7 @@ public partial class SettingsViewModel : PageViewModelBase
             await Task.Delay(2000, cancellationToken).ConfigureAwait(true);
             if (!cancellationToken.IsCancellationRequested && string.Equals(SaveStatusMessage, "Saved", StringComparison.Ordinal))
             {
-                SaveStatusMessage = string.Empty;
+                SetSaveStatus(string.Empty);
             }
         }
         catch (TaskCanceledException)
@@ -398,7 +405,7 @@ public partial class SettingsViewModel : PageViewModelBase
         var themeResult = _themeService.ApplyTheme(settings.SelectedThemeId);
         if (!themeResult.IsSuccess)
         {
-            SaveStatusMessage = themeResult.Error ?? "Theme apply failed.";
+            SetSaveStatus(themeResult.Error ?? "Theme apply failed.", true);
             return;
         }
 
@@ -406,11 +413,25 @@ public partial class SettingsViewModel : PageViewModelBase
         if (!save.IsSuccess)
         {
             _logger.LogWarning("Settings save failed: {Error}", save.Error);
-            SaveStatusMessage = save.Error ?? "Save failed.";
+            SetSaveStatus(save.Error ?? "Save failed.", true);
             return;
         }
 
         _onChanged?.Invoke(settings);
+    }
+
+    public event EventHandler? FocusAccountRequested;
+
+    public void RequestFocusAccount()
+    {
+        IsAccountSectionExpanded = true;
+        FocusAccountRequested?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void SetSaveStatus(string message, bool isError = false)
+    {
+        SaveStatusMessage = message;
+        SaveStatusIsError = isError;
     }
 
     private static string TrimOrDefault(string? value, string fallback)

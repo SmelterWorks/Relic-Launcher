@@ -8,6 +8,7 @@ public partial class ConfirmDialog : Window
     public ConfirmDialog()
     {
         InitializeComponent();
+        Opened += OnOpened;
     }
 
     public static async Task<bool> ShowAsync(
@@ -22,5 +23,22 @@ public partial class ConfirmDialog : Window
         vm.RequestClose += (_, _) => window.Close();
         await window.ShowDialog(owner).ConfigureAwait(true);
         return vm.Confirmed;
+    }
+
+    private void OnOpened(object? sender, EventArgs e)
+    {
+        if (DataContext is not ConfirmDialogViewModel vm)
+        {
+            return;
+        }
+
+        if (vm.IsDestructive)
+        {
+            CancelButton?.Focus();
+        }
+        else
+        {
+            ConfirmButton?.Focus();
+        }
     }
 }

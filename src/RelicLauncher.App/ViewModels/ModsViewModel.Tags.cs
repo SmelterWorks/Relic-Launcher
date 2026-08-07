@@ -20,6 +20,7 @@ public partial class ModsViewModel
         if (!result.IsSuccess)
         {
             _logger.LogDebug("ModDB tags unavailable: {Error}", result.Error);
+            SetStatus("Could not load ModDB tags. Tag filters are unavailable.", true);
             return;
         }
 
@@ -38,7 +39,7 @@ public partial class ModsViewModel
                 OnTagChipToggled));
         }
 
-        UpdateSelectedTagsLabel();
+        UpdateTagFilterState();
     }
 
     private void OnTagChipToggled(ModTagChipViewModel chip)
@@ -54,7 +55,7 @@ public partial class ModsViewModel
             chip.IsSelected = true;
         }
 
-        UpdateSelectedTagsLabel();
+        UpdateTagFilterState();
         if (_ready)
         {
             _ = SearchAsync();
@@ -114,7 +115,7 @@ public partial class ModsViewModel
             chip.IsSelected = false;
         }
 
-        UpdateSelectedTagsLabel();
+        UpdateTagFilterState();
         if (_ready)
         {
             _ = SearchAsync();

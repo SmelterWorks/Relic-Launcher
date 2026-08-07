@@ -14,6 +14,7 @@
         <TextBlock Grid.Column="1"
                    Text="{Binding SaveStatusMessage}"
                    Classes="muted"
+                   Classes.error="{Binding SaveStatusIsError}"
                    VerticalAlignment="Top"
                    Margin="0,4,0,0"
                    IsVisible="{Binding IsSaveStatusVisible}" />
@@ -21,7 +22,7 @@
 
       <controls:SettingsSection Title="Account"
                                 Subtitle="Sign in so Play can auto-fill your Vintage Story game session. Downloads do not need this."
-                                IsExpanded="True">
+                                IsExpanded="{Binding IsAccountSectionExpanded}">
         <controls:SettingsSection.SectionContent>
           <StackPanel Spacing="10">
             <TextBlock Text="{Binding AccountStatus}" Classes="muted" TextWrapping="Wrap" />
@@ -33,14 +34,17 @@
                        Classes="settings-field-hint"
                        IsVisible="{Binding !IsSignedIn}" />
             <StackPanel Spacing="8" IsVisible="{Binding !IsSignedIn}">
-              <TextBox Text="{Binding AccountEmail}"
+              <TextBox x:Name="AccountEmailBox"
+                       Text="{Binding AccountEmail}"
                        PlaceholderText="Email"
                        IsEnabled="{Binding !IsSigningIn}"
+                       KeyDown="OnAccountFieldKeyDown"
                        AutomationProperties.Name="Account email" />
               <TextBox Text="{Binding AccountPassword}"
                        PasswordChar="*"
                        PlaceholderText="Password"
                        IsEnabled="{Binding !IsSigningIn}"
+                       KeyDown="OnAccountFieldKeyDown"
                        AutomationProperties.Name="Account password" />
               <StackPanel Spacing="4" IsVisible="{Binding RequiresTotp}">
                 <TextBlock Text="Access code (2FA)" Classes="settings-field-label" />
@@ -48,6 +52,7 @@
                          PlaceholderText="6-digit code"
                          MaxLength="8"
                          IsEnabled="{Binding !IsSigningIn}"
+                         KeyDown="OnAccountFieldKeyDown"
                          AutomationProperties.Name="Two-factor access code" />
               </StackPanel>
               <StackPanel Orientation="Horizontal" Spacing="8">
@@ -303,6 +308,7 @@
 
       <TextBlock Text="{Binding StatusMessage}"
                  Classes="muted"
+                 Classes.error="{Binding StatusIsError}"
                  TextWrapping="Wrap"
                  IsVisible="{Binding StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
     </StackPanel>

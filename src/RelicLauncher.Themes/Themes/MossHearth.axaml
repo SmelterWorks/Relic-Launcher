@@ -30,6 +30,7 @@
   <SolidColorBrush x:Key="Theme.Danger" Color="{StaticResource Theme.DangerColor}" />
   <SolidColorBrush x:Key="Theme.Border" Color="{StaticResource Theme.BorderColor}" />
   <SolidColorBrush x:Key="Theme.Fog" Color="{StaticResource Theme.FogColor}" />
+  <SolidColorBrush x:Key="Theme.Overlay" Color="#CC000000" />
 
   <LinearGradientBrush x:Key="Theme.HeroBackground" StartPoint="0%,0%" EndPoint="100%,100%">
     <GradientStop Color="#FF0F1612" Offset="0" />

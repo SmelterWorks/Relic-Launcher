@@ -51,7 +51,7 @@ public partial class ModsViewModel
         var gameVersion = _settings.SelectedVersion;
         if (string.IsNullOrWhiteSpace(gameVersion))
         {
-            UpdateStatusMessage = "Set an active game version to check for mod updates.";
+            SetUpdateStatus("Set an active game version to check for mod updates.", true);
             return;
         }
 
@@ -65,7 +65,8 @@ public partial class ModsViewModel
                 force).ConfigureAwait(true);
             if (!result.IsSuccess)
             {
-                UpdateStatusMessage = result.Error ?? "Could not check for mod updates.";
+                SetUpdateStatus(result.Error ?? "Could not check for mod updates.", true);
+                _logger.LogWarning("Mod update check failed: {Error}", result.Error);
                 return;
             }
 
@@ -78,7 +79,7 @@ public partial class ModsViewModel
             HasAvailableUpdates = _updateCandidates.Count > 0;
             ApplyUpdateStateToRows();
             UpdateSelectedInstalledState();
-            UpdateStatusMessage = BuildUpdateStatusMessage(result.Value);
+            SetUpdateStatus(BuildUpdateStatusMessage(result.Value));
 
             if (_settings.ModUpdateMode == ModUpdateMode.Automatic && HasAvailableUpdates)
             {
@@ -115,9 +116,9 @@ public partial class ModsViewModel
 
         if (updated > 0)
         {
-            UpdateStatusMessage = updated == 1
+            SetUpdateStatus(updated == 1
                 ? "1 mod updated."
-                : $"{updated} mods updated.";
+                : $"{updated} mods updated.");
             await RefreshInstalledAsync().ConfigureAwait(true);
             await RunUpdateCheckAsync(force: true).ConfigureAwait(true);
         }
@@ -156,9 +157,9 @@ public partial class ModsViewModel
 
         if (updated > 0)
         {
-            StatusMessage = updated == 1
+            SetStatus(updated == 1
                 ? "Updated 1 mod."
-                : $"Updated {updated} mods.";
+                : $"Updated {updated} mods.");
             await RefreshInstalledAsync().ConfigureAwait(true);
             await RunUpdateCheckAsync(force: true).ConfigureAwait(true);
         }
@@ -190,14 +191,14 @@ public partial class ModsViewModel
     {
         if (SelectedDetails is null)
         {
-            DetailStatus = "Select a mod first.";
+            SetDetailStatus("Select a mod first.", true);
             return;
         }
 
         var modId = ResolveModIdentifier(SelectedDetails);
         if (!_updateCandidates.TryGetValue(modId, out var candidate))
         {
-            DetailStatus = "No update available for this mod.";
+            SetDetailStatus("No update available for this mod.", true);
             return;
         }
 
