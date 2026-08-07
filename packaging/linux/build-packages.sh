@@ -3,15 +3,16 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Usage: build-packages.sh --version VERSION --publish-dir DIR --output-dir DIR
+Usage: build-packages.sh --version VERSION --publish-dir DIR --output-dir DIR [--skip-flatpak]
 
-Build AppImage, deb, rpm, and Arch pkg.tar.zst packages from a linux-x64 publish folder.
+Build AppImage, deb, rpm, Arch pkg.tar.zst, and Flatpak packages from a linux-x64 publish folder.
 EOF
 }
 
 VERSION=""
 PUBLISH_DIR=""
 OUTPUT_DIR=""
+SKIP_FLATPAK=0
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
@@ -26,6 +27,10 @@ while [ "$#" -gt 0 ]; do
     --output-dir)
       OUTPUT_DIR="${2:?}"
       shift 2
+      ;;
+    --skip-flatpak)
+      SKIP_FLATPAK=1
+      shift
       ;;
     -h|--help)
       usage
@@ -51,13 +56,17 @@ fi
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 PACKAGING_DIR="${ROOT_DIR}/packaging/linux"
+FLATPAK_DIR="${PACKAGING_DIR}/flatpak"
 ICON_SRC="${ROOT_DIR}/assets/icons/icon-256.png"
-WORK_DIR="$(mktemp -d)"
-trap 'rm -rf "${WORK_DIR}"' EXIT
-
+ICON_512_SRC="${ROOT_DIR}/assets/icons/icon-512.png"
 mkdir -p "${OUTPUT_DIR}"
 OUTPUT_DIR="$(cd "${OUTPUT_DIR}" && pwd)"
 PUBLISH_DIR="$(cd "${PUBLISH_DIR}" && pwd)"
+
+WORK_DIR="${OUTPUT_DIR}/.packaging-work"
+rm -rf "${WORK_DIR}"
+mkdir -p "${WORK_DIR}"
+trap 'rm -rf "${WORK_DIR}"' EXIT
 
 DEB_VERSION="${VERSION//-/\~}-1"
 RPM_VERSION="${VERSION//-/.}"
@@ -206,10 +215,61 @@ EOF
   ARCH=x86_64 VERSION="${VERSION}" "${appimagetool_bin}" "${appdir}" "${out}"
 }
 
+build_flatpak() {
+  if [ "$SKIP_FLATPAK" -eq 1 ]; then
+    echo "Skipping Flatpak build (--skip-flatpak)."
+    return 0
+  fi
+
+  if ! command -v flatpak >/dev/null 2>&1; then
+    echo "flatpak is not installed. Install flatpak or pass --skip-flatpak." >&2
+    exit 1
+  fi
+  if ! command -v flatpak-builder >/dev/null 2>&1; then
+    echo "flatpak-builder is not installed. Install flatpak-builder or pass --skip-flatpak." >&2
+    exit 1
+  fi
+
+  local flatpak_root="${WORK_DIR}/flatpak"
+  local flatpak_input="${flatpak_root}/flatpak-input"
+  local flatpak_metadata="${flatpak_input}/metadata"
+  local flatpak_publish="${flatpak_input}/publish"
+  local flatpak_manifest="${flatpak_root}/com.smelterworks.RelicLauncher.yml"
+  local flatpak_build_dir="${WORK_DIR}/flatpak-build"
+  local flatpak_repo="${WORK_DIR}/flatpak-repo"
+
+  mkdir -p "${flatpak_publish}" "${flatpak_metadata}"
+  cp -a "${PUBLISH_DIR}/." "${flatpak_publish}/"
+  chmod +x "${flatpak_publish}/RelicLauncher.App"
+
+  install -Dm644 "${FLATPAK_DIR}/com.smelterworks.RelicLauncher.desktop" \
+    "${flatpak_metadata}/com.smelterworks.RelicLauncher.desktop"
+  install -Dm644 "${FLATPAK_DIR}/com.smelterworks.RelicLauncher.metainfo.xml" \
+    "${flatpak_metadata}/com.smelterworks.RelicLauncher.metainfo.xml"
+  install -Dm644 "${ICON_SRC}" "${flatpak_metadata}/icon-256.png"
+  install -Dm644 "${ICON_512_SRC}" "${flatpak_metadata}/icon-512.png"
+
+  cp "${FLATPAK_DIR}/com.smelterworks.RelicLauncher.yml" "${flatpak_manifest}"
+
+  flatpak-builder \
+    --user \
+    --force-clean \
+    --repo="${flatpak_repo}" \
+    "${flatpak_build_dir}" \
+    "${flatpak_manifest}"
+
+  local out="${OUTPUT_DIR}/relic-launcher-${VERSION}-linux-x64.flatpak"
+  flatpak build-bundle \
+    "${flatpak_repo}" \
+    "${out}" \
+    com.smelterworks.RelicLauncher
+}
+
 build_deb
 build_rpm
 build_arch_pkg
 build_appimage
+build_flatpak
 
 echo "Built packages in ${OUTPUT_DIR}:"
 ls -1 "${OUTPUT_DIR}"

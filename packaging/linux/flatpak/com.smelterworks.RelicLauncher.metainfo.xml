@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>com.smelterworks.RelicLauncher</id>
+  <name>Relic Launcher</name>
+  <summary>Unofficial desktop launcher for Vintage Story</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>0BSD</project_license>
+  <developer_name>SmelterWorks</developer_name>
+  <description>
+    <p>
+      Relic Launcher is an unofficial community desktop launcher for Vintage Story.
+      It is not affiliated with Anego Studios.
+    </p>
+    <p>
+      Install and manage game versions, browse ModDB, handle mods and modpacks,
+      sign in once, and launch Vintage Story from one place.
+    </p>
+    <p>
+      The Flatpak build runs Relic and the game inside the sandbox. Game installs,
+      saves, and launcher settings live under the app sandbox XDG directories,
+      not your host Vintage Story folders unless you grant access through a file picker.
+    </p>
+  </description>
+  <launchable type="desktop-id">com.smelterworks.RelicLauncher.desktop</launchable>
+  <url type="homepage">https://github.com/SmelterWorks/Relic-Launcher</url>
+  <url type="bugtracker">https://github.com/SmelterWorks/Relic-Launcher/issues</url>
+  <screenshots>
+    <screenshot type="default">
+      <image>https://raw.githubusercontent.com/SmelterWorks/Relic-Launcher/main/assets/screenshots/home-relic-default.png</image>
+      <caption>Home screen with relic-default theme</caption>
+    </screenshot>
+  </screenshots>
+  <content_rating type="oars-1.1" />
+</component>

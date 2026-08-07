@@ -1,0 +1,31 @@
+id: com.smelterworks.RelicLauncher
+runtime: org.freedesktop.Platform
+runtime-version: '24.08'
+sdk: org.freedesktop.Sdk
+command: RelicLauncher.App
+
+finish-args:
+  - --share=network
+  - --share=ipc
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --device=dri
+  - --socket=pulseaudio
+  - --talk-name=org.freedesktop.secrets
+
+modules:
+  - name: relic-launcher
+    buildsystem: simple
+    build-commands:
+      - install -d /app/lib/relic-launcher
+      - cp -a publish/. /app/lib/relic-launcher/
+      - chmod +x /app/lib/relic-launcher/RelicLauncher.App
+      - install -D metadata/com.smelterworks.RelicLauncher.desktop /app/share/applications/com.smelterworks.RelicLauncher.desktop
+      - install -D metadata/com.smelterworks.RelicLauncher.metainfo.xml /app/share/metainfo/com.smelterworks.RelicLauncher.metainfo.xml
+      - install -D metadata/icon-256.png /app/share/icons/hicolor/256x256/apps/com.smelterworks.RelicLauncher.png
+      - install -D metadata/icon-512.png /app/share/icons/hicolor/512x512/apps/com.smelterworks.RelicLauncher.png
+      - install -d /app/bin
+      - ln -sf /app/lib/relic-launcher/RelicLauncher.App /app/bin/RelicLauncher.App
+    sources:
+      - type: dir
+        path: flatpak-input

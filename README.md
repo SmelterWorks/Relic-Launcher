@@ -22,7 +22,6 @@ Built with C# / .NET 10 and Avalonia 12.1. Targets the same desktop platforms Vi
 ## Upcoming
 
 - Launcher sandboxing (the app itself, not the game)
-- Packaging: Flatpak
 - Server Hosting
 - Custom fonts support
 - i18n - multi-language support
@@ -89,7 +88,30 @@ Release artifacts:
 
 - Windows: `relic-launcher-{version}-win-x64.zip` (folder), `relic-launcher-{version}-win-x64-portable.zip` (single exe), `relic-launcher-{version}-win-x64-setup.exe` (NSIS installer)
 - macOS: `relic-launcher-{version}-osx-*.app.zip` (`Relic Launcher.app`, not notarized)
-- Linux: deb, rpm, Arch pkg, AppImage via `packaging/linux/build-packages.sh`
+- Linux: deb, rpm, Arch pkg, AppImage, and Flatpak via `packaging/linux/build-packages.sh`
+
+### Flatpak (Linux)
+
+Download `relic-launcher-{version}-linux-x64.flatpak` from GitHub Releases or nightlies, then:
+
+```bash
+flatpak install --user relic-launcher-{version}-linux-x64.flatpak
+flatpak run com.smelterworks.RelicLauncher
+```
+
+The Flatpak runs Relic and Vintage Story inside the sandbox. Launcher settings, game installs, saves, and mods use the app sandbox XDG directories (under `~/.var/app/com.smelterworks.RelicLauncher/`), not your host `~/.config/VintagestoryData` or `~/Games` unless you pick a host folder through a file picker.
+
+To build the Flatpak locally after a `linux-x64` publish:
+
+```bash
+chmod +x packaging/linux/build-packages.sh
+packaging/linux/build-packages.sh \
+  --version 0.1.0 \
+  --publish-dir artifacts/linux-x64 \
+  --output-dir artifacts/packages
+```
+
+Requires `flatpak` and `flatpak-builder` with the Freedesktop 24.08 Platform and Sdk from Flathub. Pass `--skip-flatpak` to build only deb, rpm, Arch pkg, and AppImage.
 
 ## Config and logs
 
@@ -97,6 +119,7 @@ App data root:
 
 - Windows: `%AppData%/RelicLauncher`
 - Linux / macOS: `~/.config/RelicLauncher` (via `ApplicationData`)
+- Flatpak: `~/.var/app/com.smelterworks.RelicLauncher/config/RelicLauncher`
 
 Files:
 
