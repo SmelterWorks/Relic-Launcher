@@ -63,6 +63,7 @@ public static partial class SandboxBootstrap
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
 
         var brokerTask = host.RunAsync(socketPath, linked.Token);
+        await WaitForBrokerSocketAsync(socketPath, linked.Token).ConfigureAwait(false);
         var uiTask = LaunchSandboxedUiAsync(args, socketPath, services, linked.Token);
 
         var uiExit = await uiTask.ConfigureAwait(false);
@@ -106,6 +107,12 @@ public static partial class SandboxBootstrap
             return -1;
         }
 
+        var socketPath = ResolveBrokerSocketPath(pathProvider);
+        return await StartBrokerProcessAsync(socketPath, cancellationToken).ConfigureAwait(false);
+    }
+
+    private static string ResolveBrokerSocketPath(IAppPathProvider pathProvider)
+    {
         var socketPath = Path.Combine(pathProvider.GetPaths().RootDirectory, "broker.sock");
         try
         {
@@ -121,6 +128,13 @@ public static partial class SandboxBootstrap
             socketPath = Path.Combine(Path.GetTempPath(), $"relic-broker-{Environment.ProcessId}.sock");
         }
 
+        return socketPath;
+    }
+
+    private static async Task<int> StartBrokerProcessAsync(
+        string socketPath,
+        CancellationToken cancellationToken)
+    {
         var startInfo = new ProcessStartInfo
         {
             FileName = Environment.ProcessPath ?? "dotnet",
@@ -133,8 +147,13 @@ public static partial class SandboxBootstrap
         }
 
         startInfo.ArgumentList.Add(BrokerArgument);
-        startInfo.Environment[SandboxEnvironment.BrokerRole] = SandboxEnvironment.BrokerRoleValue;
-        startInfo.Environment[SandboxEnvironment.BrokerSocketPath] = socketPath;
+        SandboxEnvironment.ApplyToStartInfo(
+            startInfo,
+            new Dictionary<string, string?>(StringComparer.Ordinal)
+            {
+                [SandboxEnvironment.BrokerRole] = SandboxEnvironment.BrokerRoleValue,
+                [SandboxEnvironment.BrokerSocketPath] = socketPath,
+            });
 
         using var process = global::System.Diagnostics.Process.Start(startInfo);
         if (process is null)
@@ -169,11 +188,12 @@ public static partial class SandboxBootstrap
 
         var (uiExecutable, uiArgs) = BuildUiLaunchCommand(args);
 
-        var env = new Dictionary<string, string?>(StringComparer.Ordinal)
-        {
-            [SandboxEnvironment.BrokerSocketPath] = socketPath,
-            [SandboxEnvironment.RunningSandboxed] = "1",
-        };
+        var env = SandboxEnvironment.CreateChildEnvironment(
+            new Dictionary<string, string?>(StringComparer.Ordinal)
+            {
+                [SandboxEnvironment.BrokerSocketPath] = socketPath,
+                [SandboxEnvironment.RunningSandboxed] = "1",
+            });
 
         if (OperatingSystem.IsLinux() && linuxLauncher.IsHelperAvailable)
         {
@@ -205,7 +225,7 @@ public static partial class SandboxBootstrap
         SandboxPolicy policy,
         string uiExecutable,
         List<string> uiArgs,
-        Dictionary<string, string?> env,
+        IDictionary<string, string?> env,
         CancellationToken cancellationToken)
     {
         var start = linuxLauncher.BuildStartInfo(
@@ -214,7 +234,7 @@ public static partial class SandboxBootstrap
             uiArgs,
             env,
             AppContext.BaseDirectory,
-            stdioPassthrough: false);
+            stdioPassthrough: true);
         if (!start.IsSuccess)
         {
             return 1;
@@ -230,12 +250,28 @@ public static partial class SandboxBootstrap
         return process.ExitCode;
     }
 
+    private static async Task WaitForBrokerSocketAsync(
+        string socketPath,
+        CancellationToken cancellationToken)
+    {
+        for (var attempt = 0; attempt < 100; attempt++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (File.Exists(socketPath))
+            {
+                return;
+            }
+
+            await Task.Delay(20, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
     private static async Task<int> LaunchWindowsUiAsync(
         WindowsSandboxLauncher windowsLauncher,
         SandboxPolicy policy,
         string uiExecutable,
         List<string> uiArgs,
-        Dictionary<string, string?> env,
+        IDictionary<string, string?> env,
         CancellationToken cancellationToken)
     {
         var launchRequest = new SandboxLaunchRequest

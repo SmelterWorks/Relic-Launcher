@@ -30,11 +30,22 @@ public static class SandboxPolicyBuilder
             AddIfValid(grants, "/", PathAccess.ReadExecute);
         }
 
+        var netGrants = new List<NetPortGrant>
+        {
+            new()
+            {
+                Port = 0,
+                AllowConnectTcp = true,
+                AllowConnectSendUdp = true,
+            },
+        };
+
         return new SandboxPolicy
         {
             Kind = SandboxKind.Launcher,
             PathGrants = grants,
-            ScopeAbstractUnixSocket = true,
+            NetPortGrants = netGrants,
+            ScopeAbstractUnixSocket = false,
             ScopeSignal = true,
             SeccompProfile = SeccompProfile.Default,
         };
@@ -224,6 +235,7 @@ public static class SandboxPolicyBuilder
         var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         AddIfValid(grants, Path.Combine(home, ".cache"), PathAccess.ReadWrite);
         AddIfValid(grants, Path.Combine(home, ".fontconfig"), PathAccess.ReadWrite);
+        AddIfValid(grants, Path.Combine(home, ".Xauthority"), PathAccess.ReadWrite);
     }
 
     private static bool IsUnderPath(string child, string parent)
