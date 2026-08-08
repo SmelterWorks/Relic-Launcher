@@ -124,6 +124,8 @@ public partial class ServersViewModel : PageViewModelBase
     public ObservableCollection<string> LocalListenEndpoints { get; } = [];
     public ObservableCollection<string> RecentAddresses { get; } = [];
 
+    public bool HasRecentAddresses => RecentAddresses.Count > 0;
+
     public IReadOnlyList<ServerSortOption> SortOptions { get; } =
     [
         new ServerSortOption { Id = "players-desc", Label = "Players (high to low)" },

@@ -25,6 +25,7 @@ public partial class HomeViewModel : PageViewModelBase
     private LauncherSettings _settings = new();
     private Action<LauncherSettings>? _onChanged;
     private Action<string?>? _navigateToSettings;
+    private Action? _navigateToVersions;
     private bool _bindingVersions;
     private CancellationTokenSource? _articleCts;
 
@@ -107,18 +108,24 @@ public partial class HomeViewModel : PageViewModelBase
         _accountAuth = accountAuth;
         _transfers = transfers;
         _logger = logger;
-        SetStatus("Install a Vintage Story version on the Versions page to enable Play.", true);
     }
+
+    public bool ShowGoToVersions => !CanPlay && !IsLaunching;
+
+    public bool ShowNewsEmpty =>
+        !IsLoadingNews && !IsShowingArticle && NewsArticles.Count == 0 && !string.IsNullOrEmpty(NewsStatusMessage);
 
     public void Bind(
         LauncherSettings settings,
         Action<LauncherSettings>? onChanged = null,
         Action<string?>? navigateToSettings = null,
+        Action? navigateToVersions = null,
         bool refresh = true)
     {
         _settings = settings;
         _onChanged = onChanged;
         _navigateToSettings = navigateToSettings;
+        _navigateToVersions = navigateToVersions;
         ApplyLogoSettings(settings);
         _ = RefreshAccountStatusAsync();
         _ = RefreshInstalledVersionsAsync();
@@ -132,6 +139,9 @@ public partial class HomeViewModel : PageViewModelBase
 
     [RelayCommand]
     private void GoToSignIn() => _navigateToSettings?.Invoke("account");
+
+    [RelayCommand]
+    private void GoToVersions() => _navigateToVersions?.Invoke();
 
     private async Task RefreshAccountStatusAsync()
     {
@@ -199,7 +209,7 @@ public partial class HomeViewModel : PageViewModelBase
 
         if (string.IsNullOrWhiteSpace(version))
         {
-            SetStatus("Install and select a version on the Versions page.", true);
+            SetStatus("Install and select a version on the Versions page.", false);
             return;
         }
 
@@ -252,6 +262,7 @@ public partial class HomeViewModel : PageViewModelBase
             {
                 NewsStatusMessage = result.Error ?? "Could not load Vintage Story news.";
                 NewsStatusIsError = true;
+                OnPropertyChanged(nameof(ShowNewsEmpty));
             }
 
             return;
@@ -270,6 +281,8 @@ public partial class HomeViewModel : PageViewModelBase
             NewsStatusMessage = "No news entries were found.";
             NewsStatusIsError = false;
         }
+
+        OnPropertyChanged(nameof(ShowNewsEmpty));
     }
 
     private async Task ShowArticleAsync(NewsArticleViewModel article)
@@ -422,13 +435,22 @@ public partial class HomeViewModel : PageViewModelBase
         }
     }
 
-    partial void OnCanPlayChanged(bool value) => PlayCommand.NotifyCanExecuteChanged();
+    partial void OnCanPlayChanged(bool value)
+    {
+        PlayCommand.NotifyCanExecuteChanged();
+        OnPropertyChanged(nameof(ShowGoToVersions));
+    }
 
     partial void OnIsLaunchingChanged(bool value)
     {
         PlayCommand.NotifyCanExecuteChanged();
         OnPropertyChanged(nameof(PlayButtonText));
+        OnPropertyChanged(nameof(ShowGoToVersions));
     }
+
+    partial void OnIsLoadingNewsChanged(bool value) => OnPropertyChanged(nameof(ShowNewsEmpty));
+
+    partial void OnIsShowingArticleChanged(bool value) => OnPropertyChanged(nameof(ShowNewsEmpty));
 
     private void ApplyLogoSettings(LauncherSettings settings)
     {

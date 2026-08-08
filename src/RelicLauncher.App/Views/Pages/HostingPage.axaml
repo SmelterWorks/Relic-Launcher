@@ -185,9 +185,13 @@
                     Command="{Binding OpenSmelterWorksHostingCommand}" />
           </StackPanel>
 
-          <TextBlock Text="Loading SmelterWorks hosting plans..."
-                     Classes="muted"
-                     IsVisible="{Binding IsLoadingCloudPlans}" />
+          <controls:LoadingOverlay IsActive="{Binding IsLoadingCloudPlans}"
+                                   Message="Loading SmelterWorks hosting plans…" />
+
+          <controls:EmptyStatePanel Message="{Binding CloudPlansEmptyMessage}"
+                                    ActionText="Retry"
+                                    ActionCommand="{Binding LoadCloudPlansCommand}"
+                                    IsActive="{Binding ShowCloudPlansEmpty}" />
 
           <Border x:Name="CloudPlansPanel"
                   IsVisible="{Binding ShowCloudPlanCards}"

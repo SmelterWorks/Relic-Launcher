@@ -1,0 +1,20 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="using:RelicLauncher.App.Views.Controls"
+             x:Class="RelicLauncher.App.Views.Controls.LoadingOverlay"
+             x:Name="LoadingOverlayRoot"
+             x:DataType="controls:LoadingOverlay"
+             IsHitTestVisible="False">
+  <Border Background="{DynamicResource Theme.Bg0}"
+          Opacity="0.85"
+          IsVisible="{Binding #LoadingOverlayRoot.IsActive}"
+          HorizontalAlignment="Stretch"
+          VerticalAlignment="Stretch">
+    <TextBlock Text="{Binding #LoadingOverlayRoot.Message}"
+               Classes="muted"
+               HorizontalAlignment="Center"
+               VerticalAlignment="Center"
+               FontSize="16"
+               AutomationProperties.LiveSetting="Polite" />
+  </Border>
+</UserControl>

@@ -91,5 +91,7 @@ public partial class ServersViewModel
                 RecentAddresses.Add(address);
             }
         }
+
+        OnPropertyChanged(nameof(HasRecentAddresses));
     }
 }

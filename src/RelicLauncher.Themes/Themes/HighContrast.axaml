@@ -13,6 +13,7 @@
   <Color x:Key="Theme.TextColor">#FFFFFFFF</Color>
   <Color x:Key="Theme.TextMutedColor">#FFCCCCCC</Color>
   <Color x:Key="Theme.DangerColor">#FFFF0000</Color>
+  <Color x:Key="Theme.WarningColor">#FFFFAA00</Color>
   <Color x:Key="Theme.BorderColor">#FFFFFFFF</Color>
   <Color x:Key="Theme.FogColor">#66000000</Color>
 
@@ -28,6 +29,7 @@
   <SolidColorBrush x:Key="Theme.Text" Color="{StaticResource Theme.TextColor}" />
   <SolidColorBrush x:Key="Theme.TextMuted" Color="{StaticResource Theme.TextMutedColor}" />
   <SolidColorBrush x:Key="Theme.Danger" Color="{StaticResource Theme.DangerColor}" />
+  <SolidColorBrush x:Key="Theme.Warning" Color="{StaticResource Theme.WarningColor}" />
   <SolidColorBrush x:Key="Theme.Border" Color="{StaticResource Theme.BorderColor}" />
   <SolidColorBrush x:Key="Theme.Fog" Color="{StaticResource Theme.FogColor}" />
   <SolidColorBrush x:Key="Theme.Overlay" Color="#CC000000" />

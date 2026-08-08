@@ -74,6 +74,7 @@ public partial class HostingViewModel : PageViewModelBase
         CloudPlans.CollectionChanged += (_, _) =>
         {
             OnPropertyChanged(nameof(ShowCloudPlanCards));
+        OnPropertyChanged(nameof(ShowCloudPlansEmpty));
             NotifyCloudPlansLayoutRefresh();
         };
         SetServerState(_serverHost.State);
@@ -155,6 +156,13 @@ public partial class HostingViewModel : PageViewModelBase
     public bool IsCloudSection => Section == HostingSection.Cloud;
 
     public bool ShowCloudPlanCards => !IsLoadingCloudPlans && CloudPlans.Count > 0;
+
+    public bool ShowCloudPlansEmpty => !IsLoadingCloudPlans && CloudPlans.Count == 0;
+
+    public string CloudPlansEmptyMessage =>
+        StatusIsError && !string.IsNullOrWhiteSpace(StatusMessage)
+            ? StatusMessage
+            : "Could not load SmelterWorks hosting plans.";
 
     public bool ShowListeningEndpoints => ServerState is ServerProcessState.Running && HasListeningEndpoints;
 

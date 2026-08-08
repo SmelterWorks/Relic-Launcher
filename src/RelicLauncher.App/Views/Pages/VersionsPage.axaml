@@ -51,14 +51,15 @@
                  TextWrapping="Wrap"
                  AutomationProperties.LiveSetting="Polite"
                  IsVisible="{Binding StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-      <TextBlock Text="Loading..." Classes="muted" IsVisible="{Binding IsLoading}" />
-      <TextBlock Text="{Binding EmptyMessage}"
-                 Classes="muted"
-                 IsVisible="{Binding !HasVersions}" />
     </StackPanel>
 
     <Grid Grid.Row="2" RowDefinitions="*,Auto">
-      <ListBox ItemsSource="{Binding Versions}"
+      <Grid Grid.Row="0">
+        <controls:LoadingOverlay IsActive="{Binding IsLoading}"
+                                 Message="Loading versions…" />
+        <controls:EmptyStatePanel Message="{Binding EmptyMessage}"
+                                  IsActive="{Binding ShowEmptyVersions}" />
+        <ListBox ItemsSource="{Binding Versions}"
                Background="Transparent"
                BorderThickness="0"
                ScrollViewer.HorizontalScrollBarVisibility="Disabled">
@@ -84,7 +85,9 @@
                       </TextBlock.Text>
                     </TextBlock>
                     <TextBlock Text="Installed" Classes="muted" IsVisible="{Binding IsInstalled}" />
-                    <TextBlock Text="Active" IsVisible="{Binding IsActive}" />
+                    <Border Classes="status-badge active" IsVisible="{Binding IsActive}">
+                      <TextBlock Text="Active" />
+                    </Border>
                   </StackPanel>
                   <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                     <Button Classes="primary" Content="Install" Command="{Binding InstallCommand}" IsVisible="{Binding !IsInstalled}" />
@@ -96,6 +99,7 @@
             </DataTemplate>
         </ListBox.ItemTemplate>
       </ListBox>
+      </Grid>
 
       <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8" Margin="0,8,0,0">
         <Button Classes="ghost" Content="Previous" Command="{Binding PreviousPageCommand}" IsEnabled="{Binding HasPreviousPage}" />

@@ -1,0 +1,25 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="using:RelicLauncher.App.Views.Controls"
+             x:Class="RelicLauncher.App.Views.Controls.EmptyStatePanel"
+             x:Name="EmptyStatePanelRoot"
+             x:DataType="controls:EmptyStatePanel">
+  <StackPanel IsVisible="{Binding #EmptyStatePanelRoot.IsActive}"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Center"
+              Spacing="12"
+              Margin="24"
+              MaxWidth="480">
+    <TextBlock Text="{Binding #EmptyStatePanelRoot.Message}"
+               Classes="muted"
+               TextWrapping="Wrap"
+               TextAlignment="Center"
+               AutomationProperties.LiveSetting="Polite" />
+    <Button Classes="primary"
+            Content="{Binding #EmptyStatePanelRoot.ActionText}"
+            Command="{Binding #EmptyStatePanelRoot.ActionCommand}"
+            HorizontalAlignment="Center"
+            IsVisible="{Binding #EmptyStatePanelRoot.ActionText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+            AutomationProperties.Name="{Binding #EmptyStatePanelRoot.ActionText}" />
+  </StackPanel>
+</UserControl>

@@ -11,15 +11,18 @@
 
     <StackPanel Grid.Row="1" Spacing="8" Margin="0,12,0,8">
       <StackPanel Orientation="Horizontal" Spacing="8">
-        <Button Classes="ghost"
+        <Button Classes="segmented-tab"
+                Classes.active="{Binding IsBrowseTab}"
                 Content="Browse"
                 Command="{Binding SelectBrowseTabCommand}"
                 AutomationProperties.Name="Browse servers tab" />
-        <Button Classes="ghost"
+        <Button Classes="segmented-tab"
+                Classes.active="{Binding IsDirectTab}"
                 Content="Direct connect"
                 Command="{Binding SelectDirectTabCommand}"
                 AutomationProperties.Name="Direct connect tab" />
-        <Button Classes="ghost"
+        <Button Classes="segmented-tab"
+                Classes.active="{Binding IsLanTab}"
                 Content="LAN / local"
                 Command="{Binding SelectLanTabCommand}"
                 AutomationProperties.Name="LAN local tab" />
@@ -83,12 +86,9 @@
         </StackPanel>
       </StackPanel>
 
-      <Grid Grid.Row="1" Grid.Column="0" RowDefinitions="Auto,*">
-        <TextBlock Text="Loading public servers…"
-                   Classes="muted"
-                   Margin="0,24,0,0"
-                   HorizontalAlignment="Center"
-                   IsVisible="{Binding IsLoading}" />
+      <Grid Grid.Row="1" Grid.Column="0" RowDefinitions="*">
+        <controls:LoadingOverlay IsActive="{Binding IsLoading}"
+                                 Message="Loading public servers…" />
         <Border IsVisible="{Binding ShowCatalogError}"
                 Padding="24"
                 HorizontalAlignment="Stretch"
@@ -101,14 +101,9 @@
             </StackPanel>
           </StackPanel>
         </Border>
-        <TextBlock Text="{Binding EmptyBrowseMessage}"
-                   Classes="muted"
-                   Margin="0,24,0,0"
-                   HorizontalAlignment="Center"
-                   TextWrapping="Wrap"
-                   TextAlignment="Center"
-                   IsVisible="{Binding ShowEmptyBrowse}" />
-        <ListBox Grid.Row="1"
+        <controls:EmptyStatePanel Message="{Binding EmptyBrowseMessage}"
+                                  IsActive="{Binding ShowEmptyBrowse}" />
+        <ListBox Grid.Row="0"
                  ItemsSource="{Binding BrowseResults}"
                  SelectedItem="{Binding SelectedBrowseServer, Mode=TwoWay}"
                  Background="Transparent"
@@ -121,19 +116,12 @@
               <Setter Property="HorizontalContentAlignment" Value="Stretch" />
               <Setter Property="Background" Value="Transparent" />
             </Style>
-            <Style Selector="ListBoxItem:selected Border.server-row">
-              <Setter Property="BorderBrush" Value="{DynamicResource Theme.Accent}" />
-            </Style>
           </ListBox.Styles>
           <ListBox.ItemTemplate>
             <DataTemplate x:DataType="vm:ServerRowViewModel">
-              <Border Classes="server-row"
+              <Border Classes="list-row"
                       Margin="0,0,0,6"
-                      Padding="12"
-                      Background="{DynamicResource Theme.Surface}"
-                      BorderBrush="{DynamicResource Theme.Border}"
-                      BorderThickness="1"
-                      CornerRadius="{DynamicResource Theme.Radius}">
+                      Padding="12">
                 <Grid ColumnDefinitions="*,Auto">
                   <StackPanel Grid.Column="0" Spacing="2">
                     <StackPanel Orientation="Horizontal" Spacing="6">
@@ -215,15 +203,10 @@
                Classes="muted"
                Margin="0,0,0,8"
                IsVisible="{Binding IsLanScanning}" />
-    <Grid Grid.Row="1" RowDefinitions="Auto,*">
-      <TextBlock Text="{Binding LanEmptyMessage}"
-                 Classes="muted"
-                 Margin="0,8,0,0"
-                 HorizontalAlignment="Center"
-                 TextWrapping="Wrap"
-                 TextAlignment="Center"
-                 IsVisible="{Binding ShowEmptyLan}" />
-      <ListBox Grid.Row="1"
+    <Grid Grid.Row="1" RowDefinitions="*">
+      <controls:EmptyStatePanel Message="{Binding LanEmptyMessage}"
+                                IsActive="{Binding ShowEmptyLan}" />
+      <ListBox Grid.Row="0"
                ItemsSource="{Binding LanResults}"
                Background="Transparent"
                BorderThickness="0"
@@ -238,13 +221,9 @@
         </ListBox.Styles>
         <ListBox.ItemTemplate>
           <DataTemplate x:DataType="vm:LanServerRowViewModel">
-            <Border Classes="server-row"
+            <Border Classes="list-row"
                     Margin="0,0,0,6"
-                    Padding="12"
-                    Background="{DynamicResource Theme.Surface}"
-                    BorderBrush="{DynamicResource Theme.Border}"
-                    BorderThickness="1"
-                    CornerRadius="{DynamicResource Theme.Radius}">
+                    Padding="12">
               <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
                 <StackPanel Grid.Column="0" Spacing="2">
                   <StackPanel Orientation="Horizontal" Spacing="6">
@@ -281,7 +260,11 @@
       <TextBlock Text="{Binding LanValidationError}" Classes="error" IsVisible="{Binding LanValidationError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
       <Button Classes="ghost" Content="Connect manually" Command="{Binding JoinLanManualCommand}" IsEnabled="{Binding CanJoin}" />
       <TextBlock Text="Recent connections" FontWeight="SemiBold" />
-      <ItemsControl ItemsSource="{Binding RecentAddresses}">
+      <TextBlock Text="No recent connections yet."
+                 Classes="muted"
+                 IsVisible="{Binding !HasRecentAddresses}" />
+      <ItemsControl ItemsSource="{Binding RecentAddresses}"
+                    IsVisible="{Binding HasRecentAddresses}">
         <ItemsControl.ItemTemplate>
           <DataTemplate x:DataType="x:String">
             <Button Classes="ghost"

@@ -111,20 +111,14 @@
       <Grid Grid.Column="0" RowDefinitions="*">
         <TabControl AutomationProperties.Name="Mods tabs">
           <TabItem Header="Browse">
-            <Grid RowDefinitions="Auto,*,Auto">
-              <Panel Margin="0,0,0,8">
-                <TextBlock Text="Loading mods..."
-                           Classes="muted"
-                           IsVisible="{Binding IsLoading}" />
-                <TextBlock Text="{Binding EmptyBrowseMessage}"
-                           Classes="muted"
-                           TextWrapping="Wrap"
-                           IsVisible="{Binding ShowEmptyBrowse}" />
-              </Panel>
-
-              <ListBox x:Name="BrowseModsList"
-                       Grid.Row="1"
-                       ItemsSource="{Binding BrowseResults}"
+            <Grid RowDefinitions="*,Auto">
+              <Grid Grid.Row="0">
+                <controls:LoadingOverlay IsActive="{Binding IsLoading}"
+                                         Message="Loading mods…" />
+                <controls:EmptyStatePanel Message="{Binding EmptyBrowseMessage}"
+                                          IsActive="{Binding ShowEmptyBrowse}" />
+                <ListBox x:Name="BrowseModsList"
+                         ItemsSource="{Binding BrowseResults}"
                        SelectedItem="{Binding SelectedBrowseMod, Mode=TwoWay}"
                        Background="Transparent"
                        BorderThickness="0"
@@ -136,19 +130,12 @@
                     <Setter Property="HorizontalContentAlignment" Value="Stretch" />
                     <Setter Property="Background" Value="Transparent" />
                   </Style>
-                  <Style Selector="ListBoxItem:selected Border.mod-row">
-                    <Setter Property="BorderBrush" Value="{DynamicResource Theme.Accent}" />
-                  </Style>
                 </ListBox.Styles>
                 <ListBox.ItemTemplate>
                     <DataTemplate x:DataType="vm:ModRowViewModel">
-                      <Border Classes="mod-row"
+                      <Border Classes="list-row"
                               Margin="0,0,0,6"
-                              Padding="10"
-                              Background="{DynamicResource Theme.Surface}"
-                              CornerRadius="{DynamicResource Theme.Radius}"
-                              BorderThickness="2"
-                              BorderBrush="Transparent">
+                              Padding="10">
                         <Grid ColumnDefinitions="56,*" ColumnSpacing="10">
                           <Border Width="48" Height="48" CornerRadius="6" ClipToBounds="True" Background="{DynamicResource Theme.Bg1}">
                             <Panel>
@@ -176,8 +163,9 @@
                     </DataTemplate>
                 </ListBox.ItemTemplate>
               </ListBox>
+              </Grid>
 
-              <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="8" Margin="0,8,0,0">
+              <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8" Margin="0,8,0,0">
                 <Button Classes="ghost" Content="Previous" Command="{Binding PreviousPageCommand}" IsEnabled="{Binding HasPreviousPage}" />
                 <TextBlock Text="{Binding PageLabel}" Classes="muted" VerticalAlignment="Center" />
                 <Button Classes="ghost" Content="Next" Command="{Binding NextPageCommand}" IsEnabled="{Binding HasNextPage}" />
@@ -224,16 +212,15 @@
                            Classes.error="{Binding UpdateStatusIsError}"
                            TextWrapping="Wrap"
                            IsVisible="{Binding UpdateStatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-                <TextBlock Text="Checking for updates..."
+                <TextBlock Text="Checking for updates…"
                            Classes="muted"
                            IsVisible="{Binding IsCheckingUpdates}" />
-                <TextBlock Text="{Binding EmptyInstalledMessage}"
-                           Classes="muted"
-                           IsVisible="{Binding !HasInstalledMods}" />
               </StackPanel>
-              <ListBox x:Name="InstalledModsList"
-                       Grid.Row="1"
-                       ItemsSource="{Binding InstalledMods}"
+              <Grid Grid.Row="1">
+                <controls:EmptyStatePanel Message="{Binding EmptyInstalledMessage}"
+                                          IsActive="{Binding !HasInstalledMods}" />
+                <ListBox x:Name="InstalledModsList"
+                         ItemsSource="{Binding InstalledMods}"
                        SelectedItem="{Binding SelectedInstalledMod, Mode=TwoWay}"
                        Background="Transparent"
                        BorderThickness="0"
@@ -245,19 +232,12 @@
                     <Setter Property="HorizontalContentAlignment" Value="Stretch" />
                     <Setter Property="Background" Value="Transparent" />
                   </Style>
-                  <Style Selector="ListBoxItem:selected Border.mod-row">
-                    <Setter Property="BorderBrush" Value="{DynamicResource Theme.Accent}" />
-                  </Style>
                 </ListBox.Styles>
                 <ListBox.ItemTemplate>
                     <DataTemplate x:DataType="vm:InstalledModRowViewModel">
-                      <Border Classes="mod-row"
+                      <Border Classes="list-row"
                               Margin="0,0,0,8"
-                              Padding="10"
-                              Background="{DynamicResource Theme.Surface}"
-                              CornerRadius="{DynamicResource Theme.Radius}"
-                              BorderThickness="2"
-                              BorderBrush="Transparent">
+                              Padding="10">
                         <Grid ColumnDefinitions="56,*,Auto" ColumnSpacing="10">
                           <Border Width="48" Height="48" CornerRadius="6" ClipToBounds="True" Background="{DynamicResource Theme.Bg1}">
                             <Panel>
@@ -307,14 +287,6 @@
                                     CommandParameter="{Binding}"
                                     AutomationProperties.Name="Update mod" />
                             <Button Classes="ghost"
-                                    Padding="8,6"
-                                    ToolTip.Tip="Open mod folder"
-                                    Command="{Binding $parent[UserControl].((vm:ModsViewModel)DataContext).OpenModFolderCommand}"
-                                    CommandParameter="{Binding Info}"
-                                    AutomationProperties.Name="Open mod folder">
-                              <i:Icon Value="mdi-folder" Width="18" Height="18" />
-                            </Button>
-                            <Button Classes="ghost"
                                     Content="Disable"
                                     IsVisible="{Binding IsEnabled}"
                                     Command="{Binding $parent[UserControl].((vm:ModsViewModel)DataContext).ToggleModCommand}"
@@ -327,16 +299,28 @@
                                     CommandParameter="{Binding Info}"
                                     AutomationProperties.Name="Enable mod" />
                             <Button Classes="ghost"
-                                    Content="Uninstall"
-                                    Command="{Binding $parent[UserControl].((vm:ModsViewModel)DataContext).UninstallModCommand}"
-                                    CommandParameter="{Binding Info}"
-                                    AutomationProperties.Name="Uninstall mod" />
+                                    Padding="8,6"
+                                    ToolTip.Tip="More actions"
+                                    AutomationProperties.Name="More mod actions">
+                              <Button.Flyout>
+                                <MenuFlyout Placement="Bottom">
+                                  <MenuItem Header="Open folder"
+                                            Command="{Binding $parent[UserControl].((vm:ModsViewModel)DataContext).OpenModFolderCommand}"
+                                            CommandParameter="{Binding Info}" />
+                                  <MenuItem Header="Uninstall"
+                                            Command="{Binding $parent[UserControl].((vm:ModsViewModel)DataContext).UninstallModCommand}"
+                                            CommandParameter="{Binding Info}" />
+                                </MenuFlyout>
+                              </Button.Flyout>
+                              <i:Icon Value="mdi-dots-vertical" Width="18" Height="18" />
+                            </Button>
                           </StackPanel>
                         </Grid>
                       </Border>
                     </DataTemplate>
                 </ListBox.ItemTemplate>
               </ListBox>
+              </Grid>
             </Grid>
           </TabItem>
 

@@ -67,6 +67,8 @@ public partial class VersionsViewModel : PageViewModelBase
     [ObservableProperty]
     private bool _hasVersions;
 
+    public bool ShowEmptyVersions => !IsLoading && !HasVersions;
+
     [ObservableProperty]
     private string _emptyMessage = "No versions to show.";
 
@@ -136,6 +138,7 @@ public partial class VersionsViewModel : PageViewModelBase
             IsLoading = false;
             HasVersions = false;
             EmptyMessage = "Could not load versions.";
+            OnPropertyChanged(nameof(ShowEmptyVersions));
             return;
         }
 
@@ -229,6 +232,7 @@ public partial class VersionsViewModel : PageViewModelBase
         }
 
         HasVersions = Versions.Count > 0;
+        OnPropertyChanged(nameof(ShowEmptyVersions));
         if (HasVersions)
         {
             EmptyMessage = string.Empty;
@@ -493,4 +497,8 @@ public partial class VersionsViewModel : PageViewModelBase
             Dispatcher.UIThread.Post(Apply);
         }
     }
+
+    partial void OnIsLoadingChanged(bool value) => OnPropertyChanged(nameof(ShowEmptyVersions));
+
+    partial void OnHasVersionsChanged(bool value) => OnPropertyChanged(nameof(ShowEmptyVersions));
 }

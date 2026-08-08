@@ -16,6 +16,7 @@ public partial class HostingViewModel
 
         IsLoadingCloudPlans = true;
         OnPropertyChanged(nameof(ShowCloudPlanCards));
+        OnPropertyChanged(nameof(ShowCloudPlansEmpty));
         try
         {
             var result = await _hostingFeed.GetPlansAsync().ConfigureAwait(true);
@@ -42,12 +43,18 @@ public partial class HostingViewModel
         {
             IsLoadingCloudPlans = false;
             OnPropertyChanged(nameof(ShowCloudPlanCards));
+            OnPropertyChanged(nameof(ShowCloudPlansEmpty));
+            OnPropertyChanged(nameof(CloudPlansEmptyMessage));
             NotifyCloudPlansLayoutRefresh();
             Dispatcher.UIThread.Post(NotifyCloudPlansLayoutRefresh, DispatcherPriority.Render);
         }
     }
 
-    partial void OnIsLoadingCloudPlansChanged(bool value) => OnPropertyChanged(nameof(ShowCloudPlanCards));
+    partial void OnIsLoadingCloudPlansChanged(bool value)
+    {
+        OnPropertyChanged(nameof(ShowCloudPlanCards));
+        OnPropertyChanged(nameof(ShowCloudPlansEmpty));
+    }
 
     [RelayCommand]
     private void OpenSmelterWorksHosting()

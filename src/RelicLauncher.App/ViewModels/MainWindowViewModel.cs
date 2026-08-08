@@ -1,4 +1,3 @@
-using Avalonia;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.DependencyInjection;
@@ -30,8 +29,6 @@ public partial class MainWindowViewModel : ViewModelBase
     private double _shellOpacity = 1;
 
     public string AppVersion => BuildMetadata.Version;
-
-    public Thickness ContentPadding => IsHomeActive ? new Thickness(0) : new Thickness(32, 28, 32, 28);
 
     public MainWindowViewModel(
         IServiceProvider services,
@@ -105,11 +102,20 @@ public partial class MainWindowViewModel : ViewModelBase
     private void NavigateHome() => Navigate("home", () =>
     {
         var page = _services.GetRequiredService<HomeViewModel>();
-        page.Bind(Settings, OnSettingsChanged, section => NavigateSettingsInternal(section));
+        page.Bind(
+            Settings,
+            OnSettingsChanged,
+            section => NavigateSettingsInternal(section),
+            () => NavigateVersionsCommand.Execute(null));
         return page;
     }, existing =>
     {
-        ((HomeViewModel)existing).Bind(Settings, OnSettingsChanged, section => NavigateSettingsInternal(section), refresh: false);
+        ((HomeViewModel)existing).Bind(
+            Settings,
+            OnSettingsChanged,
+            section => NavigateSettingsInternal(section),
+            () => NavigateVersionsCommand.Execute(null),
+            refresh: false);
     });
 
     [RelayCommand]
@@ -265,7 +271,12 @@ public partial class MainWindowViewModel : ViewModelBase
         _endpoints.Apply(settings);
         if (CurrentPage is HomeViewModel home)
         {
-            home.Bind(settings, OnSettingsChanged, section => NavigateSettingsInternal(section), refresh: false);
+            home.Bind(
+                settings,
+                OnSettingsChanged,
+                section => NavigateSettingsInternal(section),
+                () => NavigateVersionsCommand.Execute(null),
+                refresh: false);
         }
         else if (CurrentPage is VersionsViewModel versions)
         {
@@ -304,7 +315,6 @@ public partial class MainWindowViewModel : ViewModelBase
     partial void OnActiveNavChanged(string value)
     {
         NotifyNavState();
-        OnPropertyChanged(nameof(ContentPadding));
     }
 
     private void NotifyNavState()

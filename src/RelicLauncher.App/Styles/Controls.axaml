@@ -84,7 +84,7 @@
     <Setter Property="Foreground" Value="{DynamicResource Theme.Accent}" />
   </Style>
 
-  <Style Selector="Button.hosting-tab">
+  <Style Selector="Button.hosting-tab, Button.segmented-tab">
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="Foreground" Value="{DynamicResource Theme.TextMuted}" />
     <Setter Property="BorderBrush" Value="{DynamicResource Theme.Border}" />
@@ -94,10 +94,51 @@
     <Setter Property="FontWeight" Value="SemiBold" />
   </Style>
 
-  <Style Selector="Button.hosting-tab.active">
+  <Style Selector="Button.hosting-tab.active, Button.segmented-tab.active">
     <Setter Property="Background" Value="{DynamicResource Theme.Bg2}" />
     <Setter Property="Foreground" Value="{DynamicResource Theme.Accent}" />
     <Setter Property="BorderBrush" Value="{DynamicResource Theme.Accent}" />
+  </Style>
+
+  <Style Selector="Border.list-row">
+    <Setter Property="Background" Value="{DynamicResource Theme.Surface}" />
+    <Setter Property="CornerRadius" Value="{DynamicResource Theme.Radius}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+  </Style>
+
+  <Style Selector="ListBoxItem:selected Border.list-row">
+    <Setter Property="BorderBrush" Value="{DynamicResource Theme.Accent}" />
+    <Setter Property="BorderThickness" Value="2" />
+  </Style>
+
+  <Style Selector="Button.news-row">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="Padding" Value="0,8" />
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    <Setter Property="CornerRadius" Value="0" />
+  </Style>
+
+  <Style Selector="Button.news-row:pointerover">
+    <Setter Property="Background" Value="{DynamicResource Theme.Bg2}" />
+  </Style>
+
+  <Style Selector="Border.status-badge.active">
+    <Setter Property="Background" Value="{DynamicResource Theme.AccentMuted}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Theme.Accent}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="{DynamicResource Theme.Radius}" />
+    <Setter Property="Padding" Value="6,2" />
+    <Setter Property="HorizontalAlignment" Value="Left" />
+  </Style>
+
+  <Style Selector="Border.status-badge.active TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource Theme.Accent}" />
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="FontWeight" Value="SemiBold" />
   </Style>
 
   <Style Selector="Border.hosting-panel">
