@@ -15,15 +15,22 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Linux **Flatpak** builds on GitHub Releases.
 - Windows **NSIS installer** and single-file portable zip alongside the folder zip.
 - `--self-check` CLI for headless smoke tests in CI.
+- **Servers** page: browse the public server list, filter and sort, join by direct address or LAN, save favorites and recents.
+- LAN server discovery on the local network from the Servers page.
+- Process isolation for the launcher, game client, and local dedicated server. Toggle in Settings; changing installs or data paths needs a restart when this is on.
+- Relic Launcher self-updates: startup check, toast when a build is available, stable or nightly channel, and off/prompt modes in Settings.
 
 ### Changed
 
 - General UI polish across the app.
 - Mods page loads installed mod details and screenshots more reliably.
+- `--self-check` version catalog probe tolerates transient API errors more reliably.
+- GitHub release notes include SHA256 checksums for release artifacts.
 
 ### Fixed
 
 - Wiki page no longer crashes in the Flatpak build (GNOME Platform with WebKitGTK).
+- Service provider disposes correctly when the sandbox broker host is registered.
 
 ## [0.1.0] - 2026-08-05
 
