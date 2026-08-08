@@ -87,6 +87,6 @@ public class SandboxPolicyBuilderTests
         SandboxPolicyBuilder.IsPathGranted(policy, "/tmp", PathAccess.ReadWrite).Should().BeTrue();
         SandboxPolicyBuilder.IsPathGranted(policy, "/", PathAccess.ReadExecute).Should().BeTrue();
         policy.ScopeAbstractUnixSocket.Should().BeFalse();
-        policy.NetPortGrants.Should().ContainSingle(g => g.Port == 0 && g.AllowConnectTcp);
+        policy.NetPortGrants.Should().Contain(g => g.Port == 443 && g.AllowConnectTcp);
     }
 }

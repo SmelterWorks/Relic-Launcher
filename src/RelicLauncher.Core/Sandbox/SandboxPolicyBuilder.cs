@@ -30,15 +30,7 @@ public static class SandboxPolicyBuilder
             AddIfValid(grants, "/", PathAccess.ReadExecute);
         }
 
-        var netGrants = new List<NetPortGrant>
-        {
-            new()
-            {
-                Port = 0,
-                AllowConnectTcp = true,
-                AllowConnectSendUdp = true,
-            },
-        };
+        var netGrants = SandboxNetGrants.ForLauncherEndpoints(settings.Endpoints);
 
         return new SandboxPolicy
         {
@@ -69,15 +61,7 @@ public static class SandboxPolicyBuilder
         AppendGpuDeviceGrants(grants);
         AppendLinuxCoreRuntimeGrants(grants);
 
-        var netGrants = new List<NetPortGrant>
-        {
-            new()
-            {
-                Port = 0,
-                AllowConnectTcp = true,
-                AllowConnectSendUdp = true,
-            },
-        };
+        var netGrants = SandboxNetGrants.ForGameClient();
 
         return new SandboxPolicy
         {
