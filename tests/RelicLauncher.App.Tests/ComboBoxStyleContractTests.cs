@@ -15,7 +15,7 @@ public sealed class ComboBoxStyleContractTests
         axaml.Should().Contain(@"<RowDefinition Height=""0"" />");
         axaml.Should().Contain(@"MaxHeight=""36""");
         axaml.Should().Contain(@"Data=""M 0,0 L 8,0 L 4,5 Z""");
-        axaml.Should().Contain(@"x:Name=""Background""");
+        axaml.Should().Contain(@"Content=""{Binding SelectedItem, RelativeSource={RelativeSource TemplatedParent}}""");
         axaml.Should().Contain(@"Name=""PART_Popup""");
         axaml.Should().Contain(@"Name=""PART_ItemsPresenter""");
     }

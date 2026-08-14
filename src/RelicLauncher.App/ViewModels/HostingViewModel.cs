@@ -74,7 +74,7 @@ public partial class HostingViewModel : PageViewModelBase
         CloudPlans.CollectionChanged += (_, _) =>
         {
             OnPropertyChanged(nameof(ShowCloudPlanCards));
-        OnPropertyChanged(nameof(ShowCloudPlansEmpty));
+            OnPropertyChanged(nameof(ShowCloudPlansEmpty));
             NotifyCloudPlansLayoutRefresh();
         };
         SetServerState(_serverHost.State);

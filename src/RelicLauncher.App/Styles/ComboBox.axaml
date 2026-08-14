@@ -22,7 +22,7 @@
     <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
     <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto" />
     <Setter Property="Template">
-      <ControlTemplate>
+      <ControlTemplate TargetType="ComboBox">
         <DataValidationErrors>
           <Grid HorizontalAlignment="{TemplateBinding HorizontalAlignment}">
             <Grid.RowDefinitions>
@@ -43,22 +43,21 @@
                        Margin="{TemplateBinding Padding}"
                        VerticalAlignment="Center">
                   <TextBlock x:Name="PlaceholderTextBlock"
-                             Text="{TemplateBinding PlaceholderText}"
+                             Text="{Binding PlaceholderText, RelativeSource={RelativeSource TemplatedParent}}"
                              Foreground="{DynamicResource Theme.TextMuted}"
                              FontSize="14"
                              TextWrapping="NoWrap"
                              VerticalAlignment="Center"
                              HorizontalAlignment="Left"
-                             IsVisible="{TemplateBinding SelectionBoxItem, Converter={x:Static ObjectConverters.IsNull}}" />
+                             IsVisible="{Binding SelectedItem, RelativeSource={RelativeSource TemplatedParent}, Converter={x:Static ObjectConverters.IsNull}}" />
                   <ContentControl x:Name="ContentPresenter"
-                                  Content="{TemplateBinding SelectionBoxItem}"
-                                  ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
-                                  Foreground="{TemplateBinding Foreground}"
+                                  Content="{Binding SelectedItem, RelativeSource={RelativeSource TemplatedParent}}"
+                                  ContentTemplate="{Binding ItemTemplate, RelativeSource={RelativeSource TemplatedParent}}"
+                                  Foreground="{DynamicResource Theme.Text}"
                                   FontSize="14"
                                   HorizontalAlignment="Left"
                                   HorizontalContentAlignment="Left"
-                                  VerticalContentAlignment="Center"
-                                  IsVisible="{TemplateBinding IsEditable, Converter={x:Static BoolConverters.Not}}" />
+                                  VerticalContentAlignment="Center" />
                 </Panel>
                 <Path x:Name="DropDownGlyph"
                       Grid.Column="1"
