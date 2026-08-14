@@ -206,11 +206,6 @@
     <Setter Property="BorderThickness" Value="2" />
   </Style>
 
-  <Style Selector="ComboBox:focus-visible /template/ Border#Background">
-    <Setter Property="BorderBrush" Value="{DynamicResource Theme.Accent}" />
-    <Setter Property="BorderThickness" Value="2" />
-  </Style>
-
   <Style Selector="ListBoxItem:focus-visible">
     <Setter Property="BorderBrush" Value="{DynamicResource Theme.Accent}" />
     <Setter Property="BorderThickness" Value="2" />
@@ -231,16 +226,6 @@
   </Style>
 
   <Style Selector="TextBox:focus">
-    <Setter Property="BorderBrush" Value="{DynamicResource Theme.Accent}" />
-  </Style>
-
-  <Style Selector="ComboBox">
-    <Setter Property="Background" Value="{DynamicResource Theme.Bg2}" />
-    <Setter Property="Foreground" Value="{DynamicResource Theme.Text}" />
-    <Setter Property="BorderBrush" Value="{DynamicResource Theme.Border}" />
-  </Style>
-
-  <Style Selector="ComboBox:focus">
     <Setter Property="BorderBrush" Value="{DynamicResource Theme.Accent}" />
   </Style>
 

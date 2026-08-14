@@ -37,8 +37,35 @@ public class SmelterWorksHostingFeedParserTests
     }
 
     [Fact]
-    public void GetFallbackPlans_ReturnsThreePlans()
+    public void Parse_NormalizesMarketingTitles()
     {
-        SmelterWorksHostingFeedService.GetFallbackPlans().Should().HaveCount(3);
+        var xml = """
+            <?xml version="1.0" encoding="UTF-8"?>
+            <rss version="2.0">
+              <channel>
+                <item>
+                  <title>Friends: $10/mo (Coming soon)</title>
+                  <category>Friends</category>
+                  <description>$10 / month. A small world with friends. Light mods.</description>
+                </item>
+              </channel>
+            </rss>
+            """;
+
+        var plans = SmelterWorksHostingFeedParser.Parse(xml);
+
+        plans.Should().ContainSingle();
+        plans[0].Name.Should().Be("Friends");
+        plans[0].Subtitle.Should().BeNull();
+        plans[0].MonthlyPrice.Should().Be("$10 / month");
+    }
+
+    [Fact]
+    public void GetFallbackPlans_ReturnsFourPlansIncludingByos()
+    {
+        var plans = SmelterWorksHostingFeedService.GetFallbackPlans();
+
+        plans.Should().HaveCount(4);
+        plans.Should().Contain(p => p.Name == "Anchor" && p.Subtitle == "Bring Your Own Server");
     }
 }

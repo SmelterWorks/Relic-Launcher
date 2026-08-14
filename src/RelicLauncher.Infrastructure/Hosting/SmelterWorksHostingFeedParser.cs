@@ -52,6 +52,8 @@ internal static partial class SmelterWorksHostingFeedParser
             return null;
         }
 
+        var category = ElementValue(item, "category");
+        var (name, subtitle) = ResolvePlanNames(title.Trim(), category);
         var description = ElementValue(item, "description") ?? string.Empty;
         var plain = HtmlTagRegex().Replace(description, " ").Trim();
         var monthly = TryMatchPrice(plain, MonthlyPriceRegex(), isAnnual: false);
@@ -64,12 +66,41 @@ internal static partial class SmelterWorksHostingFeedParser
 
         return new HostingPlanInfo
         {
-            Name = title.Trim(),
-            Subtitle = ElementValue(item, "category"),
+            Name = name,
+            Subtitle = subtitle,
             MonthlyPrice = monthly,
             AnnualPrice = annual,
             Highlights = highlights.Length > 0 ? highlights : ["See smelterworks.com/hosting for details"],
         };
+    }
+
+    private static (string Name, string? Subtitle) ResolvePlanNames(string title, string? category)
+    {
+        if (IsMarketingTitle(title))
+        {
+            var label = ExtractLabel(title);
+            var subtitle = string.IsNullOrWhiteSpace(category) ? null : category.Trim();
+            if (subtitle is not null && string.Equals(label, subtitle, StringComparison.OrdinalIgnoreCase))
+            {
+                subtitle = null;
+            }
+
+            return (label, subtitle);
+        }
+
+        var normalizedSubtitle = string.IsNullOrWhiteSpace(category) ? null : category.Trim();
+        return (title, normalizedSubtitle);
+    }
+
+    private static bool IsMarketingTitle(string title) =>
+        title.Contains('$', StringComparison.Ordinal)
+        || title.Contains("Coming", StringComparison.OrdinalIgnoreCase)
+        || title.Contains("soon", StringComparison.OrdinalIgnoreCase);
+
+    private static string ExtractLabel(string title)
+    {
+        var colon = title.IndexOf(':');
+        return colon > 0 ? title[..colon].Trim() : title.Trim();
     }
 
     private static string? ElementValue(XElement parent, string localName)

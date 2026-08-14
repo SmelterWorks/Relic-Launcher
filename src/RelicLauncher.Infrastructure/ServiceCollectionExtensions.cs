@@ -13,6 +13,7 @@ using RelicLauncher.Infrastructure.Logging;
 using RelicLauncher.Infrastructure.Modpacks;
 using RelicLauncher.Infrastructure.Mods;
 using RelicLauncher.Infrastructure.News;
+using RelicLauncher.Infrastructure.Panel;
 using RelicLauncher.Infrastructure.Paths;
 using RelicLauncher.Infrastructure.Platform;
 using RelicLauncher.Infrastructure.Process;
@@ -114,6 +115,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IGameServerInstaller, GameServerInstaller>();
         services.AddSingleton<IGameServerHost, GameServerHost>();
         services.AddSingleton<ISmelterWorksHostingFeedService, SmelterWorksHostingFeedService>();
+        services.AddSingleton<ISmelterWorksPanelClient, SmelterWorksPanelClient>();
     }
 
     public static ILoggerFactory CreateSerilogLoggerFactory(IAppPathProvider pathProvider, DebugLogBuffer debugBuffer)

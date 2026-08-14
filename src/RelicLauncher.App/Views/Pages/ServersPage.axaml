@@ -58,7 +58,6 @@
                    AutomationProperties.Name="Search servers" />
           <ComboBox ItemsSource="{Binding SortOptions}"
                     SelectedItem="{Binding SelectedSortOption}"
-                    MinWidth="160"
                     VerticalAlignment="Center">
             <ComboBox.ItemTemplate>
               <DataTemplate x:DataType="vm:ServerSortOption">
@@ -68,7 +67,6 @@
           </ComboBox>
           <ComboBox ItemsSource="{Binding VersionFilterOptions}"
                     SelectedItem="{Binding SelectedVersionFilter}"
-                    MinWidth="140"
                     VerticalAlignment="Center">
             <ComboBox.ItemTemplate>
               <DataTemplate x:DataType="vm:ServerVersionFilterOption">

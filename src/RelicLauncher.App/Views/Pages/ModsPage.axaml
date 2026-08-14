@@ -27,7 +27,6 @@
       <StackPanel Orientation="Horizontal" Spacing="8">
         <ComboBox ItemsSource="{Binding SortOptions}"
                   SelectedItem="{Binding SelectedSortOption}"
-                  MinWidth="160"
                   VerticalAlignment="Center">
           <ComboBox.ItemTemplate>
             <DataTemplate x:DataType="vm:ModSortOption">
@@ -37,7 +36,6 @@
         </ComboBox>
         <ComboBox ItemsSource="{Binding SideFilterOptions}"
                   SelectedItem="{Binding SelectedSideFilter}"
-                  MinWidth="120"
                   VerticalAlignment="Center">
           <ComboBox.ItemTemplate>
             <DataTemplate x:DataType="vm:ModSideFilterOption">
@@ -474,10 +472,10 @@
                          Foreground="{DynamicResource Theme.Danger}"
                          TextWrapping="Wrap"
                          IsVisible="{Binding BlocklistWarning, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-              <ComboBox ItemsSource="{Binding SelectedDetails.Releases}"
+              <ComboBox Classes="combo-fill"
+                        ItemsSource="{Binding SelectedDetails.Releases}"
                         SelectedItem="{Binding SelectedRelease}"
-                        PlaceholderText="Select release"
-                        HorizontalAlignment="Stretch">
+                        PlaceholderText="Select release">
                 <ComboBox.ItemTemplate>
                   <DataTemplate x:DataType="models:ModReleaseInfo">
                     <TextBlock Text="{Binding DisplayLabel}" TextWrapping="NoWrap" />

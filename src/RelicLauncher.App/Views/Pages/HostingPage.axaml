@@ -40,7 +40,6 @@
                     <ComboBox ItemsSource="{Binding InstalledServerVersions}"
                               SelectedItem="{Binding SelectedInstalledVersion}"
                               PlaceholderText="No server installed"
-                              MinWidth="200"
                               AutomationProperties.Name="Installed server version" />
                     <Button Classes="ghost"
                             Width="36"
@@ -73,7 +72,6 @@
                   <TextBlock Text="Install version" Classes="settings-field-label" />
                   <ComboBox ItemsSource="{Binding CatalogServerVersions}"
                             SelectedItem="{Binding SelectedCatalogVersion}"
-                            MinWidth="160"
                             IsVisible="{Binding ShowCatalogVersionPicker}"
                             AutomationProperties.Name="Server version to install" />
                   <Button Classes="ghost"
@@ -198,7 +196,7 @@
                   HorizontalAlignment="Stretch">
             <ItemsControl x:Name="CloudPlansItems"
                           ItemsSource="{Binding CloudPlans}"
-                          HorizontalAlignment="Stretch">
+                          HorizontalAlignment="Left">
               <ItemsControl.ItemsPanel>
                 <ItemsPanelTemplate>
                   <WrapPanel Orientation="Horizontal" />
@@ -206,35 +204,51 @@
               </ItemsControl.ItemsPanel>
               <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="vm:HostingPlanCardViewModel">
-                  <Border Classes="hosting-plan-card" Width="300" MinHeight="320" Margin="0,0,16,16">
+                  <Border Classes="hosting-plan-card"
+                          Width="300"
+                          HorizontalAlignment="Left"
+                          Margin="0,0,16,16">
                     <StackPanel>
                       <Border Classes="hosting-plan-card-header">
                         <StackPanel Spacing="4">
-                          <TextBlock Text="{Binding Name}" FontSize="24" FontWeight="SemiBold" />
-                          <TextBlock Text="{Binding Subtitle}" Classes="muted" IsVisible="{Binding HasSubtitle}" />
+                          <TextBlock Text="{Binding DisplayTitle}"
+                                     FontSize="22"
+                                     FontWeight="SemiBold"
+                                     TextWrapping="Wrap" />
+                          <TextBlock Text="{Binding CodeName}"
+                                     Classes="muted"
+                                     TextWrapping="Wrap"
+                                     IsVisible="{Binding ShowCodeName}" />
                         </StackPanel>
                       </Border>
                       <Border Classes="hosting-plan-card-body">
                         <StackPanel Spacing="12">
                           <TextBlock Text="{Binding PriceSummary}"
-                                     FontSize="18"
+                                     FontSize="16"
                                      FontWeight="SemiBold"
+                                     TextWrapping="Wrap"
                                      IsVisible="{Binding PriceSummary, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-                          <Border Height="1" Background="{DynamicResource Theme.Border}" />
+                          <Border Height="1"
+                                  Background="{DynamicResource Theme.Border}"
+                                  IsVisible="{Binding PriceSummary, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
                           <ItemsControl ItemsSource="{Binding Highlights}">
                             <ItemsControl.ItemTemplate>
                               <DataTemplate>
-                                <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,0,0,6">
-                                  <i:Icon Value="mdi-check-circle-outline"
+                                <Grid ColumnDefinitions="Auto,*"
+                                      ColumnSpacing="8"
+                                      Margin="0,0,0,6">
+                                  <i:Icon Grid.Column="0"
+                                          Value="mdi-check-circle-outline"
                                           Width="16"
                                           Height="16"
                                           Foreground="{DynamicResource Theme.Accent}"
                                           VerticalAlignment="Top"
                                           Margin="0,2,0,0" />
-                                  <TextBlock Text="{Binding}"
+                                  <TextBlock Grid.Column="1"
+                                             Text="{Binding}"
                                              Classes="muted"
                                              TextWrapping="Wrap" />
-                                </StackPanel>
+                                </Grid>
                               </DataTemplate>
                             </ItemsControl.ItemTemplate>
                           </ItemsControl>

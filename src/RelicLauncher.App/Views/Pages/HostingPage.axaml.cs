@@ -104,15 +104,6 @@ public partial class HostingPage : UserControl
 
     private void RefreshCloudPlansLayout()
     {
-        if (CloudPlanScroll is not null && CloudPlansItems is not null)
-        {
-            var width = CloudPlanScroll.Bounds.Width;
-            if (width > 0)
-            {
-                CloudPlansItems.Width = width;
-            }
-        }
-
         CloudPlansPanel?.InvalidateMeasure();
         CloudPlansPanel?.InvalidateArrange();
         CloudPlansItems?.InvalidateMeasure();

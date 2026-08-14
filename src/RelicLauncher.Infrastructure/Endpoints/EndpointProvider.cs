@@ -54,6 +54,11 @@ public sealed class EndpointProvider : IEndpointProvider
         get { lock (_gate) { return NormalizeAbsolute(_endpoints.ServerListUrl, RelicLauncherEndpoints.ServerListUrl); } }
     }
 
+    public string PanelApiBaseUrl
+    {
+        get { lock (_gate) { return NormalizeBase(_endpoints.PanelApiBaseUrl, RelicLauncherEndpoints.PanelApiBaseUrl); } }
+    }
+
     public string BuildModDownloadUrl(int fileId)
         => $"{ModDbDownloadBaseUrl}?fileid={fileId}";
 

@@ -19,6 +19,7 @@ public static class SandboxNetGrants
         AddUrlPort(endpoints.NewsBlogUrl, ports);
         AddUrlPort(endpoints.WikiBaseUrl, ports);
         AddUrlPort(endpoints.ServerListUrl, ports);
+        AddUrlPort(endpoints.PanelApiBaseUrl, ports);
 
         AddUrlPort(VintageStoryEndpoints.GameLoginUrl, ports);
         AddUrlPort(VintageStoryEndpoints.ClientValidateUrl, ports);

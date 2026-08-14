@@ -51,52 +51,61 @@ public sealed partial class SmelterWorksHostingFeedService : ISmelterWorksHostin
     internal static IReadOnlyList<HostingPlanInfo> GetFallbackPlans()
         =>
         [
-            new HostingPlanInfo
-            {
-                Name = "Ember",
-                Subtitle = "Friends",
-                MonthlyPrice = "$10 / month",
-                AnnualPrice = "$100 / year",
-                Highlights =
-                [
-                    "4 GB RAM",
-                    "25 GB NVMe",
-                    "Good for a small group on light or vanilla play",
-                    "US or Germany",
-                    "Docker export for self-hosting",
-                ],
-            },
-            new HostingPlanInfo
-            {
-                Name = "Forge",
-                Subtitle = "Modded",
-                MonthlyPrice = "$15 / month",
-                AnnualPrice = "$150 / year",
-                Highlights =
-                [
-                    "8 GB RAM",
-                    "50 GB NVMe",
-                    "Good for normal ModDB packs and growing worlds",
-                    "US or Germany",
-                    "Docker export for self-hosting",
-                ],
-            },
-            new HostingPlanInfo
-            {
-                Name = "Crucible",
-                Subtitle = "Heavy",
-                MonthlyPrice = "$25 / month",
-                AnnualPrice = "$250 / year",
-                Highlights =
-                [
-                    "16 GB RAM",
-                    "100 GB NVMe",
-                    "For big packs and busier worlds",
-                    "US or Germany",
-                    "Docker export for self-hosting",
-                ],
-            },
+            FallbackPlan(
+                "Ember",
+                "Friends",
+                "$10 / month",
+                "$100 / year",
+                "4 GB RAM",
+                "25 GB NVMe",
+                "Good for a small group on light or vanilla play",
+                "US or Germany",
+                "Docker export for self-hosting"),
+            FallbackPlan(
+                "Forge",
+                "Modded",
+                "$15 / month",
+                "$150 / year",
+                "8 GB RAM",
+                "50 GB NVMe",
+                "Good for normal ModDB packs and growing worlds",
+                "US or Germany",
+                "Docker export for self-hosting"),
+            FallbackPlan(
+                "Crucible",
+                "Heavy",
+                "$25 / month",
+                "$250 / year",
+                "16 GB RAM",
+                "100 GB NVMe",
+                "For big packs and busier worlds",
+                "US or Germany",
+                "Docker export for self-hosting"),
+            FallbackPlan(
+                "Anchor",
+                "Bring Your Own Server",
+                "$5 / month per daemon",
+                "$50 / year",
+                "Managed panel on your hardware",
+                "Local backups included",
+                "Optional cloud backups from $3/mo",
+                "One-click migration"),
         ];
+
+    private static HostingPlanInfo FallbackPlan(
+        string name,
+        string subtitle,
+        string monthlyPrice,
+        string annualPrice,
+        params string[] highlights)
+        => new()
+        {
+            Name = name,
+            Subtitle = subtitle,
+            MonthlyPrice = monthlyPrice,
+            AnnualPrice = annualPrice,
+            Highlights = highlights,
+        };
 
     private static HttpClient CreateHttpClient()
     {

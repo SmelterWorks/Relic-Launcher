@@ -26,19 +26,27 @@ public class BoundedStreamCopyTests
         var data = new byte[] { 1, 2, 3, 4, 5 };
         using var input = new MemoryStream(data);
         using var output = new MemoryStream();
-        var progressValues = new List<double>();
+        var progress = new RecordingProgress();
 
         var result = await BoundedStreamCopy.CopyAsync(
             input,
             output,
             contentLength: data.Length,
             maxBytes: 1024,
-            new Progress<double>(progressValues.Add),
+            progress,
             CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();
         output.ToArray().Should().Equal(data);
-        progressValues.Should().Contain(1.0);
+        progress.Values.Should().NotBeEmpty();
+        progress.Values.Last().Should().Be(1.0);
+    }
+
+    private sealed class RecordingProgress : IProgress<double>
+    {
+        public List<double> Values { get; } = [];
+
+        public void Report(double value) => Values.Add(value);
     }
 
     [Fact]

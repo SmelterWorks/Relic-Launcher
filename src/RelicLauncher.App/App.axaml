@@ -17,6 +17,7 @@
 
   <Application.Styles>
     <FluentTheme />
+    <StyleInclude Source="avares://RelicLauncher.App/Styles/ComboBox.axaml" />
     <StyleInclude Source="avares://RelicLauncher.App/Styles/Controls.axaml" />
   </Application.Styles>
 </Application>

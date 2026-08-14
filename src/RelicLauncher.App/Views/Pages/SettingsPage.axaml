@@ -142,9 +142,7 @@
             <StackPanel Spacing="4">
               <TextBlock Text="Theme" Classes="settings-field-label" />
               <ComboBox ItemsSource="{Binding Themes}"
-                        SelectedItem="{Binding SelectedTheme}"
-                        MinWidth="280"
-                        HorizontalAlignment="Left">
+                        SelectedItem="{Binding SelectedTheme}">
                 <ComboBox.ItemTemplate>
                   <DataTemplate>
                     <TextBlock Text="{Binding DisplayName}" />
@@ -156,9 +154,7 @@
             <StackPanel Spacing="4">
               <TextBlock Text="Home background logo" Classes="settings-field-label" />
               <ComboBox ItemsSource="{Binding LogoModeOptions}"
-                        SelectedItem="{Binding SelectedLogoModeOption}"
-                        MinWidth="280"
-                        HorizontalAlignment="Left">
+                        SelectedItem="{Binding SelectedLogoModeOption}">
                 <ComboBox.ItemTemplate>
                   <DataTemplate x:DataType="vm:LogoModeOption">
                     <TextBlock Text="{Binding Label}" />
@@ -202,9 +198,7 @@
             <StackPanel Spacing="4">
               <TextBlock Text="Mod updates" Classes="settings-field-label" />
               <ComboBox ItemsSource="{Binding ModUpdateModeOptions}"
-                        SelectedItem="{Binding SelectedModUpdateModeOption}"
-                        MinWidth="280"
-                        HorizontalAlignment="Left">
+                        SelectedItem="{Binding SelectedModUpdateModeOption}">
                 <ComboBox.ItemTemplate>
                   <DataTemplate x:DataType="vm:ModUpdateModeOption">
                     <TextBlock Text="{Binding Label}" />
@@ -220,9 +214,7 @@
             <StackPanel Spacing="4">
               <TextBlock Text="Launcher updates" Classes="settings-field-label" />
               <ComboBox ItemsSource="{Binding LauncherUpdateModeOptions}"
-                        SelectedItem="{Binding SelectedLauncherUpdateModeOption}"
-                        MinWidth="280"
-                        HorizontalAlignment="Left">
+                        SelectedItem="{Binding SelectedLauncherUpdateModeOption}">
                 <ComboBox.ItemTemplate>
                   <DataTemplate x:DataType="vm:LauncherUpdateModeOption">
                     <TextBlock Text="{Binding Label}" />
@@ -234,9 +226,7 @@
                          TextWrapping="Wrap"
                          IsVisible="{Binding SelectedLauncherUpdateModeOption, Converter={x:Static ObjectConverters.IsNotNull}}" />
               <ComboBox ItemsSource="{Binding LauncherUpdateChannelOptions}"
-                        SelectedItem="{Binding SelectedLauncherUpdateChannelOption}"
-                        MinWidth="280"
-                        HorizontalAlignment="Left">
+                        SelectedItem="{Binding SelectedLauncherUpdateChannelOption}">
                 <ComboBox.ItemTemplate>
                   <DataTemplate x:DataType="vm:LauncherUpdateChannelOption">
                     <TextBlock Text="{Binding Label}" />

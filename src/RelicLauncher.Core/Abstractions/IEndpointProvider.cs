@@ -13,6 +13,7 @@ public interface IEndpointProvider
     string NewsBlogUrl { get; }
     string WikiBaseUrl { get; }
     string ServerListUrl { get; }
+    string PanelApiBaseUrl { get; }
 
     string BuildModDownloadUrl(int fileId);
 

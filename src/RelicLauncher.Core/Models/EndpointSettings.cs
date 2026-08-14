@@ -13,6 +13,7 @@ public sealed class EndpointSettings
     public string NewsBlogUrl { get; set; } = VintageStoryEndpoints.NewsBlogUrl;
     public string WikiBaseUrl { get; set; } = VintageStoryEndpoints.WikiBaseUrl;
     public string ServerListUrl { get; set; } = RelicLauncherEndpoints.ServerListUrl;
+    public string PanelApiBaseUrl { get; set; } = RelicLauncherEndpoints.PanelApiBaseUrl;
 
     public static EndpointSettings CreateDefaults() => new();
 
@@ -28,5 +29,6 @@ public sealed class EndpointSettings
             NewsBlogUrl = NewsBlogUrl,
             WikiBaseUrl = WikiBaseUrl,
             ServerListUrl = ServerListUrl,
+            PanelApiBaseUrl = PanelApiBaseUrl,
         };
 }

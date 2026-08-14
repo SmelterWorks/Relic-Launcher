@@ -23,15 +23,15 @@
     <Grid RowDefinitions="Auto,*" Margin="28,24,28,24">
       <StackPanel Grid.Row="0" Spacing="10" Margin="0,0,0,20">
         <TextBlock Text="Launch" Classes="brand" FontSize="32" />
-        <StackPanel Orientation="Horizontal" Spacing="12">
+        <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
           <Button Classes="primary"
                   Content="{Binding PlayButtonText}"
                   Command="{Binding PlayCommand}"
                   MinWidth="120"
+                  VerticalAlignment="Center"
                   AutomationProperties.Name="Play Vintage Story" />
           <ComboBox ItemsSource="{Binding InstalledVersions}"
                     SelectedItem="{Binding SelectedInstalledVersion}"
-                    MinWidth="140"
                     PlaceholderText="Version"
                     IsEnabled="{Binding HasInstalledVersions}"
                     VerticalAlignment="Center"
