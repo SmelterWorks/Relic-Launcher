@@ -4,6 +4,26 @@ All notable changes to Relic Launcher are listed here.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - TBD
+
+### Added
+
+- Four new built-in themes: Frost Spire, Obsidian Forge, Amber Dawn, and Drifter's Lantern.
+- Visual theme picker with color swatches and instant preview in Settings.
+- Mod search history (recent terms as quick chips).
+- `scripts/dev.sh` for hot-reload development with `dotnet watch`.
+
+### Changed
+
+- Mod browser layout: filter toolbar, card-style mod rows, and a clearer details panel.
+- Navigation sidebar, tabs, list rows, and panels refreshed for a more polished overall feel.
+- Loading overlays show an indeterminate progress bar.
+- Toasts include severity icons and a dismiss button.
+- Versions and Servers pages use filter panels, improved list cards, and empty-state actions.
+- Servers browse: favorite stars, manual refresh, double-click to join, copy address via toast.
+- Backup page blocks input during long operations and adds select all/none for game versions.
+- Search boxes on Versions and Servers support Enter and Escape.
+
 ## [0.2.0] - 2026-08-22
 
 ### Added
@@ -52,5 +72,6 @@ First public release.
 - Crash reports on unexpected errors.
 - Release packages: Windows zip, Linux deb/rpm/AppImage/Arch pkg, macOS app bundle. Nightly CI builds.
 
+[0.3.0]: https://github.com/SmelterWorks/Relic-Launcher/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/SmelterWorks/Relic-Launcher/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/SmelterWorks/Relic-Launcher/releases/tag/v0.1.0

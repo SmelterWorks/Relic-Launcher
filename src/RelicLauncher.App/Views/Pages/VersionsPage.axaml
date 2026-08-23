@@ -8,104 +8,111 @@
     <controls:PageHeader Title="Versions"
                          Subtitle="Download, install, and select Vintage Story client versions." />
 
-    <StackPanel Grid.Row="1" Spacing="10" Margin="0,12,0,12">
-      <StackPanel Orientation="Horizontal" Spacing="12">
-        <TextBox Text="{Binding SearchText}"
-                 PlaceholderText="Search versions"
-                 Width="200"
-                 MinWidth="140"
-                 Height="40"
-                 VerticalContentAlignment="Center"
-                 VerticalAlignment="Center"
-                 AutomationProperties.Name="Search versions" />
-        <Button Classes="ghost" Content="Refresh" Command="{Binding RefreshCommand}" IsEnabled="{Binding !IsLoading}" AutomationProperties.Name="Refresh versions" />
-        <CheckBox Content="Stable" IsChecked="{Binding ShowStable}" AutomationProperties.Name="Show stable versions" />
-        <CheckBox Content="Unstable" IsChecked="{Binding ShowUnstable}" AutomationProperties.Name="Show unstable versions" />
+    <Border Grid.Row="1" Classes="filter-bar" Margin="0,12,0,12">
+      <StackPanel Spacing="10">
+        <StackPanel Orientation="Horizontal" Spacing="12">
+          <TextBox Text="{Binding SearchText}"
+                   PlaceholderText="Search versions"
+                   MinWidth="200"
+                   Height="40"
+                   VerticalContentAlignment="Center"
+                   KeyDown="OnSearchKeyDown"
+                   AutomationProperties.Name="Search versions" />
+          <Button Classes="ghost" Content="Refresh" Command="{Binding RefreshCommand}" IsEnabled="{Binding !IsLoading}" AutomationProperties.Name="Refresh versions" />
+          <CheckBox Content="Stable" IsChecked="{Binding ShowStable}" AutomationProperties.Name="Show stable versions" />
+          <CheckBox Content="Unstable" IsChecked="{Binding ShowUnstable}" AutomationProperties.Name="Show unstable versions" />
+        </StackPanel>
         <TextBlock Text="{Binding LatestStable, StringFormat=Latest stable: {0}}"
                    Classes="muted"
-                   VerticalAlignment="Center"
                    IsVisible="{Binding LatestStable, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-      </StackPanel>
 
-      <ItemsControl ItemsSource="{Binding ActiveTransfers}">
-        <ItemsControl.ItemTemplate>
-          <DataTemplate x:DataType="vm:TransferJobRowViewModel">
-            <StackPanel Spacing="4" Margin="0,0,0,6">
-              <TextBlock Text="{Binding Label}" FontWeight="SemiBold" />
-              <TextBlock Text="{Binding StatusText}" Classes="muted" />
-              <ProgressBar Minimum="0" Maximum="1" Value="{Binding Progress}" Height="6" />
-            </StackPanel>
-          </DataTemplate>
-        </ItemsControl.ItemTemplate>
-      </ItemsControl>
-
-      <Button Classes="ghost"
-              Content="Cancel all"
-              Command="{Binding CancelAllInstallsCommand}"
-              HorizontalAlignment="Left"
-              IsVisible="{Binding IsInstalling}" />
-
-      <TextBlock Text="{Binding StatusMessage}"
-                 Classes="muted"
-                 Classes.error="{Binding StatusIsError}"
-                 TextWrapping="Wrap"
-                 AutomationProperties.LiveSetting="Polite"
-                 IsVisible="{Binding StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-    </StackPanel>
-
-    <Grid Grid.Row="2" RowDefinitions="*,Auto">
-      <Grid Grid.Row="0">
-        <controls:LoadingOverlay IsActive="{Binding IsLoading}"
-                                 Message="Loading versions…" />
-        <controls:EmptyStatePanel Message="{Binding EmptyMessage}"
-                                  IsActive="{Binding ShowEmptyVersions}" />
-        <ListBox ItemsSource="{Binding Versions}"
-               Background="Transparent"
-               BorderThickness="0"
-               ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-        <ListBox.Styles>
-          <Style Selector="ListBoxItem">
-            <Setter Property="Padding" Value="0" />
-            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-            <Setter Property="Background" Value="Transparent" />
-          </Style>
-        </ListBox.Styles>
-        <ListBox.ItemTemplate>
-            <DataTemplate x:DataType="vm:VersionRowViewModel">
-              <Border Padding="12" Margin="0,0,0,8" Background="{DynamicResource Theme.Surface}" CornerRadius="{DynamicResource Theme.Radius}">
-                <Grid ColumnDefinitions="*,Auto">
-                  <StackPanel Spacing="4">
-                    <TextBlock Text="{Binding Version}" FontWeight="SemiBold" FontSize="16" />
-                    <TextBlock Classes="muted">
-                      <TextBlock.Text>
-                        <MultiBinding StringFormat="{}{0} · {1}">
-                          <Binding Path="Channel" />
-                          <Binding Path="PackageSummary" />
-                        </MultiBinding>
-                      </TextBlock.Text>
-                    </TextBlock>
-                    <TextBlock Text="Installed" Classes="muted" IsVisible="{Binding IsInstalled}" />
-                    <Border Classes="status-badge active" IsVisible="{Binding IsActive}">
-                      <TextBlock Text="Active" />
-                    </Border>
-                  </StackPanel>
-                  <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                    <Button Classes="primary" Content="Install" Command="{Binding InstallCommand}" IsVisible="{Binding !IsInstalled}" />
-                    <Button Classes="ghost" Content="Set active" Command="{Binding SetActiveCommand}" IsVisible="{Binding IsInstalled}" IsEnabled="{Binding !IsActive}" />
-                    <Button Classes="ghost" Content="Uninstall" Command="{Binding UninstallCommand}" IsVisible="{Binding IsInstalled}" />
-                  </StackPanel>
-                </Grid>
-              </Border>
+        <ItemsControl ItemsSource="{Binding ActiveTransfers}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:TransferJobRowViewModel">
+              <StackPanel Spacing="4" Margin="0,0,0,6">
+                <TextBlock Text="{Binding Label}" FontWeight="SemiBold" />
+                <TextBlock Text="{Binding StatusText}" Classes="muted" />
+                <ProgressBar Minimum="0" Maximum="1" Value="{Binding Progress}" Height="6" />
+              </StackPanel>
             </DataTemplate>
-        </ListBox.ItemTemplate>
-      </ListBox>
-      </Grid>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
 
-      <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8" Margin="0,8,0,0">
-        <Button Classes="ghost" Content="Previous" Command="{Binding PreviousPageCommand}" IsEnabled="{Binding HasPreviousPage}" />
-        <TextBlock Text="{Binding PageLabel}" Classes="muted" VerticalAlignment="Center" />
-        <Button Classes="ghost" Content="Next" Command="{Binding NextPageCommand}" IsEnabled="{Binding HasNextPage}" />
+        <Button Classes="ghost"
+                Content="Cancel all"
+                Command="{Binding CancelAllInstallsCommand}"
+                HorizontalAlignment="Left"
+                IsVisible="{Binding IsInstalling}" />
+
+        <TextBlock Text="{Binding StatusMessage}"
+                   Classes="muted"
+                   Classes.error="{Binding StatusIsError}"
+                   TextWrapping="Wrap"
+                   AutomationProperties.LiveSetting="Polite"
+                   IsVisible="{Binding StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
       </StackPanel>
-    </Grid>
+    </Border>
+
+    <Border Grid.Row="2" Classes="panel" Padding="0">
+      <Grid RowDefinitions="*,Auto">
+        <Grid Grid.Row="0" Margin="8,8,8,0">
+          <controls:LoadingOverlay IsActive="{Binding IsLoading}"
+                                   Message="Loading versions…" />
+          <controls:EmptyStatePanel Message="{Binding EmptyMessage}"
+                                    ActionText="{Binding EmptyStateActionText}"
+                                    ActionCommand="{Binding ClearFiltersCommand}"
+                                    IsActive="{Binding ShowEmptyVersions}" />
+          <ListBox ItemsSource="{Binding Versions}"
+                   Background="Transparent"
+                   BorderThickness="0"
+                   ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+            <ListBox.Styles>
+              <Style Selector="ListBoxItem">
+                <Setter Property="Padding" Value="0" />
+                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="Margin" Value="0,0,0,2" />
+              </Style>
+            </ListBox.Styles>
+            <ListBox.ItemTemplate>
+              <DataTemplate x:DataType="vm:VersionRowViewModel">
+                <Border Classes="list-row" Padding="12" Margin="0,0,0,6">
+                  <Grid ColumnDefinitions="*,Auto">
+                    <StackPanel Spacing="4">
+                      <TextBlock Text="{Binding Version}" FontWeight="SemiBold" FontSize="16" />
+                      <TextBlock Classes="muted">
+                        <TextBlock.Text>
+                          <MultiBinding StringFormat="{}{0} · {1}">
+                            <Binding Path="Channel" />
+                            <Binding Path="PackageSummary" />
+                          </MultiBinding>
+                        </TextBlock.Text>
+                      </TextBlock>
+                      <TextBlock Text="Installed" Classes="muted" IsVisible="{Binding IsInstalled}" />
+                      <Border Classes="status-badge active" IsVisible="{Binding IsActive}">
+                        <TextBlock Text="Active" />
+                      </Border>
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                      <Button Classes="primary" Content="Install" Command="{Binding InstallCommand}" IsVisible="{Binding !IsInstalled}" />
+                      <Button Classes="ghost" Content="Set active" Command="{Binding SetActiveCommand}" IsVisible="{Binding IsInstalled}" IsEnabled="{Binding !IsActive}" />
+                      <Button Classes="ghost" Content="Uninstall" Command="{Binding UninstallCommand}" IsVisible="{Binding IsInstalled}" />
+                    </StackPanel>
+                  </Grid>
+                </Border>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+        </Grid>
+
+        <Border Grid.Row="1" Classes="pagination-bar">
+          <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
+            <Button Classes="ghost" Content="Previous" Command="{Binding PreviousPageCommand}" IsEnabled="{Binding HasPreviousPage}" />
+            <TextBlock Text="{Binding PageLabel}" Classes="muted" VerticalAlignment="Center" FontWeight="SemiBold" />
+            <Button Classes="ghost" Content="Next" Command="{Binding NextPageCommand}" IsEnabled="{Binding HasNextPage}" />
+          </StackPanel>
+        </Border>
+      </Grid>
+    </Border>
   </Grid>
 </UserControl>

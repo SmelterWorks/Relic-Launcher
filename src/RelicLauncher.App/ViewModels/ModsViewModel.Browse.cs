@@ -132,6 +132,8 @@ public partial class ModsViewModel
                 ? "Showing saved ModDB catalog while offline."
                 : $"Showing {TotalCount:N0} mods.");
         }
+
+        RecordSearchHistory();
     }
 
     private void UpdatePaging(int total, int page, int pageSize)

@@ -20,7 +20,7 @@ Relic Launcher is an **unofficial** community desktop launcher for [Vintage Stor
 | Mutation tests | Stryker.NET 4.16+ via `RelicLauncher.Mutation.sln` |
 | License | 0BSD |
 
-Display version is **`0.1.0`** (`VersionPrefix` in `Directory.Build.props`). Assembly/file version may be `0.1.0.0`. UI and `BuildMetadata.Version` use three-part `0.1.0`.
+Display version is **`0.3.0`** (`VersionPrefix` in `Directory.Build.props`). Assembly/file version may be `0.3.0.0`. UI and `BuildMetadata.Version` use three-part `0.3.0`.
 
 ## Solution layout
 
@@ -67,7 +67,7 @@ Implemented:
 - Settings: account sign-in (auth3 email/password + TOTP), installs root, data path, theme, logo, confirm-before-exit, service URLs including Wiki
 
 - About: version, commit, build time, logs folder open, 0BSD
-- Built-in themes: `relic-default`, `temporal-rift`, `moss-hearth`, `copper-dungeon`, `high-contrast`
+- Built-in themes: `relic-default`, `temporal-rift`, `moss-hearth`, `copper-dungeon`, `frost-spire`, `obsidian-forge`, `amber-dawn`, `drifters-lantern`, `high-contrast`
 
 Still stubbed / out of scope:
 

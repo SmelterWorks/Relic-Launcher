@@ -1,4 +1,5 @@
 using CommunityToolkit.Mvvm.Input;
+using RelicLauncher.App.Services;
 using RelicLauncher.Core.Models;
 
 namespace RelicLauncher.App.ViewModels;
@@ -55,5 +56,13 @@ public partial class ServersViewModel
 
     public string FavoriteButtonLabel => IsSelectedFavorite ? "Unfavorite" : "Favorite";
 
-    public void NotifyAddressCopied() => SetStatus("Address copied.");
+    public void NotifyAddressCopied()
+    {
+        _toastService.Show(new ToastRequest
+        {
+            Message = "Server address copied.",
+            Severity = ToastSeverity.Success,
+            Duration = TimeSpan.FromSeconds(2),
+        });
+    }
 }

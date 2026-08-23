@@ -25,6 +25,7 @@ public partial class SettingsViewModel : PageViewModelBase
     private readonly ISandboxSupport _sandboxSupport;
     private readonly ILogger<SettingsViewModel> _logger;
     private Action<LauncherSettings>? _onChanged;
+    private Action? _navigateToVersions;
     private bool _isBinding;
     private List<string> _modUpdateOptOutModIds = [];
     private CancellationTokenSource? _saveCts;
@@ -231,7 +232,22 @@ public partial class SettingsViewModel : PageViewModelBase
 
     partial void OnDataPathChanged(string value) => ScheduleAutoSave();
 
-    partial void OnSelectedThemeChanged(ThemeDefinition? value) => ScheduleAutoSave();
+    partial void OnSelectedThemeChanged(ThemeDefinition? value)
+    {
+        if (_isBinding || value is null)
+        {
+            ScheduleAutoSave();
+            return;
+        }
+
+        var themeResult = _themeService.ApplyTheme(value.Id);
+        if (!themeResult.IsSuccess)
+        {
+            SetSaveStatus(themeResult.Error ?? "Theme apply failed.", true);
+        }
+
+        ScheduleAutoSave();
+    }
 
     partial void OnConfirmBeforeExitChanged(bool value) => ScheduleAutoSave();
 
@@ -275,10 +291,11 @@ public partial class SettingsViewModel : PageViewModelBase
 
     partial void OnAccountErrorChanged(string value) => OnPropertyChanged(nameof(HasAccountError));
 
-    public void Bind(LauncherSettings settings, Action<LauncherSettings> onChanged)
+    public void Bind(LauncherSettings settings, Action<LauncherSettings> onChanged, Action? navigateToVersions = null)
     {
         _isBinding = true;
         _onChanged = onChanged;
+        _navigateToVersions = navigateToVersions;
         var platform = _platform.GetPlatformInfo();
         InstallsRoot = settings.InstallsRoot ?? platform.DefaultInstallsRoot;
         DataPath = settings.DataPath ?? platform.DefaultDataPath;
@@ -447,6 +464,9 @@ public partial class SettingsViewModel : PageViewModelBase
 
         _onChanged?.Invoke(settings);
     }
+
+    [RelayCommand]
+    private void GoToVersions() => _navigateToVersions?.Invoke();
 
     public event EventHandler? FocusAccountRequested;
 

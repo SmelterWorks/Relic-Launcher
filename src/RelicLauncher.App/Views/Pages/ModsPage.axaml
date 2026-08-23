@@ -11,163 +11,222 @@
     <controls:PageHeader Title="Mods"
                          Subtitle="Browse ModDB and manage mods in your data folder." />
 
-    <StackPanel Grid.Row="1" Spacing="8" Margin="0,12,0,8">
-      <StackPanel Orientation="Horizontal" Spacing="8">
-        <TextBox Text="{Binding SearchText}"
-                 PlaceholderText="Search mods"
-                 Width="240"
-                 MinWidth="160"
-                 Height="40"
-                 VerticalContentAlignment="Center"
-                 VerticalAlignment="Center"
-                 KeyDown="OnSearchKeyDown"
-                 AutomationProperties.Name="Search mods" />
-        <Button Classes="primary" Content="Search" Command="{Binding SearchCommand}" IsEnabled="{Binding !IsLoading}" AutomationProperties.Name="Search ModDB" />
-      </StackPanel>
-      <StackPanel Orientation="Horizontal" Spacing="8">
-        <controls:RelicComboBox ItemsSource="{Binding SortOptions}"
-                                SelectedItem="{Binding SelectedSortOption}"
-                                VerticalAlignment="Center">
-          <controls:RelicComboBox.ItemTemplate>
-            <DataTemplate x:DataType="vm:ModSortOption">
-              <TextBlock Text="{Binding Label}" />
-            </DataTemplate>
-          </controls:RelicComboBox.ItemTemplate>
-        </controls:RelicComboBox>
-        <controls:RelicComboBox ItemsSource="{Binding SideFilterOptions}"
-                                  SelectedItem="{Binding SelectedSideFilter}"
-                                  VerticalAlignment="Center">
-          <controls:RelicComboBox.ItemTemplate>
-            <DataTemplate x:DataType="vm:ModSideFilterOption">
-              <TextBlock Text="{Binding Label}" />
-            </DataTemplate>
-          </controls:RelicComboBox.ItemTemplate>
-        </controls:RelicComboBox>
-        <Button Classes="ghost"
-                Content="{Binding TagsMenuLabel}"
-                VerticalAlignment="Center"
-                Padding="12,8"
-                AutomationProperties.Name="Tag filters">
-          <Button.Flyout>
-            <Flyout Placement="BottomEdgeAlignedLeft">
-              <DockPanel Width="240" MaxHeight="300">
-                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="8" Margin="0,0,0,8">
-                  <TextBlock Text="Tags" Classes="muted" VerticalAlignment="Center" />
-                  <Button Classes="ghost"
-                          Content="Clear"
-                          Padding="8,4"
-                          Command="{Binding ClearSelectedTagsCommand}"
-                          IsVisible="{Binding HasSelectedTags}"
-                          VerticalAlignment="Center" />
-                </StackPanel>
-                <ScrollViewer HorizontalScrollBarVisibility="Disabled"
-                              VerticalScrollBarVisibility="Auto">
-                  <ItemsControl ItemsSource="{Binding TagChips}">
-                    <ItemsControl.ItemTemplate>
-                      <DataTemplate x:DataType="vm:ModTagChipViewModel">
-                        <CheckBox Content="{Binding Name}"
-                                  IsChecked="{Binding IsSelected, Mode=OneWay}"
-                                  Margin="0,2"
-                                  Command="{Binding ToggleCommand}" />
-                      </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                  </ItemsControl>
-                </ScrollViewer>
-              </DockPanel>
-            </Flyout>
-          </Button.Flyout>
-        </Button>
-        <CheckBox Content="Filter by active version"
-                  IsChecked="{Binding FilterByActiveVersion}"
-                  IsEnabled="{Binding CanFilterByActiveVersion}"
-                  ToolTip.Tip="{Binding FilterByActiveVersionHint}"
-                  VerticalAlignment="Center" />
-      </StackPanel>
-
-      <TextBlock Text="{Binding StatusMessage}"
-                 Classes="muted"
-                 Classes.error="{Binding StatusIsError}"
-                 TextWrapping="Wrap"
-                 AutomationProperties.LiveSetting="Polite"
-                 IsVisible="{Binding StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-
-      <ItemsControl ItemsSource="{Binding ActiveTransfers}"
-                    IsVisible="{Binding ActiveTransfers.Count}">
-        <ItemsControl.ItemTemplate>
-          <DataTemplate x:DataType="vm:TransferJobRowViewModel">
-            <StackPanel Spacing="4" Margin="0,0,0,6">
-              <TextBlock Text="{Binding Label}" FontWeight="SemiBold" />
-              <TextBlock Text="{Binding StatusText}" Classes="muted" />
-              <ProgressBar Minimum="0" Maximum="1" Value="{Binding Progress}" Height="6" />
+    <Border Grid.Row="1" Classes="filter-bar" Margin="0,12,0,12">
+      <StackPanel Spacing="10">
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+          <TextBox Grid.Column="0"
+                   Text="{Binding SearchText}"
+                   PlaceholderText="Search mods on ModDB"
+                   Height="40"
+                   VerticalContentAlignment="Center"
+                   KeyDown="OnSearchKeyDown"
+                   AutomationProperties.Name="Search mods" />
+          <Button Grid.Column="1"
+                  Classes="primary"
+                  Padding="20,10"
+                  Command="{Binding SearchCommand}"
+                  IsEnabled="{Binding !IsLoading}"
+                  AutomationProperties.Name="Search ModDB">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <i:Icon Value="mdi-magnify" Width="18" Height="18" />
+              <TextBlock Text="Search" VerticalAlignment="Center" />
             </StackPanel>
-          </DataTemplate>
-        </ItemsControl.ItemTemplate>
-      </ItemsControl>
-    </StackPanel>
+          </Button>
+        </Grid>
+        <StackPanel Spacing="6" IsVisible="{Binding HasSearchHistory}">
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <TextBlock Text="Recent searches" Classes="muted" FontSize="12" VerticalAlignment="Center" />
+            <Button Classes="ghost"
+                    Content="Clear"
+                    Padding="8,2"
+                    FontSize="12"
+                    Command="{Binding ClearSearchHistoryCommand}"
+                    AutomationProperties.Name="Clear mod search history" />
+          </StackPanel>
+          <ItemsControl ItemsSource="{Binding SearchHistory}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <WrapPanel />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <Button Classes="ghost"
+                        Margin="0,0,6,6"
+                        Padding="10,4"
+                        Command="{Binding $parent[UserControl].((vm:ModsViewModel)DataContext).SearchFromHistoryCommand}"
+                        CommandParameter="{Binding}">
+                  <Border Classes="tag-chip">
+                    <TextBlock Text="{Binding}" />
+                  </Border>
+                </Button>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+        <WrapPanel Orientation="Horizontal" VerticalAlignment="Center">
+          <controls:RelicComboBox ItemsSource="{Binding SortOptions}"
+                                  SelectedItem="{Binding SelectedSortOption}"
+                                  Margin="0,0,8,8"
+                                  VerticalAlignment="Center">
+            <controls:RelicComboBox.ItemTemplate>
+              <DataTemplate x:DataType="vm:ModSortOption">
+                <TextBlock Text="{Binding Label}" />
+              </DataTemplate>
+            </controls:RelicComboBox.ItemTemplate>
+          </controls:RelicComboBox>
+          <controls:RelicComboBox ItemsSource="{Binding SideFilterOptions}"
+                                  SelectedItem="{Binding SelectedSideFilter}"
+                                  Margin="0,0,8,8"
+                                  VerticalAlignment="Center">
+            <controls:RelicComboBox.ItemTemplate>
+              <DataTemplate x:DataType="vm:ModSideFilterOption">
+                <TextBlock Text="{Binding Label}" />
+              </DataTemplate>
+            </controls:RelicComboBox.ItemTemplate>
+          </controls:RelicComboBox>
+          <Button Classes="ghost"
+                  Content="{Binding TagsMenuLabel}"
+                  Margin="0,0,8,8"
+                  Padding="12,8"
+                  AutomationProperties.Name="Tag filters">
+            <Button.Flyout>
+              <Flyout Placement="BottomEdgeAlignedLeft">
+                <DockPanel Width="260" MaxHeight="320">
+                  <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="8" Margin="0,0,0,8">
+                    <TextBlock Text="Tags" Classes="muted" VerticalAlignment="Center" FontWeight="SemiBold" />
+                    <Button Classes="ghost"
+                            Content="Clear"
+                            Padding="8,4"
+                            Command="{Binding ClearSelectedTagsCommand}"
+                            IsVisible="{Binding HasSelectedTags}"
+                            VerticalAlignment="Center" />
+                  </StackPanel>
+                  <ScrollViewer HorizontalScrollBarVisibility="Disabled"
+                                VerticalScrollBarVisibility="Auto">
+                    <ItemsControl ItemsSource="{Binding TagChips}">
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:ModTagChipViewModel">
+                          <CheckBox Content="{Binding Name}"
+                                    IsChecked="{Binding IsSelected, Mode=OneWay}"
+                                    Margin="0,2"
+                                    Command="{Binding ToggleCommand}" />
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                  </ScrollViewer>
+                </DockPanel>
+              </Flyout>
+            </Button.Flyout>
+          </Button>
+          <CheckBox Content="Filter by active version"
+                    IsChecked="{Binding FilterByActiveVersion}"
+                    IsEnabled="{Binding CanFilterByActiveVersion}"
+                    ToolTip.Tip="{Binding FilterByActiveVersionHint}"
+                    Margin="0,0,8,8"
+                    VerticalAlignment="Center" />
+        </WrapPanel>
+
+        <TextBlock Text="{Binding StatusMessage}"
+                   Classes="muted"
+                   Classes.error="{Binding StatusIsError}"
+                   TextWrapping="Wrap"
+                   AutomationProperties.LiveSetting="Polite"
+                   IsVisible="{Binding StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+
+        <ItemsControl ItemsSource="{Binding ActiveTransfers}"
+                      IsVisible="{Binding ActiveTransfers.Count}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:TransferJobRowViewModel">
+              <StackPanel Spacing="4" Margin="0,0,0,6">
+                <TextBlock Text="{Binding Label}" FontWeight="SemiBold" />
+                <TextBlock Text="{Binding StatusText}" Classes="muted" />
+                <ProgressBar Minimum="0" Maximum="1" Value="{Binding Progress}" Height="6" />
+              </StackPanel>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+    </Border>
 
     <Grid x:Name="BrowseDetailGrid" Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="16">
       <Grid Grid.Column="0" RowDefinitions="*">
-        <TabControl AutomationProperties.Name="Mods tabs">
+        <TabControl Classes="mods-tabs" AutomationProperties.Name="Mods tabs">
           <TabItem Header="Browse">
-            <Grid RowDefinitions="*,Auto">
-              <Grid Grid.Row="0">
-                <controls:LoadingOverlay IsActive="{Binding IsLoading}"
-                                         Message="Loading mods…" />
-                <controls:EmptyStatePanel Message="{Binding EmptyBrowseMessage}"
-                                          IsActive="{Binding ShowEmptyBrowse}" />
-                <ListBox x:Name="BrowseModsList"
-                         ItemsSource="{Binding BrowseResults}"
-                       SelectedItem="{Binding SelectedBrowseMod, Mode=TwoWay}"
-                       Background="Transparent"
-                       BorderThickness="0"
-                       ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                       ContainerPrepared="OnBrowseContainerPrepared">
-                <ListBox.Styles>
-                  <Style Selector="ListBoxItem">
-                    <Setter Property="Padding" Value="0" />
-                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-                    <Setter Property="Background" Value="Transparent" />
-                  </Style>
-                </ListBox.Styles>
-                <ListBox.ItemTemplate>
-                    <DataTemplate x:DataType="vm:ModRowViewModel">
-                      <Border Classes="list-row"
-                              Margin="0,0,0,6"
-                              Padding="10">
-                        <Grid ColumnDefinitions="56,*" ColumnSpacing="10">
-                          <Border Width="48" Height="48" CornerRadius="6" ClipToBounds="True" Background="{DynamicResource Theme.Bg1}">
-                            <Panel>
-                              <Image Source="{Binding Logo}" Stretch="UniformToFill" IsVisible="{Binding !IsLogoLoading}" />
-                              <TextBlock Text="..."
-                                         Classes="muted"
-                                         HorizontalAlignment="Center"
-                                         VerticalAlignment="Center"
-                                         IsVisible="{Binding IsLogoLoading}" />
-                            </Panel>
+            <Grid RowDefinitions="*,Auto" Margin="0,4,0,0">
+              <Border Grid.Row="0" Classes="panel" Padding="0">
+                <Grid RowDefinitions="*,Auto">
+                  <Grid Grid.Row="0" Margin="8,8,8,0">
+                    <controls:LoadingOverlay IsActive="{Binding IsLoading}"
+                                             Message="Loading mods…" />
+                    <controls:EmptyStatePanel Message="{Binding EmptyBrowseMessage}"
+                                              IsActive="{Binding ShowEmptyBrowse}" />
+                    <ListBox x:Name="BrowseModsList"
+                             ItemsSource="{Binding BrowseResults}"
+                             SelectedItem="{Binding SelectedBrowseMod, Mode=TwoWay}"
+                             Background="Transparent"
+                             BorderThickness="0"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                             ContainerPrepared="OnBrowseContainerPrepared">
+                      <ListBox.Styles>
+                        <Style Selector="ListBoxItem">
+                          <Setter Property="Padding" Value="0" />
+                          <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                          <Setter Property="Background" Value="Transparent" />
+                          <Setter Property="Margin" Value="0,0,0,2" />
+                        </Style>
+                      </ListBox.Styles>
+                      <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="vm:ModRowViewModel">
+                          <Border Classes="list-row"
+                                  Margin="0,0,0,6"
+                                  Padding="12">
+                            <Grid ColumnDefinitions="64,*" ColumnSpacing="12">
+                              <Border Width="56" Height="56" CornerRadius="8" ClipToBounds="True" Background="{DynamicResource Theme.Bg1}">
+                                <Panel>
+                                  <Image Source="{Binding Logo}" Stretch="UniformToFill" IsVisible="{Binding !IsLogoLoading}" />
+                                  <TextBlock Text="..."
+                                             Classes="muted"
+                                             HorizontalAlignment="Center"
+                                             VerticalAlignment="Center"
+                                             IsVisible="{Binding IsLogoLoading}" />
+                                </Panel>
+                              </Border>
+                              <StackPanel Grid.Column="1" Spacing="4">
+                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="15" TextWrapping="Wrap" />
+                                <TextBlock Text="{Binding Author}" Classes="muted" FontSize="13" />
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                  <Border Classes="tag-chip" IsVisible="{Binding DownloadsLabel, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                                    <TextBlock Text="{Binding DownloadsLabel}" />
+                                  </Border>
+                                  <Border Classes="tag-chip" IsVisible="{Binding HasTags}">
+                                    <TextBlock Text="{Binding TagsLabel}" MaxLines="1" TextTrimming="CharacterEllipsis" />
+                                  </Border>
+                                </StackPanel>
+                                <TextBlock Text="{Binding SummaryText}"
+                                           Classes="muted"
+                                           FontSize="12"
+                                           TextWrapping="Wrap"
+                                           MaxLines="2"
+                                           TextTrimming="CharacterEllipsis"
+                                           LineHeight="18" />
+                              </StackPanel>
+                            </Grid>
                           </Border>
-                          <StackPanel Grid.Column="1" Spacing="2">
-                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextWrapping="Wrap" />
-                            <TextBlock Text="{Binding Author}" Classes="muted" />
-                            <TextBlock Text="{Binding DownloadsLabel}" Classes="muted" FontSize="12" />
-                            <TextBlock Text="{Binding TagsLabel}"
-                                       Classes="muted"
-                                       FontSize="12"
-                                       TextWrapping="Wrap"
-                                       IsVisible="{Binding HasTags}" />
-                            <TextBlock Text="{Binding SummaryText}" Classes="muted" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" />
-                          </StackPanel>
-                        </Grid>
-                      </Border>
-                    </DataTemplate>
-                </ListBox.ItemTemplate>
-              </ListBox>
-              </Grid>
+                        </DataTemplate>
+                      </ListBox.ItemTemplate>
+                    </ListBox>
+                  </Grid>
 
-              <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8" Margin="0,8,0,0">
-                <Button Classes="ghost" Content="Previous" Command="{Binding PreviousPageCommand}" IsEnabled="{Binding HasPreviousPage}" />
-                <TextBlock Text="{Binding PageLabel}" Classes="muted" VerticalAlignment="Center" />
-                <Button Classes="ghost" Content="Next" Command="{Binding NextPageCommand}" IsEnabled="{Binding HasNextPage}" />
-              </StackPanel>
+                  <Border Grid.Row="1" Classes="pagination-bar">
+                    <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
+                      <Button Classes="ghost" Content="Previous" Command="{Binding PreviousPageCommand}" IsEnabled="{Binding HasPreviousPage}" />
+                      <TextBlock Text="{Binding PageLabel}" Classes="muted" VerticalAlignment="Center" FontWeight="SemiBold" />
+                      <Button Classes="ghost" Content="Next" Command="{Binding NextPageCommand}" IsEnabled="{Binding HasNextPage}" />
+                    </StackPanel>
+                  </Border>
+                </Grid>
+              </Border>
             </Grid>
           </TabItem>
 
@@ -234,10 +293,10 @@
                 <ListBox.ItemTemplate>
                     <DataTemplate x:DataType="vm:InstalledModRowViewModel">
                       <Border Classes="list-row"
-                              Margin="0,0,0,8"
-                              Padding="10">
-                        <Grid ColumnDefinitions="56,*,Auto" ColumnSpacing="10">
-                          <Border Width="48" Height="48" CornerRadius="6" ClipToBounds="True" Background="{DynamicResource Theme.Bg1}">
+                              Margin="0,0,0,6"
+                              Padding="12">
+                        <Grid ColumnDefinitions="64,*,Auto" ColumnSpacing="12">
+                          <Border Width="56" Height="56" CornerRadius="8" ClipToBounds="True" Background="{DynamicResource Theme.Bg1}">
                             <Panel>
                               <Image Source="{Binding Logo}" Stretch="UniformToFill" IsVisible="{Binding !IsLogoLoading}" />
                               <TextBlock Text="..."
@@ -394,10 +453,9 @@
                        ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                 <ListBox.ItemTemplate>
                   <DataTemplate x:DataType="vm:ModpackRowViewModel">
-                    <Border Background="{DynamicResource Theme.Surface}"
-                            Padding="12"
-                            Margin="0,0,0,8"
-                            CornerRadius="{DynamicResource Theme.Radius}">
+                    <Border Classes="panel"
+                            Padding="14"
+                            Margin="0,0,0,8">
                       <StackPanel Spacing="6">
                         <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
                         <TextBlock Text="{Binding Description}"
@@ -446,23 +504,26 @@
       </Grid>
 
       <Border Grid.Column="1"
-              Padding="0"
-              Background="{DynamicResource Theme.Surface}"
-              CornerRadius="{DynamicResource Theme.Radius}"
-              ClipToBounds="True">
+              Classes="detail-panel"
+              Padding="0">
         <DockPanel LastChildFill="True">
-          <StackPanel DockPanel.Dock="Top" Spacing="8" Margin="16,16,16,8">
-            <TextBlock Text="Details" Classes="brand" FontSize="20" />
-            <TextBlock Text="Select a mod to see details."
-                       Classes="muted"
-                       IsVisible="{Binding SelectedDetails, Converter={x:Static ObjectConverters.IsNull}}" />
-            <TextBlock Text="{Binding DetailStatus}"
-                       Classes="muted"
-                       Classes.error="{Binding DetailStatusIsError}"
-                       TextWrapping="Wrap"
-                       IsVisible="{Binding DetailStatus, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-            <TextBlock Text="Loading details..." Classes="muted" IsVisible="{Binding IsLoadingDetails}" />
-          </StackPanel>
+          <Border DockPanel.Dock="Top"
+                  Padding="16,16,16,12"
+                  BorderBrush="{DynamicResource Theme.Border}"
+                  BorderThickness="0,0,0,1">
+            <StackPanel Spacing="6">
+              <TextBlock Text="Details" FontSize="20" FontWeight="SemiBold" />
+              <TextBlock Text="Select a mod to see details."
+                         Classes="muted"
+                         IsVisible="{Binding SelectedDetails, Converter={x:Static ObjectConverters.IsNull}}" />
+              <TextBlock Text="{Binding DetailStatus}"
+                         Classes="muted"
+                         Classes.error="{Binding DetailStatusIsError}"
+                         TextWrapping="Wrap"
+                         IsVisible="{Binding DetailStatus, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+              <TextBlock Text="Loading details..." Classes="muted" IsVisible="{Binding IsLoadingDetails}" />
+            </StackPanel>
+          </Border>
 
           <Border DockPanel.Dock="Bottom"
                   Padding="16,8,16,16"
@@ -544,11 +605,12 @@
                   <DataTemplate>
                     <Button Classes="ghost"
                             Margin="0,0,6,6"
-                            Padding="8,2"
-                            Background="{DynamicResource Theme.Bg1}"
+                            Padding="0"
                             Command="{Binding $parent[UserControl].((vm:ModsViewModel)DataContext).ToggleDetailTagCommand}"
                             CommandParameter="{Binding}">
-                      <TextBlock Text="{Binding}" FontSize="12" />
+                      <Border Classes="tag-chip">
+                        <TextBlock Text="{Binding}" FontSize="12" />
+                      </Border>
                     </Button>
                   </DataTemplate>
                 </ItemsControl.ItemTemplate>

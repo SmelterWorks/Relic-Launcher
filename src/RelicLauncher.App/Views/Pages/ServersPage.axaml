@@ -48,40 +48,49 @@
   <Grid Grid.Row="2" IsVisible="{Binding IsBrowseTab}">
     <Grid RowDefinitions="Auto,*" ColumnDefinitions="*,400">
       <StackPanel Grid.Row="0" Grid.ColumnSpan="2" Spacing="8" Margin="0,0,0,8">
-        <StackPanel Orientation="Horizontal" Spacing="8">
-          <TextBox Text="{Binding SearchText}"
-                   PlaceholderText="Search servers"
-                   Width="220"
-                   MinWidth="160"
-                   Height="40"
-                   VerticalContentAlignment="Center"
-                   AutomationProperties.Name="Search servers" />
-          <controls:RelicComboBox ItemsSource="{Binding SortOptions}"
-                                  SelectedItem="{Binding SelectedSortOption}"
-                                  VerticalAlignment="Center">
-            <controls:RelicComboBox.ItemTemplate>
-              <DataTemplate x:DataType="vm:ServerSortOption">
-                <TextBlock Text="{Binding Label}" />
-              </DataTemplate>
-            </controls:RelicComboBox.ItemTemplate>
-          </controls:RelicComboBox>
-          <controls:RelicComboBox ItemsSource="{Binding VersionFilterOptions}"
-                                    SelectedItem="{Binding SelectedVersionFilter}"
-                                    VerticalAlignment="Center">
-            <controls:RelicComboBox.ItemTemplate>
-              <DataTemplate x:DataType="vm:ServerVersionFilterOption">
-                <TextBlock Text="{Binding Label}" />
-              </DataTemplate>
-            </controls:RelicComboBox.ItemTemplate>
-          </controls:RelicComboBox>
-        </StackPanel>
-        <StackPanel Orientation="Horizontal" Spacing="12">
-          <CheckBox Content="Has players" IsChecked="{Binding FilterHasPlayers}" />
-          <CheckBox Content="No password" IsChecked="{Binding FilterNoPassword}" />
-          <CheckBox Content="Not whitelisted" IsChecked="{Binding FilterNotWhitelisted}" />
-          <CheckBox Content="Vanilla" IsChecked="{Binding FilterVanilla}" />
-          <CheckBox Content="Favorites only" IsChecked="{Binding FilterFavoritesOnly}" />
-        </StackPanel>
+        <Border Classes="filter-bar">
+          <StackPanel Spacing="10">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <TextBox Text="{Binding SearchText}"
+                       PlaceholderText="Search servers"
+                       MinWidth="200"
+                       Height="40"
+                       VerticalContentAlignment="Center"
+                       KeyDown="OnBrowseSearchKeyDown"
+                       AutomationProperties.Name="Search servers" />
+              <Button Classes="ghost"
+                      Content="Refresh"
+                      Command="{Binding RefreshCatalogCommand}"
+                      IsEnabled="{Binding !IsLoading}"
+                      AutomationProperties.Name="Refresh server list" />
+              <controls:RelicComboBox ItemsSource="{Binding SortOptions}"
+                                      SelectedItem="{Binding SelectedSortOption}"
+                                      VerticalAlignment="Center">
+                <controls:RelicComboBox.ItemTemplate>
+                  <DataTemplate x:DataType="vm:ServerSortOption">
+                    <TextBlock Text="{Binding Label}" />
+                  </DataTemplate>
+                </controls:RelicComboBox.ItemTemplate>
+              </controls:RelicComboBox>
+              <controls:RelicComboBox ItemsSource="{Binding VersionFilterOptions}"
+                                        SelectedItem="{Binding SelectedVersionFilter}"
+                                        VerticalAlignment="Center">
+                <controls:RelicComboBox.ItemTemplate>
+                  <DataTemplate x:DataType="vm:ServerVersionFilterOption">
+                    <TextBlock Text="{Binding Label}" />
+                  </DataTemplate>
+                </controls:RelicComboBox.ItemTemplate>
+              </controls:RelicComboBox>
+            </StackPanel>
+            <WrapPanel Orientation="Horizontal">
+              <CheckBox Content="Has players" IsChecked="{Binding FilterHasPlayers}" Margin="0,0,12,4" />
+              <CheckBox Content="No password" IsChecked="{Binding FilterNoPassword}" Margin="0,0,12,4" />
+              <CheckBox Content="Not whitelisted" IsChecked="{Binding FilterNotWhitelisted}" Margin="0,0,12,4" />
+              <CheckBox Content="Vanilla" IsChecked="{Binding FilterVanilla}" Margin="0,0,12,4" />
+              <CheckBox Content="Favorites only" IsChecked="{Binding FilterFavoritesOnly}" Margin="0,0,12,4" />
+            </WrapPanel>
+          </StackPanel>
+        </Border>
       </StackPanel>
 
       <Grid Grid.Row="1" Grid.Column="0" RowDefinitions="*">
@@ -100,14 +109,18 @@
           </StackPanel>
         </Border>
         <controls:EmptyStatePanel Message="{Binding EmptyBrowseMessage}"
+                                  ActionText="{Binding EmptyBrowseActionText}"
+                                  ActionCommand="{Binding ClearBrowseFiltersCommand}"
                                   IsActive="{Binding ShowEmptyBrowse}" />
         <ListBox Grid.Row="0"
+                 x:Name="BrowseServersList"
                  ItemsSource="{Binding BrowseResults}"
                  SelectedItem="{Binding SelectedBrowseServer, Mode=TwoWay}"
                  Background="Transparent"
                  BorderThickness="0"
                  ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                 IsVisible="{Binding HasBrowseResults}">
+                 IsVisible="{Binding HasBrowseResults}"
+                 DoubleTapped="OnBrowseServerDoubleTapped">
           <ListBox.Styles>
             <Style Selector="ListBoxItem">
               <Setter Property="Padding" Value="0" />
@@ -123,6 +136,11 @@
                 <Grid ColumnDefinitions="*,Auto">
                   <StackPanel Grid.Column="0" Spacing="2">
                     <StackPanel Orientation="Horizontal" Spacing="6">
+                      <i:Icon Value="mdi-star"
+                              Width="14"
+                              Height="14"
+                              Foreground="{DynamicResource Theme.Accent}"
+                              IsVisible="{Binding IsFavorite}" />
                       <TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold" TextWrapping="Wrap" />
                       <TextBlock Text="Official" Classes="muted" IsVisible="{Binding ShowOfficialBadge}" />
                       <i:Icon Value="mdi-lock" Width="14" Height="14" IsVisible="{Binding ShowPasswordIcon}" />
@@ -184,6 +202,7 @@
     <TextBlock Text="Connect to a server by address." Classes="muted" />
     <TextBox Text="{Binding DirectAddress}"
              PlaceholderText="192.168.1.10:42420"
+             KeyDown="OnDirectKeyDown"
              AutomationProperties.Name="Direct connect address" />
     <TextBox Text="{Binding DirectPassword}"
              PasswordChar="*"

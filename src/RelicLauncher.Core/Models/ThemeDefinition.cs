@@ -6,4 +6,6 @@ public sealed class ThemeDefinition
     public required string DisplayName { get; init; }
     public bool IsBuiltIn { get; init; }
     public string? ResourceUri { get; init; }
+    public string? PreviewBackgroundHex { get; init; }
+    public string? PreviewAccentHex { get; init; }
 }

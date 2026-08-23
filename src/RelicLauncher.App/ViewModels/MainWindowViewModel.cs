@@ -202,7 +202,7 @@ public partial class MainWindowViewModel : ViewModelBase
     private void NavigateSettingsInternal(string? focusSection) => Navigate("settings", () =>
     {
         var page = _services.GetRequiredService<SettingsViewModel>();
-        page.Bind(Settings, OnSettingsChanged);
+        page.Bind(Settings, OnSettingsChanged, () => NavigateVersionsCommand.Execute(null));
         if (string.Equals(focusSection, "account", StringComparison.Ordinal))
         {
             page.RequestFocusAccount();
@@ -211,7 +211,7 @@ public partial class MainWindowViewModel : ViewModelBase
         return page;
     }, existing =>
     {
-        ((SettingsViewModel)existing).Bind(Settings, OnSettingsChanged);
+        ((SettingsViewModel)existing).Bind(Settings, OnSettingsChanged, () => NavigateVersionsCommand.Execute(null));
         if (string.Equals(focusSection, "account", StringComparison.Ordinal))
         {
             ((SettingsViewModel)existing).RequestFocusAccount();

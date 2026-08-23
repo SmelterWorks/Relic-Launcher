@@ -46,6 +46,13 @@
         <StackPanel DockPanel.Dock="Top" Spacing="2" Margin="0,0,0,18">
           <TextBlock Text="Relic" Classes="brand" FontSize="28" />
           <TextBlock Text="Launcher" Classes="muted" FontSize="14" />
+          <Border Height="2"
+                  Margin="0,10,0,0"
+                  CornerRadius="1"
+                  Background="{DynamicResource Theme.Accent}"
+                  Opacity="0.6"
+                  HorizontalAlignment="Left"
+                  Width="48" />
         </StackPanel>
 
         <TextBlock DockPanel.Dock="Bottom"

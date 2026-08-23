@@ -172,6 +172,7 @@ public partial class ModsViewModel : PageViewModelBase
     public ObservableCollection<ModDependencyStatusRowViewModel> DependencyRows { get; } = [];
     public ObservableCollection<ModImageItemViewModel> ScreenshotItems { get; } = [];
     public ObservableCollection<TransferJobRowViewModel> ActiveTransfers { get; } = [];
+    public ObservableCollection<string> SearchHistory { get; } = [];
     public ObservableCollection<ModTagChipViewModel> TagChips { get; } = [];
     public ObservableCollection<string> DetailTagNames { get; } = [];
     public string TagsMenuLabel => HasSelectedTags
@@ -254,6 +255,7 @@ public partial class ModsViewModel : PageViewModelBase
     {
         _settings = settings;
         _ready = true;
+        LoadSearchHistory();
         OnPropertyChanged(nameof(ShowCheckForUpdates));
         OnPropertyChanged(nameof(CanUpdateAll));
         OnPropertyChanged(nameof(CanFilterByActiveVersion));

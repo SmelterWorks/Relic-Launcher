@@ -204,6 +204,7 @@ public class ServersViewModelTests
             new FakeServersPlatform(),
             new TransferTracker(),
             new NoopUrlLauncher(),
+            new NoopToastService(),
             NullLogger<ServersViewModel>.Instance);
     }
 
@@ -283,6 +284,23 @@ public class ServersViewModelTests
     private sealed class NoopUrlLauncher : IUrlLauncher
     {
         public Result OpenUrl(string url) => Result.Success();
+    }
+
+    private sealed class NoopToastService : IToastService
+    {
+        public Guid Show(ToastRequest request) => Guid.Empty;
+
+        public void UpdateProgress(Guid id, string? progressText)
+        {
+        }
+
+        public void Dismiss(Guid id)
+        {
+        }
+
+        public void DismissAll()
+        {
+        }
     }
 
     private sealed class NoopAccountAuth : IAccountAuthService

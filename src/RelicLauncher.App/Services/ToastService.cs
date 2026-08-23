@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Threading;
+using CommunityToolkit.Mvvm.Input;
 using RelicLauncher.App.ViewModels;
 
 namespace RelicLauncher.App.Services;
@@ -40,6 +41,7 @@ public sealed class ToastService : IToastService
                 Severity = request.Severity,
                 ProgressText = request.ProgressText,
                 Actions = actions,
+                DismissCommand = new RelayCommand(dismiss),
             };
 
             _host.Items.Add(item);

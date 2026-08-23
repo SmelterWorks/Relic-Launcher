@@ -1,4 +1,5 @@
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
 
@@ -9,6 +10,48 @@ public partial class ServersPage : UserControl
     public ServersPage()
     {
         InitializeComponent();
+    }
+
+    private void OnBrowseSearchKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (DataContext is not ViewModels.ServersViewModel vm)
+        {
+            return;
+        }
+
+        if (e.Key == Key.Escape)
+        {
+            vm.SearchText = string.Empty;
+            e.Handled = true;
+        }
+    }
+
+    private void OnDirectKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Enter || DataContext is not ViewModels.ServersViewModel vm)
+        {
+            return;
+        }
+
+        if (vm.DirectConnectCommand.CanExecute(null))
+        {
+            vm.DirectConnectCommand.Execute(null);
+            e.Handled = true;
+        }
+    }
+
+    private void OnBrowseServerDoubleTapped(object? sender, TappedEventArgs e)
+    {
+        if (DataContext is not ViewModels.ServersViewModel vm)
+        {
+            return;
+        }
+
+        if (vm.JoinSelectedCommand.CanExecute(null))
+        {
+            vm.JoinSelectedCommand.Execute(null);
+            e.Handled = true;
+        }
     }
 
     private async void OnCopyAddressClick(object? sender, RoutedEventArgs e)

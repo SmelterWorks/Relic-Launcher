@@ -1,0 +1,49 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <Color x:Key="Theme.Bg0Color">#FF1A140E</Color>
+  <Color x:Key="Theme.Bg1Color">#FF241C14</Color>
+  <Color x:Key="Theme.Bg2Color">#FF302418</Color>
+  <Color x:Key="Theme.SurfaceColor">#CC2A2018</Color>
+  <Color x:Key="Theme.AccentColor">#FFE8A848</Color>
+  <Color x:Key="Theme.AccentHoverColor">#FFF0C060</Color>
+  <Color x:Key="Theme.AccentMutedColor">#FF7A5A28</Color>
+  <Color x:Key="Theme.MossColor">#FF6A7040</Color>
+  <Color x:Key="Theme.TemporalColor">#FF5A5A48</Color>
+  <Color x:Key="Theme.TextColor">#FFF4E8D4</Color>
+  <Color x:Key="Theme.TextMutedColor">#FFB8A888</Color>
+  <Color x:Key="Theme.DangerColor">#FFC85038</Color>
+  <Color x:Key="Theme.WarningColor">#FFE0B040</Color>
+  <Color x:Key="Theme.BorderColor">#FF403428</Color>
+  <Color x:Key="Theme.FogColor">#44201810</Color>
+
+  <SolidColorBrush x:Key="Theme.Bg0" Color="{StaticResource Theme.Bg0Color}" />
+  <SolidColorBrush x:Key="Theme.Bg1" Color="{StaticResource Theme.Bg1Color}" />
+  <SolidColorBrush x:Key="Theme.Bg2" Color="{StaticResource Theme.Bg2Color}" />
+  <SolidColorBrush x:Key="Theme.Surface" Color="{StaticResource Theme.SurfaceColor}" />
+  <SolidColorBrush x:Key="Theme.Accent" Color="{StaticResource Theme.AccentColor}" />
+  <SolidColorBrush x:Key="Theme.AccentHover" Color="{StaticResource Theme.AccentHoverColor}" />
+  <SolidColorBrush x:Key="Theme.AccentMuted" Color="{StaticResource Theme.AccentMutedColor}" />
+  <SolidColorBrush x:Key="Theme.Moss" Color="{StaticResource Theme.MossColor}" />
+  <SolidColorBrush x:Key="Theme.Temporal" Color="{StaticResource Theme.TemporalColor}" />
+  <SolidColorBrush x:Key="Theme.Text" Color="{StaticResource Theme.TextColor}" />
+  <SolidColorBrush x:Key="Theme.TextMuted" Color="{StaticResource Theme.TextMutedColor}" />
+  <SolidColorBrush x:Key="Theme.Danger" Color="{StaticResource Theme.DangerColor}" />
+  <SolidColorBrush x:Key="Theme.Warning" Color="{StaticResource Theme.WarningColor}" />
+  <SolidColorBrush x:Key="Theme.Border" Color="{StaticResource Theme.BorderColor}" />
+  <SolidColorBrush x:Key="Theme.Fog" Color="{StaticResource Theme.FogColor}" />
+  <SolidColorBrush x:Key="Theme.Overlay" Color="#CC000000" />
+
+  <LinearGradientBrush x:Key="Theme.HeroBackground" StartPoint="0%,0%" EndPoint="100%,100%">
+    <GradientStop Color="#FF1A140E" Offset="0" />
+    <GradientStop Color="#FF302418" Offset="0.5" />
+    <GradientStop Color="#FF382818" Offset="1" />
+  </LinearGradientBrush>
+
+  <FontFamily x:Key="Theme.FontDisplay">avares://RelicLauncher.Themes/Assets/Fonts/SourceSerif4-Regular.ttf#Source Serif 4</FontFamily>
+  <FontFamily x:Key="Theme.FontBody">avares://RelicLauncher.Themes/Assets/Fonts/SourceSerif4-Regular.ttf#Source Serif 4</FontFamily>
+
+  <CornerRadius x:Key="Theme.Radius">8</CornerRadius>
+  <Thickness x:Key="Theme.PagePadding">32,28</Thickness>
+
+</ResourceDictionary>

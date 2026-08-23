@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using RelicLauncher.App.Services;
 
 namespace RelicLauncher.App.ViewModels;
@@ -22,6 +23,8 @@ public partial class ToastItemViewModel : ViewModelBase
 
     [ObservableProperty]
     private IReadOnlyList<ToastActionItemViewModel> _actions = [];
+
+    public IRelayCommand? DismissCommand { get; set; }
 
     public bool HasTitle => !string.IsNullOrWhiteSpace(Title);
     public bool HasProgress => !string.IsNullOrWhiteSpace(ProgressText);

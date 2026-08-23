@@ -12,5 +12,6 @@
                Classes="muted"
                TextWrapping="Wrap"
                IsVisible="{Binding #PageHeaderRoot.Subtitle, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+    <Border Classes="page-header-divider" />
   </StackPanel>
 </UserControl>

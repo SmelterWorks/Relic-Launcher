@@ -124,12 +124,15 @@
               <TextBlock Text="{Binding SelectedVersion}"
                          Classes="muted"
                          IsVisible="{Binding SelectedVersion, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-              <TextBlock Text="None selected yet. Pick one on the Versions page."
+              <TextBlock Text="None selected yet."
                          Classes="settings-field-hint"
                          IsVisible="{Binding SelectedVersion, Converter={x:Static StringConverters.IsNullOrEmpty}}" />
-              <TextBlock Text="Change this on the Versions page."
-                         Classes="settings-field-hint"
-                         IsVisible="{Binding SelectedVersion, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+              <Button Classes="ghost"
+                      Content="Open Versions page"
+                      Command="{Binding GoToVersionsCommand}"
+                      HorizontalAlignment="Left"
+                      Margin="0,4,0,0"
+                      AutomationProperties.Name="Open Versions page" />
             </StackPanel>
           </StackPanel>
         </controls:SettingsSection.SectionContent>
@@ -140,16 +143,51 @@
                                 IsExpanded="True">
         <controls:SettingsSection.SectionContent>
           <StackPanel Spacing="12">
-            <StackPanel Spacing="4">
+            <StackPanel Spacing="8">
               <TextBlock Text="Theme" Classes="settings-field-label" />
-              <controls:RelicComboBox ItemsSource="{Binding Themes}"
-                                      SelectedItem="{Binding SelectedTheme}">
-                <controls:RelicComboBox.ItemTemplate>
+              <TextBlock Text="Click a swatch to preview instantly. Changes save automatically."
+                         Classes="settings-field-hint" />
+              <ListBox ItemsSource="{Binding Themes}"
+                       SelectedItem="{Binding SelectedTheme}"
+                       Background="Transparent"
+                       BorderThickness="0"
+                       ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                <ListBox.ItemsPanel>
+                  <ItemsPanelTemplate>
+                    <WrapPanel />
+                  </ItemsPanelTemplate>
+                </ListBox.ItemsPanel>
+                <ListBox.Styles>
+                  <Style Selector="ListBoxItem">
+                    <Setter Property="Padding" Value="0" />
+                    <Setter Property="Margin" Value="0,0,8,8" />
+                    <Setter Property="Background" Value="Transparent" />
+                  </Style>
+                  <Style Selector="ListBoxItem:selected /template/ ContentPresenter">
+                    <Setter Property="Background" Value="Transparent" />
+                  </Style>
+                </ListBox.Styles>
+                <ListBox.ItemTemplate>
                   <DataTemplate x:DataType="models:ThemeDefinition">
-                    <TextBlock Text="{Binding DisplayName}" />
+                    <Border Classes="theme-swatch"
+                            Width="112"
+                            Padding="10">
+                      <StackPanel Spacing="8">
+                        <Border Height="28" CornerRadius="4" ClipToBounds="True">
+                          <Grid ColumnDefinitions="*,*">
+                            <Border Grid.Column="0" Background="{Binding PreviewBackgroundHex}" />
+                            <Border Grid.Column="1" Background="{Binding PreviewAccentHex}" />
+                          </Grid>
+                        </Border>
+                        <TextBlock Text="{Binding DisplayName}"
+                                   FontSize="12"
+                                   TextWrapping="Wrap"
+                                   TextAlignment="Center" />
+                      </StackPanel>
+                    </Border>
                   </DataTemplate>
-                </controls:RelicComboBox.ItemTemplate>
-              </controls:RelicComboBox>
+                </ListBox.ItemTemplate>
+              </ListBox>
             </StackPanel>
 
             <StackPanel Spacing="4">

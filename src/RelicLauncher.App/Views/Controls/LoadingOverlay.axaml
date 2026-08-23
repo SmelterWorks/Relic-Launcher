@@ -6,15 +6,26 @@
              x:DataType="controls:LoadingOverlay"
              IsHitTestVisible="False">
   <Border Background="{DynamicResource Theme.Bg0}"
-          Opacity="0.85"
+          Opacity="0.88"
           IsVisible="{Binding #LoadingOverlayRoot.IsActive}"
           HorizontalAlignment="Stretch"
           VerticalAlignment="Stretch">
-    <TextBlock Text="{Binding #LoadingOverlayRoot.Message}"
-               Classes="muted"
-               HorizontalAlignment="Center"
-               VerticalAlignment="Center"
-               FontSize="16"
-               AutomationProperties.LiveSetting="Polite" />
+    <StackPanel Spacing="14"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                MaxWidth="360"
+                Margin="24">
+      <ProgressBar IsIndeterminate="True"
+                   Height="4"
+                   Width="180"
+                   HorizontalAlignment="Center" />
+      <TextBlock Text="{Binding #LoadingOverlayRoot.Message}"
+                 Classes="muted"
+                 HorizontalAlignment="Center"
+                 TextAlignment="Center"
+                 TextWrapping="Wrap"
+                 FontSize="16"
+                 AutomationProperties.LiveSetting="Polite" />
+    </StackPanel>
   </Border>
 </UserControl>

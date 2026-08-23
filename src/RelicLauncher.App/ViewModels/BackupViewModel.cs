@@ -42,6 +42,26 @@ public partial class BackupViewModel : PageViewModelBase
     public ObservableCollection<BackupVersionRowViewModel> InstalledVersions { get; } = [];
     public ObservableCollection<TransferJobRowViewModel> ActiveTransfers { get; } = [];
 
+    public string BusyOverlayMessage => string.IsNullOrWhiteSpace(ProgressLabel) ? "Working..." : ProgressLabel;
+
+    [RelayCommand]
+    private void SelectAllVersions()
+    {
+        foreach (var row in InstalledVersions)
+        {
+            row.IsSelected = true;
+        }
+    }
+
+    [RelayCommand]
+    private void SelectNoVersions()
+    {
+        foreach (var row in InstalledVersions)
+        {
+            row.IsSelected = false;
+        }
+    }
+
     public BackupViewModel(
         IBackupService backupService,
         IInstalledVersionStore installedStore,

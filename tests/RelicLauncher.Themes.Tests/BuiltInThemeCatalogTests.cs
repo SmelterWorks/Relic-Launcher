@@ -11,12 +11,16 @@ public class BuiltInThemeCatalogTests
     public void Catalog_ContainsBuiltInThemes()
     {
         var catalog = new BuiltInThemeCatalog();
-        catalog.GetThemes().Should().HaveCount(5);
+        catalog.GetThemes().Should().HaveCount(9);
         catalog.FindById(BuiltInThemeCatalog.RelicDefaultId).Should().NotBeNull();
         catalog.FindById(BuiltInThemeCatalog.HighContrastId).Should().NotBeNull();
         catalog.FindById(BuiltInThemeCatalog.TemporalRiftId).Should().NotBeNull();
         catalog.FindById(BuiltInThemeCatalog.MossHearthId).Should().NotBeNull();
         catalog.FindById(BuiltInThemeCatalog.CopperDungeonId).Should().NotBeNull();
+        catalog.FindById(BuiltInThemeCatalog.FrostSpireId).Should().NotBeNull();
+        catalog.FindById(BuiltInThemeCatalog.ObsidianForgeId).Should().NotBeNull();
+        catalog.FindById(BuiltInThemeCatalog.AmberDawnId).Should().NotBeNull();
+        catalog.FindById(BuiltInThemeCatalog.DriftersLanternId).Should().NotBeNull();
     }
 
     [Theory]
@@ -58,5 +62,9 @@ public class BuiltInThemeCatalogTests
         themes.Select(t => t.ResourceUri).Should().Contain(BuiltInThemeCatalog.TemporalRiftUri);
         themes.Select(t => t.ResourceUri).Should().Contain(BuiltInThemeCatalog.MossHearthUri);
         themes.Select(t => t.ResourceUri).Should().Contain(BuiltInThemeCatalog.CopperDungeonUri);
+        themes.Select(t => t.ResourceUri).Should().Contain(BuiltInThemeCatalog.FrostSpireUri);
+        themes.Select(t => t.ResourceUri).Should().Contain(BuiltInThemeCatalog.ObsidianForgeUri);
+        themes.Select(t => t.ResourceUri).Should().Contain(BuiltInThemeCatalog.AmberDawnUri);
+        themes.Select(t => t.ResourceUri).Should().Contain(BuiltInThemeCatalog.DriftersLanternUri);
     }
 }

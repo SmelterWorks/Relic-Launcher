@@ -67,7 +67,19 @@ public partial class VersionsViewModel : PageViewModelBase
     [ObservableProperty]
     private bool _hasVersions;
 
-    public bool ShowEmptyVersions => !IsLoading && !HasVersions;
+    [RelayCommand]
+    private void ClearFilters()
+    {
+        SearchText = string.Empty;
+        ShowStable = true;
+        ShowUnstable = true;
+        Page = 1;
+        ApplyFilter();
+    }
+
+    public bool CanClearVersionFilters => !string.IsNullOrWhiteSpace(SearchText) || !ShowStable || !ShowUnstable;
+
+    public string? EmptyStateActionText => ShowEmptyVersions && CanClearVersionFilters ? "Clear filters" : null;
 
     [ObservableProperty]
     private string _emptyMessage = "No versions to show.";
@@ -114,11 +126,28 @@ public partial class VersionsViewModel : PageViewModelBase
         }
     }
 
-    partial void OnShowStableChanged(bool value) => ApplyFilter();
+    partial void OnShowStableChanged(bool value)
+    {
+        ApplyFilter();
+        OnPropertyChanged(nameof(CanClearVersionFilters));
+        OnPropertyChanged(nameof(EmptyStateActionText));
+    }
 
-    partial void OnShowUnstableChanged(bool value) => ApplyFilter();
+    partial void OnShowUnstableChanged(bool value)
+    {
+        ApplyFilter();
+        OnPropertyChanged(nameof(CanClearVersionFilters));
+        OnPropertyChanged(nameof(EmptyStateActionText));
+    }
 
-    partial void OnSearchTextChanged(string value) => ApplyFilter();
+    partial void OnSearchTextChanged(string value)
+    {
+        ApplyFilter();
+        OnPropertyChanged(nameof(CanClearVersionFilters));
+        OnPropertyChanged(nameof(EmptyStateActionText));
+    }
+
+    public bool ShowEmptyVersions => !IsLoading && !HasVersions;
 
     [RelayCommand]
     private async Task RefreshAsync()
@@ -249,6 +278,8 @@ public partial class VersionsViewModel : PageViewModelBase
         PageLabel = total == 0 ? "No results" : $"Page {Page} of {totalPages} ({total})";
         HasPreviousPage = Page > 1;
         HasNextPage = Page * PageSize < total;
+        OnPropertyChanged(nameof(CanClearVersionFilters));
+        OnPropertyChanged(nameof(EmptyStateActionText));
     }
 
     [RelayCommand]

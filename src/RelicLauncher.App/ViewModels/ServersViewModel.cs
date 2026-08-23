@@ -20,6 +20,7 @@ public partial class ServersViewModel : PageViewModelBase
     private readonly IRuntimePlatform _platform;
     private readonly ITransferTracker _transfers;
     private readonly IUrlLauncher _urlLauncher;
+    private readonly IToastService _toastService;
     private readonly ILogger<ServersViewModel> _logger;
     private LauncherSettings _settings = new();
     private Action<string>? _navigateToSection;
@@ -152,6 +153,7 @@ public partial class ServersViewModel : PageViewModelBase
         IRuntimePlatform platform,
         ITransferTracker transfers,
         IUrlLauncher urlLauncher,
+        IToastService toastService,
         ILogger<ServersViewModel> logger)
     {
         _masterServerClient = masterServerClient;
@@ -164,6 +166,7 @@ public partial class ServersViewModel : PageViewModelBase
         _platform = platform;
         _transfers = transfers;
         _urlLauncher = urlLauncher;
+        _toastService = toastService;
         _logger = logger;
         _selectedSortOption = SortOptions[0];
         _selectedVersionFilter = VersionFilterOptions[0];
@@ -210,21 +213,7 @@ public partial class ServersViewModel : PageViewModelBase
     [RelayCommand]
     private void NavigateAccountSettings() => _navigateToSection?.Invoke("settings-account");
 
-    partial void OnSearchTextChanged(string value) => ScheduleApplyFilters();
-
-    partial void OnFilterHasPlayersChanged(bool value) => ScheduleApplyFilters();
-
-    partial void OnFilterNoPasswordChanged(bool value) => ScheduleApplyFilters();
-
-    partial void OnFilterNotWhitelistedChanged(bool value) => ScheduleApplyFilters();
-
-    partial void OnFilterVanillaChanged(bool value) => ScheduleApplyFilters();
-
-    partial void OnFilterFavoritesOnlyChanged(bool value) => ScheduleApplyFilters();
-
     partial void OnSelectedSortOptionChanged(ServerSortOption? value) => ScheduleApplyFilters();
-
-    partial void OnSelectedVersionFilterChanged(ServerVersionFilterOption? value) => ScheduleApplyFilters();
 
     partial void OnSelectedBrowseServerChanged(ServerRowViewModel? value) => UpdateSelectedDetail();
 

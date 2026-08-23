@@ -22,6 +22,7 @@ public sealed class LauncherSettings
     public string? DismissedLauncherUpdateVersion { get; set; }
     public string? LastUpdateManifestEtag { get; set; }
     public IList<string> ModUpdateOptOutModIds { get; set; } = [];
+    public IList<string> ModSearchHistory { get; set; } = [];
     public HomeBackgroundLogoMode HomeBackgroundLogoMode { get; set; } = HomeBackgroundLogoMode.Square;
     public string? HomeBackgroundCustomLogoPath { get; set; }
     public double HomeBackgroundLogoOpacity { get; set; } = RelicDefaults.HomeBackgroundLogoOpacity;
