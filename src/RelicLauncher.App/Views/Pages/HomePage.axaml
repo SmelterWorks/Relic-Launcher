@@ -29,7 +29,7 @@
                   Command="{Binding PlayCommand}"
                   MinWidth="120"
                   VerticalAlignment="Center"
-                  AutomationProperties.Name="Play Vintage Story" />
+                  AutomationProperties.Name="{Binding PlayButtonText}" />
           <controls:RelicComboBox ItemsSource="{Binding InstalledVersions}"
                                   SelectedItem="{Binding SelectedInstalledVersion}"
                                   PlaceholderText="Version"

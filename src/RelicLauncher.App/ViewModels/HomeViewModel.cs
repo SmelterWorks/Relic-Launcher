@@ -50,7 +50,19 @@ public partial class HomeViewModel : PageViewModelBase
     [ObservableProperty]
     private bool _newsStatusIsError;
 
-    public string PlayButtonText => IsLaunching ? "Launching..." : "Play";
+    [ObservableProperty]
+    private bool _isStoppingGame;
+
+    [ObservableProperty]
+    private bool _isGameRunning;
+
+    public string PlayButtonText => IsStoppingGame
+        ? "Stopping..."
+        : IsLaunching
+            ? "Launching..."
+            : IsGameRunning
+                ? "Stop"
+                : "Play";
 
     [ObservableProperty]
     private bool _showBackgroundLogo;
@@ -108,9 +120,21 @@ public partial class HomeViewModel : PageViewModelBase
         _accountAuth = accountAuth;
         _transfers = transfers;
         _logger = logger;
+        _launchService.StateChanged += OnLaunchServiceStateChanged;
+        SyncLaunchState();
     }
 
-    public bool ShowGoToVersions => !CanPlay && !IsLaunching;
+    private void OnLaunchServiceStateChanged(object? sender, EventArgs e) => SyncLaunchState();
+
+    private void SyncLaunchState()
+    {
+        IsGameRunning = _launchService.IsRunning;
+        IsStoppingGame = _launchService.IsStopping;
+        PlayCommand.NotifyCanExecuteChanged();
+        OnPropertyChanged(nameof(PlayButtonText));
+    }
+
+    public bool ShowGoToVersions => !CanPlay && !IsLaunching && !IsGameRunning;
 
     public bool ShowNewsEmpty =>
         !IsLoadingNews && !IsShowingArticle && NewsArticles.Count == 0 && !string.IsNullOrEmpty(NewsStatusMessage);
@@ -372,10 +396,21 @@ public partial class HomeViewModel : PageViewModelBase
     [RelayCommand]
     private async Task RetryNewsAsync() => await LoadNewsAsync().ConfigureAwait(true);
 
-    private bool CanExecutePlay() => CanPlay && !IsLaunching;
+    private bool CanExecutePlay() => (CanPlay || IsGameRunning) && !IsLaunching && !IsStoppingGame;
 
     [RelayCommand(CanExecute = nameof(CanExecutePlay))]
     private async Task PlayAsync()
+    {
+        if (IsGameRunning)
+        {
+            await StopGameAsync().ConfigureAwait(true);
+            return;
+        }
+
+        await StartGameAsync().ConfigureAwait(true);
+    }
+
+    private async Task StartGameAsync()
     {
         IsLaunching = true;
         SetStatus("Launching...");
@@ -432,6 +467,29 @@ public partial class HomeViewModel : PageViewModelBase
         {
             await session.DisposeAsync().ConfigureAwait(true);
             IsLaunching = false;
+            SyncLaunchState();
+        }
+    }
+
+    private async Task StopGameAsync()
+    {
+        IsStoppingGame = true;
+        SetStatus("Stopping Vintage Story...");
+        try
+        {
+            var result = await _launchService.StopAsync().ConfigureAwait(true);
+            if (!result.IsSuccess)
+            {
+                SetStatus(result.Error ?? "Could not stop the game.", true);
+            }
+            else
+            {
+                SetStatus("Vintage Story stopped.");
+            }
+        }
+        finally
+        {
+            SyncLaunchState();
         }
     }
 
@@ -446,6 +504,19 @@ public partial class HomeViewModel : PageViewModelBase
         PlayCommand.NotifyCanExecuteChanged();
         OnPropertyChanged(nameof(PlayButtonText));
         OnPropertyChanged(nameof(ShowGoToVersions));
+    }
+
+    partial void OnIsGameRunningChanged(bool value)
+    {
+        PlayCommand.NotifyCanExecuteChanged();
+        OnPropertyChanged(nameof(PlayButtonText));
+        OnPropertyChanged(nameof(ShowGoToVersions));
+    }
+
+    partial void OnIsStoppingGameChanged(bool value)
+    {
+        PlayCommand.NotifyCanExecuteChanged();
+        OnPropertyChanged(nameof(PlayButtonText));
     }
 
     partial void OnIsLoadingNewsChanged(bool value) => OnPropertyChanged(nameof(ShowNewsEmpty));

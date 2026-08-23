@@ -272,12 +272,27 @@ public class ServersViewModelTests
 
     private sealed class NoopLaunchService : IGameLaunchService
     {
+        public bool IsRunning => false;
+
+        public bool IsStopping => false;
+
+        public string? RunningVersion => null;
+
+        public event EventHandler? StateChanged
+        {
+            add { }
+            remove { }
+        }
+
         public Task<Result<GameInstallInfo>> ResolveAsync(
             GameLaunchRequest request,
             CancellationToken cancellationToken = default)
             => Task.FromResult(Result<GameInstallInfo>.Failure("noop"));
 
         public Task<Result> LaunchAsync(GameLaunchRequest request, CancellationToken cancellationToken = default)
+            => Task.FromResult(Result.Success());
+
+        public Task<Result> StopAsync(CancellationToken cancellationToken = default)
             => Task.FromResult(Result.Success());
     }
 

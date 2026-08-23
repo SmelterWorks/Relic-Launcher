@@ -1,32 +1,51 @@
+using Microsoft.Extensions.Logging;
 using RelicLauncher.Core.Abstractions;
 using RelicLauncher.Core.Models;
 using RelicLauncher.Core.Paths;
 using RelicLauncher.Core.Results;
+using RelicLauncher.Core.Sandbox;
 using RelicLauncher.Core.Versions;
 
 namespace RelicLauncher.Infrastructure.Launch;
 
-public sealed class GameLaunchService : IGameLaunchService
+public sealed partial class GameLaunchService : IGameLaunchService
 {
-    private readonly IProcessRunner _processRunner;
+    private readonly ISandboxBrokerClient _broker;
     private readonly IRuntimePlatform _platform;
     private readonly IClientSettingsSessionWriter _sessionWriter;
     private readonly IDotNetRuntimeProvisioner _runtimeProvisioner;
     private readonly IAccountAuthService _accountAuth;
+    private readonly ILogger<GameLaunchService> _logger;
+    private readonly SemaphoreSlim _lifecycleLock = new(1, 1);
+
+    private int? _processId;
+    private string? _runningVersion;
+    private Task? _exitMonitorTask;
+    private bool _isStopping;
 
     public GameLaunchService(
-        IProcessRunner processRunner,
+        ISandboxBrokerClient broker,
         IRuntimePlatform platform,
         IClientSettingsSessionWriter sessionWriter,
         IDotNetRuntimeProvisioner runtimeProvisioner,
-        IAccountAuthService accountAuth)
+        IAccountAuthService accountAuth,
+        ILogger<GameLaunchService> logger)
     {
-        _processRunner = processRunner;
+        _broker = broker;
         _platform = platform;
         _sessionWriter = sessionWriter;
         _runtimeProvisioner = runtimeProvisioner;
         _accountAuth = accountAuth;
+        _logger = logger;
     }
+
+    public bool IsRunning { get; private set; }
+
+    public bool IsStopping => _isStopping;
+
+    public string? RunningVersion => _runningVersion;
+
+    public event EventHandler? StateChanged;
 
     public Task<Result<GameInstallInfo>> ResolveAsync(GameLaunchRequest request, CancellationToken cancellationToken = default)
     {
@@ -58,28 +77,72 @@ public sealed class GameLaunchService : IGameLaunchService
 
     public async Task<Result> LaunchAsync(GameLaunchRequest request, CancellationToken cancellationToken = default)
     {
+        await _lifecycleLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            if (IsRunning)
+            {
+                return Result.Failure("Vintage Story is already running.");
+            }
+
+            var prepared = await PrepareLaunchAsync(request, cancellationToken).ConfigureAwait(false);
+            if (!prepared.IsSuccess)
+            {
+                return Result.Failure(prepared.Error ?? "Could not prepare launch.");
+            }
+
+            var (info, args, environment) = prepared.Value!;
+            var launch = await _broker.LaunchSandboxedAsync(
+                new SandboxLaunchRequest
+                {
+                    Kind = SandboxKind.GameClient,
+                    ExecutablePath = info.ExecutablePath!,
+                    Arguments = args,
+                    Environment = environment,
+                    WorkingDirectory = Path.GetDirectoryName(info.ExecutablePath),
+                },
+                cancellationToken).ConfigureAwait(false);
+
+            if (!launch.IsSuccess)
+            {
+                return Result.Failure(launch.Error ?? "Could not start the game client.");
+            }
+
+            AttachProcess(launch.Value!.ProcessId, request.Version);
+            return Result.Success();
+        }
+        finally
+        {
+            _lifecycleLock.Release();
+        }
+    }
+
+    private async Task<Result<(GameInstallInfo Info, List<string> Args, Dictionary<string, string?> Environment)>> PrepareLaunchAsync(
+        GameLaunchRequest request,
+        CancellationToken cancellationToken)
+    {
         var resolved = await ResolveAsync(request, cancellationToken).ConfigureAwait(false);
         if (!resolved.IsSuccess)
         {
-            return Result.Failure(resolved.Error ?? "Could not resolve install.");
+            return Result<(GameInstallInfo, List<string>, Dictionary<string, string?>)>.Failure(resolved.Error ?? "Could not resolve install.");
         }
 
         var info = resolved.Value!;
         if (!info.ExecutableFound || string.IsNullOrWhiteSpace(info.ExecutablePath))
         {
-            return Result.Failure("No client executable found for the selected version.");
+            return Result<(GameInstallInfo, List<string>, Dictionary<string, string?>)>.Failure("No client executable found for the selected version.");
         }
 
         var sessionValid = await _accountAuth.ValidateSessionAsync(cancellationToken).ConfigureAwait(false);
         if (!sessionValid.IsSuccess)
         {
-            return Result.Failure(sessionValid.Error ?? "Sign in with your Vintage Story game account in Settings.");
+            return Result<(GameInstallInfo, List<string>, Dictionary<string, string?>)>.Failure(sessionValid.Error ?? "Sign in with your Vintage Story game account in Settings.");
         }
 
         var runtimeMajor = GameDotNetRuntimeRequirements.TryGetRequiredMajor(request.Version);
         if (!runtimeMajor.IsSuccess)
         {
-            return Result.Failure(runtimeMajor.Error ?? "Unsupported game version for .NET runtime.");
+            return Result<(GameInstallInfo, List<string>, Dictionary<string, string?>)>.Failure(runtimeMajor.Error ?? "Unsupported game version for .NET runtime.");
         }
 
         var runtime = await _runtimeProvisioner.EnsureAsync(
@@ -88,7 +151,7 @@ public sealed class GameLaunchService : IGameLaunchService
             cancellationToken).ConfigureAwait(false);
         if (!runtime.IsSuccess)
         {
-            return Result.Failure(runtime.Error ?? "Could not provision the required .NET runtime.");
+            return Result<(GameInstallInfo, List<string>, Dictionary<string, string?>)>.Failure(runtime.Error ?? "Could not provision the required .NET runtime.");
         }
 
         var dataPath = string.IsNullOrWhiteSpace(request.DataPath)
@@ -100,21 +163,19 @@ public sealed class GameLaunchService : IGameLaunchService
         var applySession = await _sessionWriter.ApplySessionAsync(dataPath, cancellationToken).ConfigureAwait(false);
         if (!applySession.IsSuccess)
         {
-            return Result.Failure(applySession.Error ?? "Could not write the game session before launch.");
+            return Result<(GameInstallInfo, List<string>, Dictionary<string, string?>)>.Failure(applySession.Error ?? "Could not write the game session before launch.");
         }
 
-        var args = BuildLaunchArguments(dataPath, request);
-        IReadOnlyDictionary<string, string?>? environment = null;
+        var environment = new Dictionary<string, string?>(StringComparer.Ordinal);
         if (runtime.Value!.IsManagedByRelic)
         {
-            environment = new Dictionary<string, string?>(StringComparer.Ordinal)
-            {
-                ["DOTNET_ROOT"] = runtime.Value.DotNetRoot,
-            };
+            environment["DOTNET_ROOT"] = runtime.Value.DotNetRoot;
         }
 
-        return await _processRunner.StartAsync(info.ExecutablePath, args, environment, cancellationToken)
-            .ConfigureAwait(false);
+        return Result<(GameInstallInfo, List<string>, Dictionary<string, string?>)>.Success((
+            info,
+            BuildLaunchArguments(dataPath, request),
+            environment));
     }
 
     private static List<string> BuildLaunchArguments(string dataPath, GameLaunchRequest request)

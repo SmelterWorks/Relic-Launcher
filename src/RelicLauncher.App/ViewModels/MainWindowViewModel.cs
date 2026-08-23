@@ -2,6 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.DependencyInjection;
 using RelicLauncher.App.Services;
+using RelicLauncher.App.Views;
 using RelicLauncher.Core;
 using RelicLauncher.Core.Abstractions;
 using RelicLauncher.Core.Models;
@@ -14,7 +15,9 @@ public partial class MainWindowViewModel : ViewModelBase
     private readonly IEndpointProvider _endpoints;
     private readonly IConfirmDialogService _confirmDialog;
     private readonly IGameServerHost _serverHost;
+    private readonly IGameLaunchService _launchService;
     private readonly IRuntimePlatform _platform;
+    private readonly MainWindowHolder _windowHolder;
     private readonly Dictionary<string, ViewModelBase> _pageCache = new(StringComparer.Ordinal);
 
     public ToastHostViewModel ToastHost { get; }
@@ -35,14 +38,18 @@ public partial class MainWindowViewModel : ViewModelBase
         IEndpointProvider endpoints,
         IConfirmDialogService confirmDialog,
         IGameServerHost serverHost,
+        IGameLaunchService launchService,
         IRuntimePlatform platform,
+        MainWindowHolder windowHolder,
         ToastHostViewModel toastHost)
     {
         _services = services;
         _endpoints = endpoints;
         _confirmDialog = confirmDialog;
         _serverHost = serverHost;
+        _launchService = launchService;
         _platform = platform;
+        _windowHolder = windowHolder;
         ToastHost = toastHost;
     }
 
@@ -84,6 +91,11 @@ public partial class MainWindowViewModel : ViewModelBase
         if (_serverHost.State is ServerProcessState.Running or ServerProcessState.Starting or ServerProcessState.Stopping)
         {
             await _serverHost.StopAsync().ConfigureAwait(true);
+        }
+
+        if (_launchService.IsRunning || _launchService.IsStopping)
+        {
+            await _launchService.StopAsync().ConfigureAwait(true);
         }
 
         if (!Settings.ConfirmBeforeExit)
@@ -269,6 +281,7 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         Settings = settings;
         _endpoints.Apply(settings);
+        ApplyWindowChrome(settings.UseNativeTitleBar);
         if (CurrentPage is HomeViewModel home)
         {
             home.Bind(
@@ -329,5 +342,13 @@ public partial class MainWindowViewModel : ViewModelBase
         OnPropertyChanged(nameof(IsWikiActive));
         OnPropertyChanged(nameof(IsSettingsActive));
         OnPropertyChanged(nameof(IsAboutActive));
+    }
+
+    private void ApplyWindowChrome(bool useNativeTitleBar)
+    {
+        if (_windowHolder.Window is MainWindow mainWindow)
+        {
+            mainWindow.ApplyWindowChrome(useNativeTitleBar);
+        }
     }
 }

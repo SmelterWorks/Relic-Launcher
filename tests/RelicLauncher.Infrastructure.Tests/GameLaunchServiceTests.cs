@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using RelicLauncher.Core.Abstractions;
 using RelicLauncher.Core.Models;
 using RelicLauncher.Core.Results;
+using RelicLauncher.Core.Sandbox;
 using RelicLauncher.Infrastructure.Auth;
 using RelicLauncher.Infrastructure.Launch;
 using RelicLauncher.Infrastructure.Platform;
@@ -23,7 +24,7 @@ public class GameLaunchServiceTests
         var exePath = Path.Combine(versionDir, "Vintagestory");
         await File.WriteAllTextAsync(exePath, "bin");
 
-        var service = CreateService(new CapturingProcessRunner(), new StubRuntimeProvisioner());
+        var service = CreateService(new CapturingSandboxBrokerClient());
         var result = await service.ResolveAsync(new GameLaunchRequest
         {
             InstallsRoot = installsRoot,
@@ -46,8 +47,8 @@ public class GameLaunchServiceTests
         await File.WriteAllTextAsync(exePath, "bin");
         var dataPath = Path.Combine(temp.Paths.RootDirectory, "data");
 
-        var runner = new CapturingProcessRunner();
-        var service = CreateService(runner, new StubRuntimeProvisioner { IsManagedByRelic = false });
+        var broker = new CapturingSandboxBrokerClient();
+        var service = CreateService(broker, new StubRuntimeProvisioner { IsManagedByRelic = false });
         var result = await service.LaunchAsync(new GameLaunchRequest
         {
             InstallsRoot = installsRoot,
@@ -56,9 +57,11 @@ public class GameLaunchServiceTests
         });
 
         result.IsSuccess.Should().BeTrue();
-        runner.LastExecutable.Should().Be(exePath);
-        runner.LastArguments.Should().Equal("--dataPath", dataPath);
-        runner.LastEnvironment.Should().BeNull();
+        broker.LastExecutable.Should().Be(exePath);
+        broker.LastArguments.Should().Equal("--dataPath", dataPath);
+        broker.LastEnvironment.Should().BeEmpty();
+        service.IsRunning.Should().BeTrue();
+        service.RunningVersion.Should().Be("1.22.6");
         Directory.Exists(Path.Combine(dataPath, "Mods")).Should().BeTrue();
     }
 
@@ -72,8 +75,8 @@ public class GameLaunchServiceTests
         await File.WriteAllTextAsync(Path.Combine(versionDir, "Vintagestory"), "bin");
         var dataPath = Path.Combine(temp.Paths.RootDirectory, "data");
 
-        var runner = new CapturingProcessRunner();
-        var service = CreateService(runner, new StubRuntimeProvisioner { IsManagedByRelic = false });
+        var broker = new CapturingSandboxBrokerClient();
+        var service = CreateService(broker, new StubRuntimeProvisioner { IsManagedByRelic = false });
         var result = await service.LaunchAsync(new GameLaunchRequest
         {
             InstallsRoot = installsRoot,
@@ -84,7 +87,7 @@ public class GameLaunchServiceTests
         });
 
         result.IsSuccess.Should().BeTrue();
-        runner.LastArguments.Should().Equal(
+        broker.LastArguments.Should().Equal(
             "--dataPath", dataPath,
             "--connect", "tops.vintagestory.at:42420",
             "--pw", "secret");
@@ -100,8 +103,8 @@ public class GameLaunchServiceTests
         await File.WriteAllTextAsync(Path.Combine(versionDir, "Vintagestory"), "bin");
         var managedRoot = Path.Combine(temp.Paths.CacheDirectory, "dotnet", "net8");
 
-        var runner = new CapturingProcessRunner();
-        var service = CreateService(runner, new StubRuntimeProvisioner
+        var broker = new CapturingSandboxBrokerClient();
+        var service = CreateService(broker, new StubRuntimeProvisioner
         {
             IsManagedByRelic = true,
             DotNetRoot = managedRoot,
@@ -115,8 +118,8 @@ public class GameLaunchServiceTests
         });
 
         result.IsSuccess.Should().BeTrue();
-        runner.LastEnvironment.Should().NotBeNull();
-        runner.LastEnvironment!["DOTNET_ROOT"].Should().Be(managedRoot);
+        broker.LastEnvironment.Should().ContainKey("DOTNET_ROOT");
+        broker.LastEnvironment["DOTNET_ROOT"].Should().Be(managedRoot);
     }
 
     [Fact]
@@ -129,7 +132,7 @@ public class GameLaunchServiceTests
         await File.WriteAllTextAsync(Path.Combine(versionDir, "Vintagestory"), "bin");
 
         var service = CreateService(
-            new CapturingProcessRunner(),
+            new CapturingSandboxBrokerClient(),
             new StubRuntimeProvisioner { FailWith = "download blocked" });
         var result = await service.LaunchAsync(new GameLaunchRequest
         {
@@ -140,6 +143,59 @@ public class GameLaunchServiceTests
 
         result.IsSuccess.Should().BeFalse();
         result.Error.Should().Contain("download blocked");
+        service.IsRunning.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task LaunchAsync_Fails_WhenAlreadyRunning()
+    {
+        using var temp = new TempAppPaths();
+        var installsRoot = Path.Combine(temp.Paths.RootDirectory, "installs");
+        var versionDir = Path.Combine(installsRoot, "versions", "1.22.6");
+        Directory.CreateDirectory(versionDir);
+        await File.WriteAllTextAsync(Path.Combine(versionDir, "Vintagestory"), "bin");
+
+        var broker = new CapturingSandboxBrokerClient();
+        var service = CreateService(broker, new StubRuntimeProvisioner { IsManagedByRelic = false });
+        var request = new GameLaunchRequest
+        {
+            InstallsRoot = installsRoot,
+            Version = "1.22.6",
+            DataPath = Path.Combine(temp.Paths.RootDirectory, "data"),
+        };
+
+        (await service.LaunchAsync(request)).IsSuccess.Should().BeTrue();
+        var second = await service.LaunchAsync(request);
+        second.IsSuccess.Should().BeFalse();
+        second.Error.Should().Contain("already running");
+    }
+
+    [Fact]
+    public async Task StopAsync_ClearsRunningState()
+    {
+        using var temp = new TempAppPaths();
+        var installsRoot = Path.Combine(temp.Paths.RootDirectory, "installs");
+        var versionDir = Path.Combine(installsRoot, "versions", "1.22.6");
+        Directory.CreateDirectory(versionDir);
+        await File.WriteAllTextAsync(Path.Combine(versionDir, "Vintagestory"), "bin");
+
+        var broker = new CapturingSandboxBrokerClient();
+        var service = CreateService(broker, new StubRuntimeProvisioner { IsManagedByRelic = false });
+        var launch = await service.LaunchAsync(new GameLaunchRequest
+        {
+            InstallsRoot = installsRoot,
+            Version = "1.22.6",
+            DataPath = Path.Combine(temp.Paths.RootDirectory, "data"),
+        });
+
+        launch.IsSuccess.Should().BeTrue();
+        service.IsRunning.Should().BeTrue();
+
+        var stop = await service.StopAsync();
+        stop.IsSuccess.Should().BeTrue();
+        service.IsRunning.Should().BeFalse();
+        service.RunningVersion.Should().BeNull();
+        broker.KilledProcessIds.Should().Contain(broker.LastProcessId);
     }
 
     [Fact]
@@ -169,11 +225,12 @@ public class GameLaunchServiceTests
         };
         var writer = new ClientSettingsSessionWriter(auth, NullLogger<ClientSettingsSessionWriter>.Instance);
         var service = new GameLaunchService(
-            new CapturingProcessRunner(),
+            new CapturingSandboxBrokerClient(),
             new RuntimePlatform(),
             writer,
             new StubRuntimeProvisioner { IsManagedByRelic = false },
-            auth);
+            auth,
+            NullLogger<GameLaunchService>.Instance);
         var result = await service.LaunchAsync(new GameLaunchRequest
         {
             InstallsRoot = installsRoot,
@@ -199,11 +256,12 @@ public class GameLaunchServiceTests
         await File.WriteAllTextAsync(Path.Combine(versionDir, "Vintagestory"), "bin");
 
         var service = new GameLaunchService(
-            new CapturingProcessRunner(),
+            new CapturingSandboxBrokerClient(),
             new RuntimePlatform(),
             new NoopSessionWriter(),
             new StubRuntimeProvisioner(),
-            new StubAccountAuth { ValidateFailure = "Sign in with your Vintage Story game account in Settings." });
+            new StubAccountAuth { ValidateFailure = "Sign in with your Vintage Story game account in Settings." },
+            NullLogger<GameLaunchService>.Instance);
 
         var result = await service.LaunchAsync(new GameLaunchRequest
         {
@@ -226,11 +284,12 @@ public class GameLaunchServiceTests
         await File.WriteAllTextAsync(Path.Combine(versionDir, "Vintagestory"), "bin");
 
         var service = new GameLaunchService(
-            new CapturingProcessRunner(),
+            new CapturingSandboxBrokerClient(),
             new RuntimePlatform(),
             new FailingSessionWriter(),
             new StubRuntimeProvisioner { IsManagedByRelic = false },
-            new StubAccountAuth { Status = new AccountSessionStatus { IsSignedIn = true, PlayerUid = "uid-1" } });
+            new StubAccountAuth { Status = new AccountSessionStatus { IsSignedIn = true, PlayerUid = "uid-1" } },
+            NullLogger<GameLaunchService>.Instance);
 
         var result = await service.LaunchAsync(new GameLaunchRequest
         {
@@ -243,13 +302,16 @@ public class GameLaunchServiceTests
         result.Error.Should().Contain("clientsettings.json");
     }
 
-    private static GameLaunchService CreateService(IProcessRunner runner, IDotNetRuntimeProvisioner provisioner)
+    private static GameLaunchService CreateService(
+        CapturingSandboxBrokerClient broker,
+        StubRuntimeProvisioner? provisioner = null)
         => new(
-            runner,
+            broker,
             new RuntimePlatform(),
             new NoopSessionWriter(),
-            provisioner,
-            new StubAccountAuth { Status = new AccountSessionStatus { IsSignedIn = true, PlayerUid = "uid-1" } });
+            provisioner ?? new StubRuntimeProvisioner { IsManagedByRelic = true },
+            new StubAccountAuth { Status = new AccountSessionStatus { IsSignedIn = true, PlayerUid = "uid-1" } },
+            NullLogger<GameLaunchService>.Instance);
 
     private sealed class NoopSessionWriter : IClientSettingsSessionWriter
     {
@@ -319,27 +381,60 @@ public class GameLaunchServiceTests
         }
     }
 
-    private sealed class CapturingProcessRunner : IProcessRunner
+    private sealed class CapturingSandboxBrokerClient : ISandboxBrokerClient
     {
         public string? LastExecutable { get; private set; }
         public IReadOnlyList<string> LastArguments { get; private set; } = [];
-        public IReadOnlyDictionary<string, string?>? LastEnvironment { get; private set; }
+        public IReadOnlyDictionary<string, string?> LastEnvironment { get; private set; } =
+            new Dictionary<string, string?>(StringComparer.Ordinal);
+        public int LastProcessId { get; private set; }
+        public List<int> KilledProcessIds { get; } = [];
 
-        public Task<Result> StartAsync(
-            string executablePath,
-            IReadOnlyList<string> arguments,
-            CancellationToken cancellationToken = default)
-            => StartAsync(executablePath, arguments, environment: null, cancellationToken);
-
-        public Task<Result> StartAsync(
-            string executablePath,
-            IReadOnlyList<string> arguments,
-            IReadOnlyDictionary<string, string?>? environment,
+        public Task<Result<SandboxLaunchResult>> LaunchSandboxedAsync(
+            SandboxLaunchRequest request,
             CancellationToken cancellationToken = default)
         {
-            LastExecutable = executablePath;
-            LastArguments = arguments.ToList();
-            LastEnvironment = environment;
+            LastExecutable = request.ExecutablePath;
+            LastArguments = request.Arguments.ToList();
+            LastEnvironment = new Dictionary<string, string?>(request.Environment, StringComparer.Ordinal);
+            LastProcessId = Environment.ProcessId;
+            return Task.FromResult(Result<SandboxLaunchResult>.Success(new SandboxLaunchResult
+            {
+                ProcessId = LastProcessId,
+                Sandboxed = false,
+            }));
+        }
+
+        public Task<Result> OpenDirectoryAsync(string directoryPath, CancellationToken cancellationToken = default)
+            => Task.FromResult(Result.Success());
+
+        public Task<Result> OpenUrlAsync(string url, CancellationToken cancellationToken = default)
+            => Task.FromResult(Result.Success());
+
+        public Task<Result> RunInstallerAsync(
+            string installerPath,
+            IReadOnlyList<string> arguments,
+            CancellationToken cancellationToken = default)
+            => Task.FromResult(Result.Success());
+
+        public Task<Result> WriteFileAsync(
+            string destinationPath,
+            byte[] content,
+            CancellationToken cancellationToken = default)
+            => Task.FromResult(Result.Success());
+
+        public Task<byte[]> ReadProcessOutputAsync(int processId, CancellationToken cancellationToken = default)
+            => Task.FromResult(Array.Empty<byte>());
+
+        public Task<Result> WriteProcessInputAsync(
+            int processId,
+            string text,
+            CancellationToken cancellationToken = default)
+            => Task.FromResult(Result.Success());
+
+        public Task<Result> KillProcessAsync(int processId, CancellationToken cancellationToken = default)
+        {
+            KilledProcessIds.Add(processId);
             return Task.FromResult(Result.Success());
         }
     }
