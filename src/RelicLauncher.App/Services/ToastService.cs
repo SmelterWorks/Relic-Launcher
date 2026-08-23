@@ -1,3 +1,4 @@
+using Avalonia;
 using Avalonia.Threading;
 using RelicLauncher.App.ViewModels;
 
@@ -131,13 +132,12 @@ public sealed class ToastService : IToastService
             return;
         }
 
-        try
-        {
-            Dispatcher.UIThread.Invoke(action);
-        }
-        catch (InvalidOperationException)
+        if (Application.Current is null)
         {
             action();
+            return;
         }
+
+        Dispatcher.UIThread.Invoke(action);
     }
 }
