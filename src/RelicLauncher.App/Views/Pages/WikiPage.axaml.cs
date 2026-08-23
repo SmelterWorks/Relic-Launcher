@@ -270,7 +270,7 @@ public partial class WikiPage : UserControl
             var list = await cookies.GetCookiesAsync().ConfigureAwait(true);
             foreach (var cookie in list)
             {
-                cookies.DeleteCookie(cookie.Name, cookie.Path, cookie.Domain);
+                cookies.DeleteCookie(cookie);
             }
         }
         catch
