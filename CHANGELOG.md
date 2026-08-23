@@ -4,7 +4,7 @@ All notable changes to Relic Launcher are listed here.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.2.0]
+## [0.2.0] - 2026-08-22
 
 ### Added
 
@@ -29,6 +29,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- Custom `RelicComboBox` control replaces Avalonia ComboBox so the selected value stays visible in the closed box.
 - Wiki page no longer crashes in the Flatpak build (GNOME Platform with WebKitGTK).
 - Service provider disposes correctly when the sandbox broker host is registered.
 
@@ -51,5 +52,5 @@ First public release.
 - Crash reports on unexpected errors.
 - Release packages: Windows zip, Linux deb/rpm/AppImage/Arch pkg, macOS app bundle. Nightly CI builds.
 
-[0.2.0]: https://github.com/SmelterWorks/Relic-Launcher/compare/v0.1.0...HEAD
+[0.2.0]: https://github.com/SmelterWorks/Relic-Launcher/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/SmelterWorks/Relic-Launcher/releases/tag/v0.1.0
