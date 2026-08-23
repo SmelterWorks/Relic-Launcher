@@ -100,4 +100,16 @@ When a type grows past ~400 lines, split by concern. Match existing naming: `Typ
 
 Already split: `ModpackService.cs`, `.Apply`, `.Export`, `.Local`.
 
+### `WikiPage` (`RelicLauncher.App/Views/Pages/`)
+
+| File | Responsibility |
+|------|----------------|
+| `WikiPage.axaml.cs` | Lifecycle, ViewModel hook/unhook |
+| `WikiPage.WebView.cs` | Create/destroy webview, navigate, reload, history, clear site data |
+| `WikiPage.Navigation.cs` | Navigation and adapter event handlers |
+| `WikiPage.Scroll.cs` | Top-level wheel capture and scroll script invoke |
+| `WikiPage.Layout.cs` | Measure/arrange invalidation after webview resize |
+
+Scroll JS lives in `WikiWebViewScrollScript` under `RelicLauncher.App/Services/`.
+
 Agent entry point for this index: [AGENTS.md](../../../../AGENTS.md) at repo root.

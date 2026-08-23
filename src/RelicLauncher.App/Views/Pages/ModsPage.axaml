@@ -25,24 +25,24 @@
         <Button Classes="primary" Content="Search" Command="{Binding SearchCommand}" IsEnabled="{Binding !IsLoading}" AutomationProperties.Name="Search ModDB" />
       </StackPanel>
       <StackPanel Orientation="Horizontal" Spacing="8">
-        <ComboBox ItemsSource="{Binding SortOptions}"
-                  SelectedItem="{Binding SelectedSortOption}"
-                  VerticalAlignment="Center">
-          <ComboBox.ItemTemplate>
+        <controls:RelicComboBox ItemsSource="{Binding SortOptions}"
+                                SelectedItem="{Binding SelectedSortOption}"
+                                VerticalAlignment="Center">
+          <controls:RelicComboBox.ItemTemplate>
             <DataTemplate x:DataType="vm:ModSortOption">
               <TextBlock Text="{Binding Label}" />
             </DataTemplate>
-          </ComboBox.ItemTemplate>
-        </ComboBox>
-        <ComboBox ItemsSource="{Binding SideFilterOptions}"
-                  SelectedItem="{Binding SelectedSideFilter}"
-                  VerticalAlignment="Center">
-          <ComboBox.ItemTemplate>
+          </controls:RelicComboBox.ItemTemplate>
+        </controls:RelicComboBox>
+        <controls:RelicComboBox ItemsSource="{Binding SideFilterOptions}"
+                                  SelectedItem="{Binding SelectedSideFilter}"
+                                  VerticalAlignment="Center">
+          <controls:RelicComboBox.ItemTemplate>
             <DataTemplate x:DataType="vm:ModSideFilterOption">
               <TextBlock Text="{Binding Label}" />
             </DataTemplate>
-          </ComboBox.ItemTemplate>
-        </ComboBox>
+          </controls:RelicComboBox.ItemTemplate>
+        </controls:RelicComboBox>
         <Button Classes="ghost"
                 Content="{Binding TagsMenuLabel}"
                 VerticalAlignment="Center"
@@ -472,16 +472,16 @@
                          Foreground="{DynamicResource Theme.Danger}"
                          TextWrapping="Wrap"
                          IsVisible="{Binding BlocklistWarning, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-              <ComboBox Classes="combo-fill"
-                        ItemsSource="{Binding SelectedDetails.Releases}"
-                        SelectedItem="{Binding SelectedRelease}"
-                        PlaceholderText="Select release">
-                <ComboBox.ItemTemplate>
+              <controls:RelicComboBox Classes="combo-fill"
+                                      ItemsSource="{Binding SelectedDetails.Releases}"
+                                      SelectedItem="{Binding SelectedRelease}"
+                                      PlaceholderText="Select release">
+                <controls:RelicComboBox.ItemTemplate>
                   <DataTemplate x:DataType="models:ModReleaseInfo">
                     <TextBlock Text="{Binding DisplayLabel}" TextWrapping="NoWrap" />
                   </DataTemplate>
-                </ComboBox.ItemTemplate>
-              </ComboBox>
+                </controls:RelicComboBox.ItemTemplate>
+              </controls:RelicComboBox>
               <StackPanel IsVisible="{Binding IsInstalling}" Spacing="4">
                 <TextBlock Text="{Binding InstallProgressLabel}" Classes="muted" TextWrapping="Wrap" />
                 <ProgressBar Minimum="0" Maximum="1" Value="{Binding InstallProgress}" Height="8" />

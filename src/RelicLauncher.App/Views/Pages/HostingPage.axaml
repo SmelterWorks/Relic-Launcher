@@ -37,10 +37,10 @@
                 <StackPanel Grid.Column="0" Spacing="6">
                   <TextBlock Text="Server version" Classes="settings-field-label" />
                   <StackPanel Orientation="Horizontal" Spacing="8">
-                    <ComboBox ItemsSource="{Binding InstalledServerVersions}"
-                              SelectedItem="{Binding SelectedInstalledVersion}"
-                              PlaceholderText="No server installed"
-                              AutomationProperties.Name="Installed server version" />
+                    <controls:RelicComboBox ItemsSource="{Binding InstalledServerVersions}"
+                                            SelectedItem="{Binding SelectedInstalledVersion}"
+                                            PlaceholderText="No server installed"
+                                            AutomationProperties.Name="Installed server version" />
                     <Button Classes="ghost"
                             Width="36"
                             Height="36"
@@ -70,10 +70,10 @@
                             VerticalAlignment="Bottom"
                             IsVisible="{Binding HasInstallableServerVersions}">
                   <TextBlock Text="Install version" Classes="settings-field-label" />
-                  <ComboBox ItemsSource="{Binding CatalogServerVersions}"
-                            SelectedItem="{Binding SelectedCatalogVersion}"
-                            IsVisible="{Binding ShowCatalogVersionPicker}"
-                            AutomationProperties.Name="Server version to install" />
+                  <controls:RelicComboBox ItemsSource="{Binding CatalogServerVersions}"
+                                          SelectedItem="{Binding SelectedCatalogVersion}"
+                                          IsVisible="{Binding ShowCatalogVersionPicker}"
+                                          AutomationProperties.Name="Server version to install" />
                   <Button Classes="ghost"
                           Content="Install"
                           Command="{Binding InstallSelectedVersionCommand}"

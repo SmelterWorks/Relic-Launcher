@@ -1,0 +1,90 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="using:RelicLauncher.App.Views.Controls"
+             x:Class="RelicLauncher.App.Views.Controls.RelicComboBox"
+             x:Name="Root"
+             MinHeight="32"
+             HorizontalAlignment="Left"
+             VerticalAlignment="Center">
+  <Grid>
+    <Border x:Name="Chrome"
+            Background="{DynamicResource Theme.Bg2}"
+            BorderBrush="{DynamicResource Theme.Border}"
+            BorderThickness="1"
+            CornerRadius="{DynamicResource Theme.Radius}"
+            MinHeight="32"
+            MaxHeight="36"
+            PointerPressed="OnChromePointerPressed">
+      <Grid ColumnDefinitions="*,Auto">
+        <Panel Grid.Column="0"
+               Margin="10,4,0,4"
+               VerticalAlignment="Center">
+          <TextBlock x:Name="PlaceholderTextBlock"
+                     Text="{Binding #Root.PlaceholderText}"
+                     Foreground="{DynamicResource Theme.TextMuted}"
+                     FontSize="14"
+                     TextWrapping="NoWrap"
+                     VerticalAlignment="Center"
+                     IsVisible="False" />
+          <TextBlock x:Name="SelectedText"
+                     Foreground="{DynamicResource Theme.Text}"
+                     FontSize="14"
+                     TextWrapping="NoWrap"
+                     VerticalAlignment="Center"
+                     IsVisible="False" />
+        </Panel>
+        <Path Grid.Column="1"
+              Width="8"
+              Height="8"
+              Margin="8,0,10,0"
+              Stretch="Uniform"
+              IsHitTestVisible="False"
+              VerticalAlignment="Center"
+              Fill="{DynamicResource Theme.Text}"
+              Data="M 0,0 L 8,0 L 4,5 Z" />
+      </Grid>
+    </Border>
+    <Popup x:Name="DropDownPopup"
+           IsOpen="{Binding #Root.IsDropDownOpen, Mode=TwoWay}"
+           PlacementTarget="{Binding #Chrome}"
+           MinWidth="{Binding #Chrome.Bounds.Width}"
+           MaxHeight="{Binding #Root.MaxDropDownHeight}"
+           IsLightDismissEnabled="True"
+           WindowManagerAddShadowHint="False">
+      <Border Background="{DynamicResource Theme.Bg2}"
+              BorderBrush="{DynamicResource Theme.Border}"
+              BorderThickness="1"
+              CornerRadius="{DynamicResource Theme.Radius}"
+              Padding="0,4">
+        <ScrollViewer HorizontalScrollBarVisibility="Disabled"
+                      VerticalScrollBarVisibility="Auto">
+          <ListBox x:Name="ItemsList"
+                   Background="Transparent"
+                   BorderThickness="0"
+                   ItemsSource="{Binding #Root.ItemsSource}"
+                   SelectedItem="{Binding #Root.SelectedItem, Mode=TwoWay}"
+                   SelectionChanged="OnItemsListSelectionChanged">
+            <ListBox.Styles>
+              <Style Selector="ListBoxItem">
+                <Setter Property="Padding" Value="10,4" />
+                <Setter Property="MinHeight" Value="28" />
+                <Setter Property="FontSize" Value="14" />
+                <Setter Property="Foreground" Value="{DynamicResource Theme.Text}" />
+                <Setter Property="HorizontalContentAlignment" Value="Left" />
+              </Style>
+              <Style Selector="ListBoxItem:pointerover /template/ ContentPresenter">
+                <Setter Property="Background" Value="{DynamicResource Theme.AccentMuted}" />
+              </Style>
+              <Style Selector="ListBoxItem:selected /template/ ContentPresenter">
+                <Setter Property="Background" Value="{DynamicResource Theme.AccentMuted}" />
+              </Style>
+              <Style Selector="ListBoxItem TextBlock">
+                <Setter Property="Foreground" Value="{DynamicResource Theme.Text}" />
+              </Style>
+            </ListBox.Styles>
+          </ListBox>
+        </ScrollViewer>
+      </Border>
+    </Popup>
+  </Grid>
+</UserControl>

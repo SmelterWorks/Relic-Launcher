@@ -56,24 +56,24 @@
                    Height="40"
                    VerticalContentAlignment="Center"
                    AutomationProperties.Name="Search servers" />
-          <ComboBox ItemsSource="{Binding SortOptions}"
-                    SelectedItem="{Binding SelectedSortOption}"
-                    VerticalAlignment="Center">
-            <ComboBox.ItemTemplate>
+          <controls:RelicComboBox ItemsSource="{Binding SortOptions}"
+                                  SelectedItem="{Binding SelectedSortOption}"
+                                  VerticalAlignment="Center">
+            <controls:RelicComboBox.ItemTemplate>
               <DataTemplate x:DataType="vm:ServerSortOption">
                 <TextBlock Text="{Binding Label}" />
               </DataTemplate>
-            </ComboBox.ItemTemplate>
-          </ComboBox>
-          <ComboBox ItemsSource="{Binding VersionFilterOptions}"
-                    SelectedItem="{Binding SelectedVersionFilter}"
-                    VerticalAlignment="Center">
-            <ComboBox.ItemTemplate>
+            </controls:RelicComboBox.ItemTemplate>
+          </controls:RelicComboBox>
+          <controls:RelicComboBox ItemsSource="{Binding VersionFilterOptions}"
+                                    SelectedItem="{Binding SelectedVersionFilter}"
+                                    VerticalAlignment="Center">
+            <controls:RelicComboBox.ItemTemplate>
               <DataTemplate x:DataType="vm:ServerVersionFilterOption">
                 <TextBlock Text="{Binding Label}" />
               </DataTemplate>
-            </ComboBox.ItemTemplate>
-          </ComboBox>
+            </controls:RelicComboBox.ItemTemplate>
+          </controls:RelicComboBox>
         </StackPanel>
         <StackPanel Orientation="Horizontal" Spacing="12">
           <CheckBox Content="Has players" IsChecked="{Binding FilterHasPlayers}" />

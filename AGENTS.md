@@ -21,6 +21,7 @@ Large types use **partial classes** split by concern. Do not grow a single `.cs`
 | `ModDbClient` | `.cs` (HTTP, catalog, search), `.Parse`, `.Cache` |
 | `SettingsViewModel` | `.cs` (state, bind, autosave), `.Paths`, `.Account`, `.Reset`, `.Debug` |
 | `ModpackService` | `.cs`, `.Apply`, `.Export`, `.Local` |
+| `WikiPage` | `.axaml.cs` (lifecycle), `.WebView`, `.Navigation`, `.Scroll`, `.Layout` |
 
 Put new logic in the smallest matching partial or extract a service under `RelicLauncher.App/Services` or `RelicLauncher.Infrastructure`.
 
