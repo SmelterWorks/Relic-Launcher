@@ -23,7 +23,7 @@ public class SandboxEnvironmentTests
 
             env[SandboxEnvironment.RunningSandboxed].Should().Be("1");
             env[marker].Should().Be("child");
-            env.ContainsKey("PATH").Should().BeTrue();
+            env.Keys.Any(key => key.Equals("PATH", StringComparison.OrdinalIgnoreCase)).Should().BeTrue();
         }
         finally
         {

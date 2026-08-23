@@ -131,6 +131,13 @@ public sealed class ToastService : IToastService
             return;
         }
 
-        Dispatcher.UIThread.Post(action);
+        try
+        {
+            Dispatcher.UIThread.Invoke(action);
+        }
+        catch (InvalidOperationException)
+        {
+            action();
+        }
     }
 }
