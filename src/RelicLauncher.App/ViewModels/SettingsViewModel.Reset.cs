@@ -32,6 +32,7 @@ public partial class SettingsViewModel
         DataPath = platform.DefaultDataPath;
         SelectedVersion = string.Empty;
         ConfirmBeforeExit = false;
+        UseNativeTitleBar = false;
         WarnOnBlockedMods = true;
         ModUpdateMode = ModUpdateMode.Prompt;
         SelectedModUpdateModeOption = ModUpdateModeOptions.FirstOrDefault(o => o.Mode == ModUpdateMode.Prompt);
@@ -52,6 +53,7 @@ public partial class SettingsViewModel
         AccountError = string.Empty;
         StatusMessage = "Settings restored to defaults.";
         _isBinding = false;
+        ApplyMainWindowChrome();
         var generation = Interlocked.Increment(ref _saveGeneration);
         await PersistSettingsAsync(generation).ConfigureAwait(true);
         SetSaveStatus("Saved defaults");

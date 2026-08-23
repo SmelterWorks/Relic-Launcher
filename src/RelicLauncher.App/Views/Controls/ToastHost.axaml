@@ -3,8 +3,10 @@
              xmlns:vm="using:RelicLauncher.App.ViewModels"
              xmlns:i="https://github.com/projektanker/icons.avalonia"
              x:Class="RelicLauncher.App.Views.Controls.ToastHost"
-             x:DataType="vm:ToastHostViewModel">
+             x:DataType="vm:ToastHostViewModel"
+             IsHitTestVisible="False">
   <ItemsControl ItemsSource="{Binding Items}"
+                IsHitTestVisible="False"
                 VerticalAlignment="Bottom"
                 HorizontalAlignment="Right"
                 Margin="0,0,24,24">
@@ -20,6 +22,7 @@
                 Classes.success="{Binding IsSuccess}"
                 Classes.warning="{Binding IsWarning}"
                 Classes.error="{Binding IsError}"
+                IsHitTestVisible="True"
                 MinWidth="320"
                 MaxWidth="420">
           <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">

@@ -231,6 +231,10 @@
 
             <CheckBox Content="Ask before closing Relic"
                       IsChecked="{Binding ConfirmBeforeExit}" />
+            <CheckBox Content="Use native window title bar"
+                      IsChecked="{Binding UseNativeTitleBar}" />
+            <TextBlock Text="When enabled, the OS title bar is shown and custom window controls are hidden."
+                       Classes="settings-field-hint" />
             <CheckBox Content="Warn before installing mods on the official blocklist"
                       IsChecked="{Binding WarnOnBlockedMods}" />
 

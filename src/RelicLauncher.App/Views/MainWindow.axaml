@@ -35,7 +35,10 @@
       </Transitions>
     </Grid.Transitions>
 
-    <Grid ColumnDefinitions="240,*">
+    <Grid x:Name="ShellGrid" RowDefinitions="36,*">
+      <controls:WindowChrome x:Name="CustomChrome" Grid.Row="0" />
+
+      <Grid Grid.Row="1" ColumnDefinitions="240,*">
       <Border Grid.Column="0"
               Background="{DynamicResource Theme.Bg1}"
               BorderBrush="{DynamicResource Theme.Border}"
@@ -174,10 +177,68 @@
         </Style>
       </ContentControl.Styles>
     </ContentControl>
+      </Grid>
     </Grid>
 
+    <Panel x:Name="NorthWestResizeGrip"
+           Width="14"
+           Height="14"
+           HorizontalAlignment="Left"
+           VerticalAlignment="Top"
+           ZIndex="50"
+           WindowDecorationProperties.ElementRole="ResizeNW" />
+    <Panel x:Name="NorthEastResizeGrip"
+           Width="14"
+           Height="14"
+           HorizontalAlignment="Right"
+           VerticalAlignment="Top"
+           ZIndex="50"
+           WindowDecorationProperties.ElementRole="ResizeNE" />
+    <Panel x:Name="SouthWestResizeGrip"
+           Width="14"
+           Height="14"
+           HorizontalAlignment="Left"
+           VerticalAlignment="Bottom"
+           ZIndex="50"
+           WindowDecorationProperties.ElementRole="ResizeSW" />
+    <Panel x:Name="SouthEastResizeGrip"
+           Width="14"
+           Height="14"
+           HorizontalAlignment="Right"
+           VerticalAlignment="Bottom"
+           ZIndex="50"
+           WindowDecorationProperties.ElementRole="ResizeSE" />
+    <Panel x:Name="NorthResizeGrip"
+           Height="6"
+           VerticalAlignment="Top"
+           HorizontalAlignment="Stretch"
+           Margin="14,0,14,0"
+           ZIndex="50"
+           WindowDecorationProperties.ElementRole="ResizeN" />
+    <Panel x:Name="SouthResizeGrip"
+           Height="6"
+           VerticalAlignment="Bottom"
+           HorizontalAlignment="Stretch"
+           Margin="14,0,14,0"
+           ZIndex="50"
+           WindowDecorationProperties.ElementRole="ResizeS" />
+    <Panel x:Name="WestResizeGrip"
+           Width="6"
+           HorizontalAlignment="Left"
+           VerticalAlignment="Stretch"
+           Margin="0,14,0,14"
+           ZIndex="50"
+           WindowDecorationProperties.ElementRole="ResizeW" />
+    <Panel x:Name="EastResizeGrip"
+           Width="6"
+           HorizontalAlignment="Right"
+           VerticalAlignment="Stretch"
+           Margin="0,14,0,14"
+           ZIndex="50"
+           WindowDecorationProperties.ElementRole="ResizeE" />
+
     <controls:ToastHost DataContext="{Binding ToastHost}"
-                        IsHitTestVisible="True"
+                        IsHitTestVisible="False"
                         ZIndex="100" />
   </Grid>
 </Window>

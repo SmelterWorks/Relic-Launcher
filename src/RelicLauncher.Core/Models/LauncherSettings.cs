@@ -29,4 +29,5 @@ public sealed class LauncherSettings
     public EndpointSettings Endpoints { get; set; } = EndpointSettings.CreateDefaults();
 
     public bool ProcessIsolationEnabled { get; set; } = true;
+    public bool UseNativeTitleBar { get; set; }
 }

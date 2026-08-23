@@ -16,6 +16,7 @@ public class LauncherSettingsTests
         settings.HomeBackgroundLogoMode.Should().Be(HomeBackgroundLogoMode.Square);
         settings.HomeBackgroundLogoOpacity.Should().Be(RelicDefaults.HomeBackgroundLogoOpacity);
         settings.ConfirmBeforeExit.Should().BeFalse();
+        settings.UseNativeTitleBar.Should().BeFalse();
         settings.ModUpdateMode.Should().Be(ModUpdateMode.Prompt);
         settings.LauncherUpdateMode.Should().Be(LauncherUpdateMode.Prompt);
         settings.LauncherUpdateChannel.Should().Be(LauncherUpdateChannel.Stable);

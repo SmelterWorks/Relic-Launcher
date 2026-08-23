@@ -1,0 +1,56 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:i="https://github.com/projektanker/icons.avalonia"
+             x:Class="RelicLauncher.App.Views.Controls.WindowChrome"
+             x:Name="WindowChromeRoot"
+             MinHeight="36"
+             AutomationProperties.Name="Window chrome">
+  <Border Background="{DynamicResource Theme.Bg1}"
+          BorderBrush="{DynamicResource Theme.Border}"
+          BorderThickness="0,0,0,1"
+          WindowDecorationProperties.ElementRole="TitleBar"
+          PointerPressed="OnTitleBarPointerPressed">
+    <Grid ColumnDefinitions="*,Auto" Margin="12,0,0,0">
+      <StackPanel Orientation="Horizontal"
+                  Spacing="8"
+                  VerticalAlignment="Center"
+                  IsHitTestVisible="False">
+        <Image Source="/Assets/Icons/icon.ico"
+               Width="16"
+               Height="16"
+               VerticalAlignment="Center" />
+        <TextBlock Text="Relic Launcher"
+                   Classes="muted"
+                   FontSize="12"
+                   VerticalAlignment="Center" />
+      </StackPanel>
+
+      <StackPanel Grid.Column="1"
+                  Orientation="Horizontal"
+                  VerticalAlignment="Stretch">
+        <Button Classes="window-chrome"
+                WindowDecorationProperties.ElementRole="User"
+                ToolTip.Tip="Minimize"
+                AutomationProperties.Name="Minimize window"
+                Click="OnMinimizeClick">
+          <i:Icon Value="mdi-window-minimize" Width="14" Height="14" />
+        </Button>
+        <Button Classes="window-chrome"
+                x:Name="MaximizeButton"
+                WindowDecorationProperties.ElementRole="User"
+                ToolTip.Tip="Maximize"
+                AutomationProperties.Name="Maximize window"
+                Click="OnMaximizeClick">
+          <i:Icon x:Name="MaximizeIcon" Value="mdi-window-maximize" Width="14" Height="14" />
+        </Button>
+        <Button Classes="window-chrome close"
+                WindowDecorationProperties.ElementRole="User"
+                ToolTip.Tip="Close"
+                AutomationProperties.Name="Close window"
+                Click="OnCloseClick">
+          <i:Icon Value="mdi-close" Width="14" Height="14" />
+        </Button>
+      </StackPanel>
+    </Grid>
+  </Border>
+</UserControl>

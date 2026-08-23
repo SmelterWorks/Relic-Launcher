@@ -5,6 +5,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
 using RelicLauncher.App.Services;
+using RelicLauncher.App.Views;
 using RelicLauncher.Core.Abstractions;
 using RelicLauncher.Core.Constants;
 using RelicLauncher.Core.Models;
@@ -23,6 +24,7 @@ public partial class SettingsViewModel : PageViewModelBase
     private readonly IDebugLogBuffer _debugLogBuffer;
     private readonly IConfirmDialogService _confirmDialog;
     private readonly ISandboxSupport _sandboxSupport;
+    private readonly MainWindowHolder _windowHolder;
     private readonly ILogger<SettingsViewModel> _logger;
     private Action<LauncherSettings>? _onChanged;
     private Action? _navigateToVersions;
@@ -71,6 +73,9 @@ public partial class SettingsViewModel : PageViewModelBase
 
     [ObservableProperty]
     private bool _confirmBeforeExit;
+
+    [ObservableProperty]
+    private bool _useNativeTitleBar;
 
     [ObservableProperty]
     private bool _warnOnBlockedMods = true;
@@ -147,6 +152,7 @@ public partial class SettingsViewModel : PageViewModelBase
         IDebugLogBuffer debugLogBuffer,
         IConfirmDialogService confirmDialog,
         ISandboxSupport sandboxSupport,
+        MainWindowHolder windowHolder,
         ILogger<SettingsViewModel> logger)
     {
         _settingsStore = settingsStore;
@@ -159,6 +165,7 @@ public partial class SettingsViewModel : PageViewModelBase
         _debugLogBuffer = debugLogBuffer;
         _confirmDialog = confirmDialog;
         _sandboxSupport = sandboxSupport;
+        _windowHolder = windowHolder;
         _logger = logger;
         Themes = _themeService.AvailableThemes;
         LogoModeOptions =
@@ -251,6 +258,16 @@ public partial class SettingsViewModel : PageViewModelBase
 
     partial void OnConfirmBeforeExitChanged(bool value) => ScheduleAutoSave();
 
+    partial void OnUseNativeTitleBarChanged(bool value)
+    {
+        if (!_isBinding)
+        {
+            ApplyMainWindowChrome();
+        }
+
+        ScheduleAutoSave();
+    }
+
     partial void OnWarnOnBlockedModsChanged(bool value) => ScheduleAutoSave();
 
     partial void OnSelectedModUpdateModeOptionChanged(ModUpdateModeOption? value)
@@ -301,6 +318,7 @@ public partial class SettingsViewModel : PageViewModelBase
         DataPath = settings.DataPath ?? platform.DefaultDataPath;
         SelectedVersion = settings.SelectedVersion ?? string.Empty;
         ConfirmBeforeExit = settings.ConfirmBeforeExit;
+        UseNativeTitleBar = settings.UseNativeTitleBar;
         WarnOnBlockedMods = settings.WarnOnBlockedMods;
         ModUpdateMode = settings.ModUpdateMode;
         SelectedModUpdateModeOption = ModUpdateModeOptions.FirstOrDefault(o => o.Mode == settings.ModUpdateMode)
@@ -418,6 +436,7 @@ public partial class SettingsViewModel : PageViewModelBase
                 : Path.Combine(InstallsRoot.Trim(), "versions", SelectedVersion.Trim()),
             SelectedThemeId = SelectedTheme?.Id ?? LauncherSettings.DefaultThemeId,
             ConfirmBeforeExit = ConfirmBeforeExit,
+            UseNativeTitleBar = UseNativeTitleBar,
             WarnOnBlockedMods = WarnOnBlockedMods,
             ModUpdateMode = SelectedModUpdateModeOption?.Mode ?? ModUpdateMode.Prompt,
             ModUpdateOptOutModIds = _modUpdateOptOutModIds,
@@ -480,6 +499,14 @@ public partial class SettingsViewModel : PageViewModelBase
     {
         SaveStatusMessage = message;
         SaveStatusIsError = isError;
+    }
+
+    private void ApplyMainWindowChrome()
+    {
+        if (_windowHolder.Window is MainWindow mainWindow)
+        {
+            mainWindow.ApplyWindowChrome(UseNativeTitleBar);
+        }
     }
 
     private static string TrimOrDefault(string? value, string fallback)

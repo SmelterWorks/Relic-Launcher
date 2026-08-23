@@ -63,6 +63,33 @@
     <Setter Property="CornerRadius" Value="{DynamicResource Theme.Radius}" />
   </Style>
 
+  <Style Selector="Button.window-chrome">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource Theme.TextMuted}" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Width" Value="46" />
+    <Setter Property="Height" Value="36" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="Transitions">
+      <Transitions>
+        <BrushTransition Property="Background" Duration="0:0:0.12" />
+        <BrushTransition Property="Foreground" Duration="0:0:0.12" />
+      </Transitions>
+    </Setter>
+  </Style>
+
+  <Style Selector="Button.window-chrome:pointerover">
+    <Setter Property="Background" Value="{DynamicResource Theme.Bg2}" />
+    <Setter Property="Foreground" Value="{DynamicResource Theme.Text}" />
+  </Style>
+
+  <Style Selector="Button.window-chrome.close:pointerover">
+    <Setter Property="Background" Value="{DynamicResource Theme.Danger}" />
+    <Setter Property="Foreground" Value="#FFFFFF" />
+  </Style>
+
   <Style Selector="Button.nav">
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="Foreground" Value="{DynamicResource Theme.TextMuted}" />
