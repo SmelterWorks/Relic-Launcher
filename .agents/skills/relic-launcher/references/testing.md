@@ -20,11 +20,11 @@
 
 ## Mutation testing (Stryker.NET)
 
-- Tool: `dotnet-stryker` 4.16.0 in `.config/dotnet-tools.json` (required for .NET 10 / Buildalyzer 8+).
+- Tool: `dotnet-stryker` 5.0.0 in `.config/dotnet-tools.json` (required for .NET 10 / Buildalyzer 8+).
 - Config: `stryker.core.json`, `stryker.infrastructure.json`
 - Solution: **`RelicLauncher.Mutation.sln`** (Core + Infrastructure + test projects only). Full `RelicLauncher.sln` includes Avalonia App and breaks Stryker analysis.
 - Output: `StrykerOutput/` (gitignored)
-- CI: `mutation-test` job in `ci.yml` on Ubuntu
+- CI: `mutation-test` job in `nightly.yml` on Ubuntu (not per-PR)
 
 Thresholds (approximate targets):
 
